@@ -1,0 +1,9 @@
+{
+  "id": "brute",
+  "name": "Brute",
+  "hp": 220,
+  "speed": 0.03,
+  "bounty": 20,
+  "livesCost": 2,
+  "_untuned": "Placeholder values. Half the runner's speed, roughly 3.7x its health."
+}

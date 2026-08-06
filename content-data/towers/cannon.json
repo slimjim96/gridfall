@@ -1,0 +1,12 @@
+{
+  "id": "cannon",
+  "name": "Cannon",
+  "cost": 90,
+  "range": 2.5,
+  "cooldown": 1.5,
+  "damage": 40,
+  "projectileSpeed": 0.5,
+  "targeting": "furthest-along-path",
+  "sellValue": 45,
+  "_untuned": "Placeholder values. No balance pass has run. See content-data/docs/balance-targets.md."
+}

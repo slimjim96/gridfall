@@ -1,0 +1,12 @@
+{
+  "id": "arrow-tower",
+  "name": "Arrow Tower",
+  "cost": 50,
+  "range": 3.0,
+  "cooldown": 0.6,
+  "damage": 12,
+  "projectileSpeed": 0.8,
+  "targeting": "furthest-along-path",
+  "sellValue": 25,
+  "_untuned": "Placeholder values. No balance pass has run. See content-data/docs/balance-targets.md."
+}

@@ -12,9 +12,9 @@ export_presets.cfg
 # Generated from content-data JSON — never hand-edited, never committed
 godot/resources/generated/
 
-# Determinism traces are large and regenerable; the hash in the release note is the record
-Gridfall.Verify/traces/*.trace
-!Gridfall.Verify/traces/.gitkeep
+# Determinism traces ARE committed. They are the regression fixtures -- `Verify replay`
+# has nothing to check without them, and a trace that only exists on one machine
+# cannot catch a platform divergence, which is most of what it is for.
 
 # OS
 .DS_Store

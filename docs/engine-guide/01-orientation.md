@@ -20,14 +20,20 @@ the harness it is a `for` loop running as fast as the CPU allows. Both produce i
 ## The projects
 
 ```
-Gridfall.Core/       net8.0 class library. The simulation. No Godot, no floats, no clock.
-Gridfall.Verify/     Console app. Determinism harness + headless balance sim.
-Gridfall.Tests/      xUnit over Core.
-godot/               The Godot 4 project (Godot.NET.Sdk). Presentation + the board editor.
+Gridfall.Core/       net8.0  class library. The simulation. No Godot, no floats, no clock.
+Gridfall.Verify/     net10.0 console app. Determinism harness + balance sim + map report.
+Gridfall.Tests/      net10.0 xUnit over Core.
+godot/               The Godot 4 project. Presentation + the board editor. NOT YET BUILT.
 ```
 
-`Gridfall.Core.csproj` must never reference `GodotSharp`. Stage 05 verification greps for it, and a
-reference fails the slice. See [ADR-0001](../../engine-systems/decisions/ADR-0001-core-view-boundary.md).
+**Why the split targets:** Core is `net8.0` because Godot 4.6's `Godot.NET.Sdk` targets it. Verify and
+Tests are `net10.0` because that is the only runtime installed on the dev box — a `net8.0` console app
+cannot run here. A `net10.0` app referencing a `net8.0` library is fine, and Core stays
+Godot-compatible, which is the constraint that actually matters.
+
+`Gridfall.Core.csproj` must never reference `GodotSharp`. `SourcePurityTests` greps for it on every
+`dotnet test`, and a reference fails the build. See
+[ADR-0001](../../engine-systems/decisions/ADR-0001-core-view-boundary.md).
 
 ## Namespace layout inside Core
 

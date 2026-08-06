@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- net8.0 because Godot 4.6's Godot.NET.Sdk targets it. Do not raise this
+         without checking the Godot project still builds. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+
+    <!-- Core is the deterministic simulation. Warnings here are defects. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+
+    <!-- No Godot. No exceptions. See ADR-0001. -->
+    <AssemblyName>Gridfall.Core</AssemblyName>
+    <RootNamespace>Gridfall.Core</RootNamespace>
+  </PropertyGroup>
+
+</Project>

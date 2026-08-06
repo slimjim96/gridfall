@@ -3,10 +3,13 @@
 The manual for working inside `Gridfall.Core`. Written for a developer who has to change something and
 needs to know what will break.
 
-> **Status: this documents the engine as specified, not as written.** No code exists yet. Until it
-> does, this guide *is* the engine spec — the thing implementations are checked against. Once the code
-> exists, this becomes the manual, and any divergence between the two is a bug in one of them. Say
-> which one when you find it.
+> **Status: chapters 01–08 now describe code that exists and passes its tests.** `Gridfall.Core`,
+> `Gridfall.Tests` (70 tests), and `Gridfall.Verify` are built; the Godot view layer and the board
+> editor are not. Chapters 09 and 10 are recipes — 09 uses a burning-status example that is not
+> implemented, and 10 crosses into presentation, which does not exist yet.
+>
+> Any divergence between this guide and the code is a bug in one of them. Say which one when you
+> find it.
 
 ## Read in this order, first time
 

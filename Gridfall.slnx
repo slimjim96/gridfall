@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Gridfall.Core/Gridfall.Core.csproj" />
+  <Project Path="Gridfall.Tests/Gridfall.Tests.csproj" />
+  <Project Path="Gridfall.Verify/Gridfall.Verify.csproj" />
+</Solution>

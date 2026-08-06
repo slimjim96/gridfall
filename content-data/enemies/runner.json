@@ -1,0 +1,9 @@
+{
+  "id": "runner",
+  "name": "Runner",
+  "hp": 60,
+  "speed": 0.06,
+  "bounty": 8,
+  "livesCost": 1,
+  "_untuned": "Placeholder values. speed is cells per tick; 0.06 is 1.8 cells/second at 30 Hz."
+}

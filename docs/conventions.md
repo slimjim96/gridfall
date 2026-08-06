@@ -12,7 +12,7 @@ There is no tracker. The name of a file is its state.
 | `[slug]-requirements.md` | `path-recompute-requirements.md` | Pipeline stage 01 artifact |
 | `[slug]-design.md` | `path-recompute-design.md` | Stage 02 |
 | `[slug]-architecture.md` | `path-recompute-architecture.md` | Stage 03 |
-| `[slug]/` | `path-recompute/` | Stage 04 — a folder of code + `build-notes.md` |
+| `[slug]/` | `core-foundation/` | Stage 04 — `build-notes.md`, and any slice-local working files |
 | `[slug]-report.md` | `path-recompute-report.md` | Stage 05 |
 | `[slug]-v[n].md` | `path-recompute-v1.md` | Stage 06, versioned |
 | `ADR-[nnnn]-[slug].md` | `ADR-0003-flow-field-pathfinding.md` | Decision record |
@@ -33,6 +33,14 @@ file, naming what you are waiting on and who owns it. It is visible where it mat
   `content-data/towers/frost-spire.json`.
 - Godot `.tres` resources are **generated** from that JSON at import. Never hand-edit a `.tres`.
 - A data file with no matching entry in `content-data/docs/balance-targets.md` is incomplete.
+
+## Where the source lives
+
+**Source code lives at the repository root, not in the pipeline stage folder.** A .NET solution needs
+stable project paths, and the Godot project must reference `Gridfall.Core` from a fixed location.
+
+`production/04-build/[slug]/` holds the slice's `build-notes.md` and points at the files it touched.
+The pipeline tracks the *narrative* of a slice; the compiler tracks the code.
 
 ## Code
 

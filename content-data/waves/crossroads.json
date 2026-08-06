@@ -1,0 +1,26 @@
+{
+  "map": "crossroads",
+  "_untuned": "Placeholder wave table. No balance sim has run against it.",
+  "waves": [
+    {
+      "index": 1,
+      "entries": [
+        { "enemy": "runner", "count": 8, "spacingTicks": 18, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 2,
+      "entries": [
+        { "enemy": "runner", "count": 12, "spacingTicks": 15, "spawn": 0 },
+        { "enemy": "brute", "count": 2, "spacingTicks": 60, "delayTicks": 120, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 3,
+      "entries": [
+        { "enemy": "runner", "count": 16, "spacingTicks": 12, "spawn": 0 },
+        { "enemy": "brute", "count": 4, "spacingTicks": 45, "delayTicks": 90, "spawn": 0 }
+      ]
+    }
+  ]
+}

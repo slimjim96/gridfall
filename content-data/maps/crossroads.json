@@ -1,0 +1,26 @@
+{
+  "id": "crossroads",
+  "version": 1,
+  "width": 20,
+  "height": 9,
+  "cells": [
+    "####################",
+    "#bb..bb..bb..bb..bb#",
+    "#bb.#bb.#bb.#bb.#bb#",
+    "#bb..bb..bb..bb..bb#",
+    "S.bbbbbbbbbbbbbbbb.G",
+    "#bb..bb..bb..bb..bb#",
+    "#bb.#bb.#bb.#bb.#bb#",
+    "#bb..bb..bb..bb..bb#",
+    "####################"
+  ],
+  "spawns": [{ "x": 0, "y": 4 }],
+  "goal": { "x": 19, "y": 4 },
+  "startingGold": 200,
+  "startingLives": 20,
+  "meta": {
+    "author": "hand-authored",
+    "created": "2026-08-06",
+    "note": "First playable map. Untuned: geometry is inside the MapTargets bands (42% buildable, 19-cell unmazed path) but no balance pass has run against it."
+  }
+}

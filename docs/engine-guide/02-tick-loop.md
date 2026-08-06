@@ -17,7 +17,7 @@ public void Tick()
     ResolveProjectiles();   // 6
     ResolveDamage();        // 7
     UpdateEconomy();        // 8
-    Finalize();             // 9  — emit events, ++tick, compute hash
+    FinalizeTick();         // 9  — flush events, ++tick, hash on demand
 }
 ```
 
@@ -94,12 +94,19 @@ If damage were applied inline in phase 5, the answer would depend on tower itera
 Bounties from deaths this tick, income, and life loss from leaks. Single-threaded integer arithmetic
 over an ordered list — nothing interesting happens here, which is the point.
 
-### 9 · Finalize — `Sim`
+### 9 · Finalize — `Sim.FinalizeTick`
 
-Flush the event log for the renderer, increment `TickCount`, compute the state hash.
+Close out the wave if it is complete, then increment `TickCount`.
 
-The hash is computed **last**, over everything. If your state is not folded in here, the harness cannot
-see it change. See [Chapter 04](04-state-and-entities.md).
+The event log is cleared at the *top* of the next tick rather than the bottom of this one, so a caller
+can read `sim.Events` after `Tick()` returns — which is what the renderer and the harness both need.
+
+`Hash()` is a method, not a phase: it reads the finished state whenever someone asks. It must see
+everything the tick did, so anything not folded into it is invisible to the harness. See
+[Chapter 04](04-state-and-entities.md).
+
+*(The method is `FinalizeTick`, not `Finalize` — the latter collides with `Object.Finalize` and C#
+rejects it.)*
 
 ## Why the order is what it is
 
