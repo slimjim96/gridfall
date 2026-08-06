@@ -26,12 +26,15 @@ Tools serve the developer, not the player. Design intent is not an input here.
 
 1. **[deterministic]** Name the friction, concretely and with a number. "Editing a map takes twenty
    minutes of hand-writing JSON and two typos" is a reason. "The editor could be nicer" is not.
-2. **[deterministic]** Check the spec. The board editor's v1 scope is **closed**: map geometry and
-   playtest. Wave composition and live validation are out by decision. Extending scope needs a spec
+2. **[deterministic]** Check the spec. The board editor's v1 scope is **closed**: map geometry,
+   playtest, and live validation. Wave composition is out by decision. Extending scope needs a spec
    change first, and the spec change is a conversation with the human — **gap detection: ask.**
 3. **[deterministic]** Find what the game already does, and reuse it. Before writing anything:
    - Picking? → `IsoGrid` ray-to-plane. Not a new implementation.
    - Reading or writing content? → `ContentLoader` and its validator.
+   - Judging whether a map is legal? → `ContentLoader`'s validator, again. The editor surfaces its
+     verdict earlier; it never forms one.
+   - Routes, reachability, the overlay? → `PathSystem.Build`, the same call tick phase 2 makes.
    - Running the sim? → the real `Sim`, real `ContentSet`, real renderer.
    Writing a second version of any of these is the primary failure mode of this workflow.
 4. **[model call: leaf generation]** Build it. Dev-only code under `godot/Dev/`; CLI code in
@@ -76,6 +79,8 @@ Verified how: …
 
 - **Reimplementing the game's code.** A second picker or a second validator drifts, and then the editor
   and the game disagree about what a legal map is. That is worse than having no editor.
+- **Reporting an estimate as a fact.** The editor's maze check is a greedy lower bound. Say so wherever
+  it appears — a number that looks exact will be quoted as one.
 - **Scope creep past the spec.** "While I was in there I added wave editing" is a v2 with no spec, no
   review, and no end.
 - **Dev code in a release build.** Verify the export. Every time.

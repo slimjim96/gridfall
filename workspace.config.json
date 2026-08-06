@@ -448,7 +448,8 @@
       "notes": [
         "Dev-only scene inside the game project; stripped from release builds",
         "Writes map JSON to content-data/maps/ — the same files the game loads",
-        "v1 scope is map geometry plus playtest. Wave editing and live validation are deliberately out"
+        "Validates live as you paint, using the game's own validator — errors block save, warnings never do",
+        "v1 scope is map geometry, playtest, and live validation. Wave editing is deliberately out"
       ]
     }
   ]

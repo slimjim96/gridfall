@@ -23,13 +23,16 @@ reimplementing it.
 ## The Process
 
 1. Name what is slow. A tool with no measured friction behind it is a side project.
-2. Check the spec before extending. The board editor's v1 scope is deliberately closed — geometry and
-   playtest. Wave editing and live validation are out **by decision**, not by omission.
-3. Reuse, never reimplement. Picking uses `IsoGrid`. Saving uses `ContentLoader`'s validator. Playtest
-   uses the real `Sim`. If you are writing a second version of something the game has, stop.
-4. Keep dev-only code in `godot/Dev/`, excluded from release exports. Verify the exclusion; don't
+2. Check the spec before extending. The board editor's v1 scope is deliberately closed — geometry,
+   playtest, and live validation. Wave editing is out **by decision**, not by omission.
+3. Reuse, never reimplement. Picking uses `IsoGrid`. Saving and validating use `ContentLoader`.
+   The route overlay uses `PathSystem`. Playtest uses the real `Sim`. If you are writing a second
+   version of something the game has, stop.
+4. Surface verdicts, never form them. The editor shows the game's errors earlier and the balance
+   targets alongside them. It has no opinion of its own about what a legal map is.
+5. Keep dev-only code in `godot/Dev/`, excluded from release exports. Verify the exclusion; don't
    assume it.
-5. Tools get the same build gate as the game: `dotnet build` 0/0. They do not get the same determinism
+6. Tools get the same build gate as the game: `dotnet build` 0/0. They do not get the same determinism
    gate — they are not in Core — but anything they *write* is validated by the game's own rules.
 
 ## Skills & Tools
@@ -44,7 +47,9 @@ reimplementing it.
 ## What NOT to Do
 
 - Don't invent a second map format, a second validator, or a second picker. One of each, owned by the
-  game.
+  game. If the editor and the game disagree, the editor is wrong.
+- Don't let a warning block a save. Only validator errors do — a tool that refuses to let you build the
+  strange thing is a tool you stop using.
 - Don't grow the editor past its spec without a new spec. "While I was in there" is how a small tool
   becomes a product nobody asked for.
 - Don't let dev code reach a release build. Check the export, every time.

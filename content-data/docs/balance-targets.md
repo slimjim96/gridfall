@@ -55,6 +55,14 @@ to react to. That fails pillar 4.
 | Buildable cells | 35–55% of the grid |
 | Lanes | 1–3 |
 
+These four are also `MapTargets` constants in code — read by the balance sim's map report and by the
+board editor's live validation panel. **Changing a number here means changing the constant too.** Two
+copies of a target is one too many, and this doc is the one people read before they trust the panel.
+
+The board editor warns on all four as you paint, except the maze multiplier, which it estimates on
+demand with a greedy search. That estimate is a **lower bound**: over 3× proves the map fails, under 3×
+proves nothing.
+
 Maximum mazing above 3× breaks wave timing: waves overlap in ways the tables were never balanced for.
 
 ## Hard invariants

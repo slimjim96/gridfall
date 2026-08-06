@@ -26,13 +26,13 @@ is not a possible state.
 - Resize the grid
 - New / open / save maps as the game's own JSON format
 - **Playtest**: run the map immediately with a test wave, then return to editing
+- **Live validation**: the route, connectivity, and the map targets, updated as you paint
 
 **Out, deliberately:**
 
 | Not in v1 | Why |
 |---|---|
 | Wave composition | A second editor mode with its own UI. Wave tables stay hand-authored JSON. |
-| Live validation while painting | Deferred — see the note below. |
 | Undo history beyond a flat stack | A 50-step flat undo is enough; branching history is not. |
 | Multi-map / tileset management | The filesystem is the map manager. |
 | Terrain height, decoration, theming | Gridfall's grid is flat and the art is procedural. |
@@ -55,7 +55,10 @@ is not a possible state.
 | `Ctrl+Z` / `Ctrl+Shift+Z` | Undo / redo, 50 steps |
 | `Ctrl+S` | Save |
 | `Ctrl+N` / `Ctrl+O` | New / open |
+| `F2` | Toggle the route overlay |
+| `F3` | Toggle the validation panel |
 | `F5` | **Playtest** |
+| `F6` | Run the maze estimate (on demand — see below) |
 | `Esc` | Return to editing from playtest |
 
 Picking is the same ray-to-ground-plane intersection the game uses
@@ -91,28 +94,113 @@ strings layout, so a map still diffs readably in git. `meta.author` is set to `b
 
 ## What it must not do
 
-- **Invent a second map format.** It reads and writes the game's format, or it is worse than useless.
+- **Invent a second map format, or a second validator.** It reads and writes the game's format and
+  reports the game's verdict, or it is worse than useless.
 - **Ship in a release build.** `Dev/` is excluded from export presets; there is no runtime flag to get
   it back.
 - **Draw the board differently from the game.** If a divergence appears, the editor is wrong.
 - **Validate on its own terms.** Only the game's validator decides.
 - **Grow a wave editor without a new spec.** That is a v2 conversation.
 
-## Deferred, with a note
+## Live validation
 
-**Live validation while painting** — showing the current route, flagging an unreachable goal, warning
-when the map violates the never-fully-blockable rule — is out of v1 by decision.
+The map is checked as you paint. The point is to make a broken map **visible at the moment you break
+it**, rather than at save, at load, or three waves into a playtest.
 
-Worth recording: once playtest exists, the pieces are already present. `PathSystem.Build` runs on the
-in-memory map in well under a millisecond, and `SimStateView.PreviewRoute` already exists for the drag
-preview. If painting starts producing broken maps often enough to hurt, this is a small addition and it
-should be reconsidered — not rebuilt from scratch.
+Same rule as everything else here: the editor **decides nothing itself**. Errors are the game
+validator's verdict, surfaced early. Warnings are the map targets, read from the same constants the
+balance sim uses.
+
+### Three severities
+
+| Level | Blocks save? | Source of truth | Shown as |
+|---|---|---|---|
+| **Error** | Yes | `ContentLoader`'s validator | Reserved red, offending cells outlined |
+| **Warning** | No | `MapTargets` constants | Amber row in the validation panel |
+| **Info** | No | Computed metrics | Plain row in the panel |
+
+Errors are exactly the conditions the game already refuses to load
+([engine guide 07](../../docs/engine-guide/07-content-loading.md)) — no goal, no spawn, a spawn that
+cannot reach the goal, ragged rows. The editor adds none of its own, which is what keeps "the editor
+and the game agree about what a legal map is" true by construction.
+
+### What runs on every stroke
+
+Recomputed on **stroke end** — mouse-up, not per pixel — and throttled to at most once per 100 ms
+during a drag.
+
+| Check | Level | Condition |
+|---|---|---|
+| Goal exists | Error | Exactly one `G` |
+| At least one spawn | Error | ≥ 1 `S` |
+| Every spawn reaches the goal | Error | `PathSystem.Build` on the empty board; any spawn at `Unreachable` fails, and **that spawn is outlined** |
+| Isolated buildable pockets | Warning | Buildable cells the creeps can never path near are dead space |
+| Shortest path, unmazed | Warning | Target 18–30 cells |
+| Buildable share | Warning | Target 35–55% of the grid |
+| Lane count | Info | 1–3 |
+| Grid size, cell counts | Info | — |
+
+Cost is one `PathSystem.Build` on the in-memory map: ~4,096 cell visits, well under a millisecond. It is
+the same function the game uses in tick phase 2 — not a second implementation
+([engine guide 06](../../docs/engine-guide/06-pathing.md)).
+
+### The route overlay
+
+`F2` draws what the flow field produces from each spawn: the route creeps would actually walk on the
+empty board. It is the same `_flow` array the game reads, rendered by the same code as the in-game route
+highlight.
+
+Unreachable cells are dimmed. This is usually how you *see* the problem before you read the panel —
+a lane going dark as you close it is more legible than a line of text.
+
+### The maze estimate — `F6`, on demand
+
+The one check that cannot run live. `MapTargets` caps the longest path achievable by legal tower
+placement at **3× the unmazed path**, and finding the true worst case is a search problem, not a query.
+
+`F6` runs a **greedy approximation**: repeatedly block whichever single buildable cell lengthens the
+path most, skipping any block the game would refuse, until no legal block remains. Cost is
+O(buildable² × cells) — a second or two on a full 64×64 map, which is why it is a keypress and not a
+stroke handler.
+
+Report it honestly, in the panel and in the code comment:
+
+> Maze estimate: 2.4× (greedy lower bound — the true worst case may be higher)
+
+Greedy is a **lower bound**. An estimate under 3× is not proof the map is inside the target; an estimate
+over 3× is proof it is not. Do not print it as though it were exact, and do not let a green estimate
+turn into a claim in a report.
+
+### What live validation must not become
+
+- **A second validator.** If the editor and the game ever disagree about legality, the editor is wrong,
+  and the fix is to delete the editor's opinion — never to add a matching rule to the game.
+- **A blocker on warnings.** Only errors stop a save. An unusual map is often a deliberate one, and a
+  tool that refuses to let you build the strange thing is a tool you stop using.
+- **Silent.** Every error names the cell and says what is wrong in the validator's own words.
+
+### Keeping the targets in one place
+
+The warning thresholds are `MapTargets` constants, shared by the editor and the balance sim's map
+report, and documented for humans in
+[`content-data/docs/balance-targets.md`](../../content-data/docs/balance-targets.md) §Map targets.
+
+**Changing a target means changing the constant and the doc together.** Two copies of a number is one
+copy too many, and the doc is the one people read before they trust the panel.
 
 ## Done when
 
 - [ ] A map can be created, painted, saved, and loaded by the game with no hand-editing
 - [ ] `F5` plays the unsaved map and `Esc` returns to it unchanged
 - [ ] Save refuses an invalid map with the validator's own message
+- [ ] Closing the last route to a spawn shows the error **on the stroke that closes it**, and names
+      that spawn
+- [ ] The route overlay is drawn from the same `_flow` array the game reads
+- [ ] Warnings never block a save; only validator errors do
+- [ ] The maze estimate is labelled a lower bound wherever it appears
+- [ ] `MapTargets` is the only place the warning thresholds are written in code, and
+      `balance-targets.md` matches it
+- [ ] Stroke-end validation stays under 1 ms on a full 64×64 map
 - [ ] The editor's rendering and the game's rendering come from the same code path
 - [ ] `Dev/` is absent from a release export — verified, not assumed
 - [ ] Every keybind above works and is listed on an in-editor help overlay (`F1`)

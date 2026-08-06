@@ -65,10 +65,12 @@ the design intent is still fresh. Both formats work behind one view interface (A
 question of what Ludo.ai actually returns does not block anything.
 
 The **board editor** is a dev-only scene inside the game project (`godot/Dev/`): paint the grid, place
-spawns and the goal, hit `F5` to play the unsaved map, `Esc` to come back. It reuses the game's own
-renderer, picker, loader, and validator — so it cannot disagree with the game about what a map is.
-Scoped to geometry and playtest; wave editing and live validation are out by decision, and
-`tooling/docs/board-editor-spec.md` says why.
+spawns and the goal, hit `F5` to play the unsaved map, `Esc` to come back. It validates as you paint —
+the route drawn from the real flow field, and a broken map flagged on the stroke that breaks it. It
+reuses the game's own renderer, picker, loader, and validator, so it cannot disagree with the game about
+what a legal map is: errors are the game's verdict shown earlier, warnings are the balance targets, and
+only errors block a save. Scoped to geometry, playtest, and validation; wave editing is out by decision,
+and `tooling/docs/board-editor-spec.md` says why.
 
 ## The two rules everything else follows from
 
