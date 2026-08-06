@@ -39,7 +39,7 @@ reimplementing it.
 
 | Skill / Tool | When (trigger) | Purpose |
 |--------------|----------------|---------|
-| `godot --editor` | Board editor work | The only way to exercise it; agents cannot see the result |
+| `godot-mono --editor` | Board editor work | The only way to exercise it; agents cannot see the result |
 | `dotnet build` | Every change | Compile gate |
 | Release export check | Any change under `godot/Dev/` | Prove dev tools are absent from a shipped build |
 | Human sign-off | Any UI change | An editor's usability is not agent-verifiable |

@@ -38,7 +38,7 @@ today. Finals come from Ludo.ai, run by the human. Both live behind `IUnitView`
 | Skill / Tool | When (trigger) | Purpose |
 |--------------|----------------|---------|
 | `dotnet build` | Every change | Validates Godot API usage; the only automated check available here |
-| `godot --path godot -- --shot <png> --shot-after 40` | Every visual change | **Captures a real frame.** Byte-reproducible; diff against `docs/board-baseline.png` |
+| `godot-mono --path godot -- --shot <png> --shot-after 40` | Every visual change | **Captures a real frame.** Byte-reproducible; diff against `docs/board-baseline.png` |
 | `md5sum` on two captures | Before saying "no visual change" | Your eye is wrong about downscaled frames more often than you think |
 | Ludo.ai | Human-operated, after a prompt set is written | Generates the final asset; you write the prompt, they run it |
 | Human sign-off | Before any presentation slice reaches `06-release` | Agents cannot judge how it looks |

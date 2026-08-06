@@ -8,7 +8,7 @@ two things is out of scope.
 
 ## Where it lives
 
-`godot/Dev/BoardEditor.tscn`, launched from a dev menu or `godot --scene Dev/BoardEditor.tscn`.
+`godot/Dev/BoardEditor.tscn`, launched from a dev menu or `godot-mono --scene Dev/BoardEditor.tscn`.
 
 A scene in the game project, not a Godot `EditorPlugin` and not a separate app. The reason is single:
 **it reuses the real renderer, the real `IsoGrid` mapping, and the real map loader.** What you paint is

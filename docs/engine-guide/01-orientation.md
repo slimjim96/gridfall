@@ -23,8 +23,13 @@ the harness it is a `for` loop running as fast as the CPU allows. Both produce i
 Gridfall.Core/       net8.0  class library. The simulation. No Godot, no floats, no clock.
 Gridfall.Verify/     net10.0 console app. Determinism harness + balance sim + map report.
 Gridfall.Tests/      net10.0 xUnit over Core.
-godot/               The Godot 4 project. Presentation + the board editor. NOT YET BUILT.
+Gridfall.Io/         net8.0  filesystem loader for content-data/. Core never touches disk.
+godot/               net8.0  Godot 4.6.3 mono project. Presentation. Board editor NOT YET BUILT.
 ```
+
+**Godot is pinned to 4.6.3 mono** — run it as `godot-mono`, never `godot` or `godot-4` (both resolve to
+4.7 on this box, and a non-mono build cannot run C# at all). See
+[ADR-0005](../../engine-systems/decisions/ADR-0005-pin-godot-4-6-3-mono.md).
 
 **Why the split targets:** Core is `net8.0` because Godot 4.6's `Godot.NET.Sdk` targets it. Verify and
 Tests are `net10.0` because that is the only runtime installed on the dev box — a `net8.0` console app
@@ -64,15 +69,18 @@ public sealed class Sim
 
     public void Tick();                       // advance exactly one 33 ms step
     public void Enqueue(ICommand command);    // player intent; applied in phase 1 of the next tick
-    public SimStateView State { get; }        // read-only view for the renderer
+    public SimState State { get; }            // see the caveat below
     public EventLog Events { get; }           // ordered, tick-stamped, cleared each tick
     public ulong Hash();                      // state hash — the determinism primitive
     public int TickCount { get; }
 }
 ```
 
-`SimStateView` is a read-only façade. There is no setter anywhere on it, which is what makes "the view
-never mutates state" a compile-time fact rather than a code-review convention.
+> **Gap, honestly stated.** This guide originally specified `SimStateView`, a read-only façade that
+> would make "the view never mutates state" a compile-time fact. It does not exist yet: `State` returns
+> the mutable `SimState`, and the view layer refrains from writing to it **by discipline, not by the
+> type system**. Follow-up slug `sim-state-view`. Until it lands, a code review is the only thing
+> standing between the renderer and a determinism bug.
 
 ## Running it
 
@@ -89,7 +97,7 @@ dotnet run --project Gridfall.Verify -- --trace path-recompute-baseline --verbos
 # 200 headless runs for balance
 dotnet run --project Gridfall.Verify -- --balance --map crossroads --runs 200 --seed 1
 
-godot --headless --quit                            # scene/resource wiring check, no display needed
+godot-mono --headless --quit                            # scene/resource wiring check, no display needed
 ```
 
 The harness needs no Godot and no display. That is the whole reason for the project split, and it is

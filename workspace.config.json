@@ -423,7 +423,7 @@
       "id": "godot-editor",
       "workspace": "presentation",
       "role": "presentation-engineer",
-      "tools": ["godot --editor", "godot --headless --quit"],
+      "tools": ["godot --editor", "godot-mono --headless --quit"],
       "notes": [
         "Agents cannot visually verify — compile-check with dotnet build and hand visual sign-off to the human",
         "State plainly in the verify report when something was compile-checked but not seen"
@@ -444,7 +444,7 @@
       "id": "board-editor",
       "workspace": "tooling",
       "role": "tools-engineer",
-      "tools": ["godot --editor (Dev/BoardEditor.tscn)"],
+      "tools": ["godot-mono --editor (Dev/BoardEditor.tscn)"],
       "notes": [
         "Dev-only scene inside the game project; stripped from release builds",
         "Writes map JSON to content-data/maps/ — the same files the game loads",

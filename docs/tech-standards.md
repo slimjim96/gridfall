@@ -5,11 +5,24 @@ Stable reference. Load on demand — never by default. Owned by `engine-systems`
 ## Solution layout
 
 ```
-Gridfall.Core/      net8.0 class library.  The simulation. Zero Godot references.
-Gridfall.Verify/    Console app. Determinism harness + headless balance sim.
-Gridfall.Tests/     xUnit. Unit tests over Core.
-godot/              The Godot 4 project (Godot.NET.Sdk). Presentation only.
+Gridfall.Core/      net8.0  class library.  The simulation. Zero Godot references.
+Gridfall.Io/        net8.0  Reads content-data/ off disk. Core never touches the filesystem.
+Gridfall.Verify/    net10.0 Console app. Determinism harness + balance sim + map/perf reports.
+Gridfall.Tests/     net10.0 xUnit. Unit tests over Core.
+godot/              net8.0  The Godot project (Godot.NET.Sdk 4.6.3). Presentation only.
 ```
+
+## Pinned versions
+
+| Thing | Version | Why |
+|---|---|---|
+| Godot editor | **4.6.3 mono** — run as `godot-mono` | [ADR-0005](../engine-systems/decisions/ADR-0005-pin-godot-4-6-3-mono.md) |
+| `Godot.NET.Sdk` / GodotSharp | 4.6.3 | Must match the editor |
+| `Gridfall.Core` / `Gridfall.Io` / `godot` | net8.0 | Godot 4.6's SDK targets net8.0 |
+| `Gridfall.Verify` / `Gridfall.Tests` | net10.0 | Only the 10.0 runtime is installed on the dev box |
+
+**Never run `godot` or `godot-4`.** Both resolve to 4.7 here, and a non-mono build ignores every C#
+script — which looks like a broken game rather than the wrong binary.
 
 `Gridfall.Core.csproj` must never reference `GodotSharp`. This is checkable and it is checked: the
 verify stage fails the slice if it does.
@@ -79,7 +92,7 @@ dotnet build                              # must be 0 warnings, 0 errors
 dotnet test                               # unit gate
 dotnet run --project Gridfall.Verify      # determinism trace diff
 dotnet run --project Gridfall.Verify -- --balance --map <map> --runs 200
-godot --headless --quit                   # scene/resource wiring check
+godot-mono --headless --quit                   # scene/resource wiring check
 ```
 
 ## C# conventions

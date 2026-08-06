@@ -11,6 +11,7 @@ Write one when reversing the choice later would be expensive. See
 | [0002](ADR-0002-fixed-point-arithmetic.md) | Use Q16.16 fixed-point for all simulation math | accepted | 2026-08-06 |
 | [0003](ADR-0003-flow-field-pathfinding.md) | Use a flow field rather than per-unit A* | accepted | 2026-08-06 |
 | [0004](ADR-0004-view-asset-abstraction.md) | Put one view interface behind both sprite and mesh assets | accepted | 2026-08-06 |
+| [0005](ADR-0005-pin-godot-4-6-3-mono.md) | Pin Godot to 4.6.3 mono | accepted | 2026-08-06 |
 
 ADR-0003 was promoted out of the worked example when `core-foundation` implemented it. The example copy
 is kept as teaching material and points here.
