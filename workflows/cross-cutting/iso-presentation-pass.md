@@ -38,10 +38,19 @@ hooks, or readability at a new wave density.
    never assumes it will succeed — the sim may reject the build, and the rejection arrives as an event.
 7. **[deterministic]** Check readability at the peak density the wave tables actually reach, not at a
    comfortable one. Silhouette first, color second.
-8. **[deterministic]** `dotnet build` (0/0), then `godot --headless --quit` after scene-structure
-   changes to catch broken wiring without a display.
-9. **[deterministic]** Write the "what to look at" list: the specific things a human must eyeball,
-   framed as questions they can answer in ten seconds each.
+8. **[deterministic]** `dotnet build` (0/0), then **capture a frame and look at it**:
+   ```bash
+   godot --path godot -- --shot /tmp/shot.png --shot-after 40
+   ```
+   Shot mode freezes the simulation after a fixed number of deterministic steps and uses a fixed
+   frame delta, so the capture is byte-reproducible. Diff it against
+   `presentation/docs/board-baseline.png`.
+9. **[deterministic]** If you changed something visual and the frame looks unchanged, **`md5sum` the
+   two captures before concluding anything.** A downscaled frame hides real differences, and "no
+   visual change" is the wrong diagnosis to act on — it cost two wasted palette passes once already.
+10. **[deterministic]** Write the "what to look at" list: the things a human must still eyeball,
+    framed as questions they can answer in ten seconds each. Capturing a frame does not cover motion,
+    feel, or aesthetic judgment.
 10. **[model call: gap detection]** If a feel question has no defensible answer from the art direction
     — how strong, how fast, how loud — **ask one question** with two concrete options. Do not average
     them.
@@ -81,8 +90,15 @@ Checked at density: … · Silhouettes distinct: yes / no
 
 - **Mutating sim state from the view.** The one unforgivable one. Queue a command.
 - **A hardcoded 0.866 somewhere.** It is in the contract; cite it.
-- **Claiming a visual result.** You cannot see the game. "Compiles; not visually run" is honest and
-  complete, and the verification engineer will carry it forward as NOT-VERIFIABLE-BY-AGENT.
+- **Claiming a visual result you did not capture.** You *can* see a frame now — so "compiles; not
+  visually run" is no longer an acceptable stopping point for anything a still frame would show. What
+  a frame cannot show is motion, feel, and taste; those stay NOT-VERIFIABLE-BY-AGENT and go to the
+  human.
+- **Trusting your eye over the bytes.** Two captures that look the same are not the same until
+  `md5sum` says so.
+- **Authoring colours in sRGB and feeding them somewhere linear.** Vertex colours are linear;
+  `Color.FromHtml` is sRGB. Every terrain tone renders far too light without `SrgbToLinear()`, and it
+  looks like the palette is wrong rather than the colour space.
 - **Polling state to find changes.** You will miss the tick where two things happened, and it will look
   like a rendering bug for a week.
 - **Readability checked at wave 3.** Wave 18 is where the game becomes unreadable.

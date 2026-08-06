@@ -1,0 +1,27 @@
+; Gridfall -- Godot project file.
+;
+; Presentation only. The simulation lives in Gridfall.Core and knows nothing
+; about any of this (ADR-0001).
+
+config_version=5
+
+[application]
+
+config/name="Gridfall"
+config/description="Isometric tower defense. Placeholder art throughout."
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.6", "C#", "Forward Plus")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
+[dotnet]
+
+project/assembly_name="Gridfall.Godot"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+anti_aliasing/quality/msaa_3d=2

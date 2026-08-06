@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Gridfall.Core/Gridfall.Core.csproj" />
+    <ProjectReference Include="../Gridfall.Io/Gridfall.Io.csproj" />
   </ItemGroup>
 
 </Project>

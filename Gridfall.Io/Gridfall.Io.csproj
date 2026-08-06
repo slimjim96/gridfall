@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- net8.0 so both Gridfall.Verify (net10.0) and the Godot project (net8.0)
+         can reference it. Core stays filesystem-free; this project is the only
+         place that reads content-data/ off disk. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>Gridfall.Io</RootNamespace>
+    <AssemblyName>Gridfall.Io</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Gridfall.Core/Gridfall.Core.csproj" />
+  </ItemGroup>
+
+</Project>

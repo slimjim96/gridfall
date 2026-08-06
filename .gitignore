@@ -19,3 +19,7 @@ godot/resources/generated/
 # OS
 .DS_Store
 Thumbs.db
+
+# Godot build/import artifacts
+godot/.godot/
+godot/.mono/

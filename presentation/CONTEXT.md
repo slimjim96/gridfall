@@ -38,15 +38,17 @@ today. Finals come from Ludo.ai, run by the human. Both live behind `IUnitView`
 | Skill / Tool | When (trigger) | Purpose |
 |--------------|----------------|---------|
 | `dotnet build` | Every change | Validates Godot API usage; the only automated check available here |
-| `godot --headless --quit` | After scene-structure changes | Catches broken scene/resource wiring without a display |
+| `godot --path godot -- --shot <png> --shot-after 40` | Every visual change | **Captures a real frame.** Byte-reproducible; diff against `docs/board-baseline.png` |
+| `md5sum` on two captures | Before saying "no visual change" | Your eye is wrong about downscaled frames more often than you think |
 | Ludo.ai | Human-operated, after a prompt set is written | Generates the final asset; you write the prompt, they run it |
 | Human sign-off | Before any presentation slice reaches `06-release` | Agents cannot judge how it looks |
 
 ## What NOT to Do
 
 - Don't mutate simulation state from the view layer. Ever. Queue a command.
-- Don't claim a visual result you did not see. "Compiles; not visually verified" is the honest line, and
-  it belongs in the verify report.
+- Don't claim a visual result you did not capture. Frames *can* be captured now, so "compiles; not
+  visually verified" is no longer good enough for anything a still frame would show. Motion, feel, and
+  taste still go to the human.
 - Don't hardcode a projection constant that already lives in `../docs/iso-grid.md`.
 - Don't polish a placeholder. It has an hour budget and a silhouette requirement; everything past that
   is work on something scheduled for deletion.

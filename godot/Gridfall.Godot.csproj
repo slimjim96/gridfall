@@ -1,0 +1,17 @@
+<Project Sdk="Godot.NET.Sdk/4.6.3">
+
+  <PropertyGroup>
+    <!-- Godot 4.6's SDK targets net8.0. This is the constraint that pins
+         Gridfall.Core to net8.0 as well (ADR-0001). -->
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Gridfall</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Gridfall.Core/Gridfall.Core.csproj" />
+    <ProjectReference Include="../Gridfall.Io/Gridfall.Io.csproj" />
+  </ItemGroup>
+
+</Project>

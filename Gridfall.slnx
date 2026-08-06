@@ -1,5 +1,11 @@
 <Solution>
+  <Folder Name="/godot/">
+    <Project Path="godot/Gridfall.Godot.csproj">
+      <BuildType Project="Debug" />
+    </Project>
+  </Folder>
   <Project Path="Gridfall.Core/Gridfall.Core.csproj" />
+  <Project Path="Gridfall.Io/Gridfall.Io.csproj" />
   <Project Path="Gridfall.Tests/Gridfall.Tests.csproj" />
   <Project Path="Gridfall.Verify/Gridfall.Verify.csproj" />
 </Solution>

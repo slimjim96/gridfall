@@ -1,10 +1,13 @@
 using Gridfall.Core.Content;
 
-namespace Gridfall.Verify;
+namespace Gridfall.Io;
 
 /// <summary>
 /// Reads content-data/ off disk and hands Core finished objects. Core itself
 /// never touches the filesystem -- this is the boundary (engine guide 07).
+///
+/// Shared by Gridfall.Verify and the Godot project so there is one loader
+/// rather than two that can disagree about what the content says.
 /// </summary>
 public static class ContentFiles
 {
