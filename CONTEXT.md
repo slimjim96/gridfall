@@ -10,8 +10,11 @@
 | "How should X play?", mechanics, tuning knobs, player-facing behavior | `game-design/CONTEXT.md` | `workflows/pipeline/02-game-design.md` |
 | "How do we build X?", tick order, pathfinding, targeting, data structures, determinism | `engine-systems/CONTEXT.md` | `workflows/pipeline/03-engine-systems-design.md` |
 | A technical choice with a real alternative | `engine-systems/CONTEXT.md` | `workflows/cross-cutting/architecture-decision-record.md` |
+| Writing code **inside** `Gridfall.Core` | read `docs/engine-guide/` first | the chapter for your phase, then WF-04 |
 | Numbers: cost, HP, DPS, wave composition, map shape | `content-data/CONTEXT.md` | `workflows/cross-cutting/content-balance-pass.md` |
 | Anything the player sees, clicks, or hears | `presentation/CONTEXT.md` | `workflows/cross-cutting/iso-presentation-pass.md` |
+| Placeholder art, or Ludo.ai / animation prompts | `presentation/CONTEXT.md` | `workflows/cross-cutting/asset-prompt-pass.md` |
+| Board editor, harness, or any dev tool | `tooling/CONTEXT.md` | `workflows/cross-cutting/dev-tooling-pass.md` |
 | Write the code for a slice that already has an architecture note | `production/CONTEXT.md` | `workflows/pipeline/04-implementation.md` |
 | Test it, run determinism, decide if it passed | `production/CONTEXT.md` | `workflows/pipeline/05-verification.md` |
 | Ship it, stamp a version | `production/CONTEXT.md` | `workflows/pipeline/06-release-slice.md` |

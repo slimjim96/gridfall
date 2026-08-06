@@ -104,8 +104,8 @@
     {
       "id": "presentation",
       "name": "presentation",
-      "description": "Isometric rendering, camera, HUD, input mapping, and game feel",
-      "subfolders": ["docs", "specs"],
+      "description": "Isometric rendering, camera, HUD, game feel, and the placeholder → final asset pipeline",
+      "subfolders": ["docs", "specs", "prompts"],
       "flowsTo": ["production"],
       "keywords": [
         "isometric",
@@ -123,14 +123,46 @@
         "audio",
         "juice",
         "readability",
-        "art"
+        "art",
+        "placeholder",
+        "asset",
+        "ludo",
+        "prompt",
+        "animation"
       ],
       "responsibilities": [
         "Own the projection contract between grid coordinates and screen space",
         "Read simulation state; never mutate it",
-        "Keep the board readable at the wave densities the design calls for"
+        "Keep the board readable at the wave densities the design calls for",
+        "Ship placeholders that are functional and cheap, and write the Ludo.ai prompts that replace them"
       ],
-      "artifacts": ["ui-spec", "render-spec", "feel-note"]
+      "artifacts": ["ui-spec", "render-spec", "feel-note", "placeholder-spec", "ludo-prompt", "animation-prompt"]
+    },
+    {
+      "id": "tooling",
+      "name": "tooling",
+      "description": "Developer tools — the in-Godot board editor and the headless harness CLIs",
+      "subfolders": ["docs", "specs"],
+      "flowsTo": ["content-data", "production"],
+      "keywords": [
+        "editor",
+        "board editor",
+        "tool",
+        "tooling",
+        "dev tool",
+        "harness",
+        "cli",
+        "inspector",
+        "playtest",
+        "authoring",
+        "workflow speed"
+      ],
+      "responsibilities": [
+        "Build the board editor as a dev-only scene inside the game project",
+        "Keep tools honest — an editor that renders differently from the game is worse than no editor",
+        "Own the headless CLIs: the determinism harness and the balance sim runner"
+      ],
+      "artifacts": ["editor-spec", "tool-note"]
     },
     {
       "id": "production",
@@ -213,6 +245,36 @@
       "artifacts": ["ui-spec", "render-spec", "feel-note"],
       "loads": ["docs/iso-grid.md", "presentation/docs/art-direction.md"],
       "skips": ["engine-systems/decisions/**", "content-data/**"]
+    },
+    {
+      "id": "asset-author",
+      "title": "Asset Author",
+      "workspace": "presentation",
+      "responsibilities": [
+        "Ship minimal placeholders that make gameplay testable today",
+        "Write the Ludo.ai and animation prompts that replace them later"
+      ],
+      "owns": ["presentation/prompts", "presentation/docs/placeholder-standard.md"],
+      "artifacts": ["placeholder-spec", "ludo-prompt", "animation-prompt"],
+      "loads": [
+        "presentation/docs/placeholder-standard.md",
+        "presentation/docs/ludo-prompt-guide.md",
+        "presentation/docs/art-direction.md"
+      ],
+      "skips": ["engine-systems/**", "production/**", "content-data/waves/**"]
+    },
+    {
+      "id": "tools-engineer",
+      "title": "Tools Engineer",
+      "workspace": "tooling",
+      "responsibilities": [
+        "Build and maintain the in-Godot board editor",
+        "Keep the headless CLIs usable by both agents and humans"
+      ],
+      "owns": ["tooling/specs", "tooling/docs/board-editor-spec.md"],
+      "artifacts": ["editor-spec", "tool-note"],
+      "loads": ["tooling/docs/board-editor-spec.md", "docs/iso-grid.md", "docs/engine-guide/07-content-loading.md"],
+      "skips": ["game-design/**", "presentation/prompts/**", "content-data/waves/**"]
     },
     {
       "id": "gameplay-engineer",
@@ -300,7 +362,7 @@
     "fields": ["summary", "nextOwner", "openQuestions"]
   },
   "scanner": {
-    "extensions": [".md", ".cs", ".json", ".tres", ".tscn", ".csv", ".cfg"],
+    "extensions": [".md", ".cs", ".json", ".tres", ".tscn", ".csv", ".cfg", ".png", ".glb"],
     "excludedFolders": [".git", "node_modules", ".godot", "bin", "obj", "dist", ".import", "addons", "_examples"]
   },
   "artifacts": {
@@ -319,7 +381,12 @@
     "feel-note": { "label": "Game feel note", "defaultExtension": ".md" },
     "build-notes": { "label": "Build narrative and decisions", "defaultExtension": ".md" },
     "verify-report": { "label": "Verification report", "defaultExtension": ".md" },
-    "release-note": { "label": "Release note", "defaultExtension": ".md" }
+    "release-note": { "label": "Release note", "defaultExtension": ".md" },
+    "placeholder-spec": { "label": "Placeholder asset spec", "defaultExtension": ".md" },
+    "ludo-prompt": { "label": "Ludo.ai asset prompt set", "defaultExtension": ".md" },
+    "animation-prompt": { "label": "Animation prompt set", "defaultExtension": ".md" },
+    "editor-spec": { "label": "Board editor spec", "defaultExtension": ".md" },
+    "tool-note": { "label": "Developer tool note", "defaultExtension": ".md" }
   },
   "toolHints": [
     {
@@ -360,6 +427,28 @@
       "notes": [
         "Agents cannot visually verify — compile-check with dotnet build and hand visual sign-off to the human",
         "State plainly in the verify report when something was compile-checked but not seen"
+      ]
+    },
+    {
+      "id": "ludo-ai",
+      "workspace": "presentation",
+      "role": "asset-author",
+      "tools": ["Ludo.ai (human-operated)"],
+      "notes": [
+        "Agents write the prompts; the human runs them and tweaks the output in an image editor",
+        "Every prompt set names the style anchor and the exact output the pipeline expects",
+        "Assets arrive as 2D sprite sheets or 3D .glb — both are supported behind IUnitView (ADR-0004)"
+      ]
+    },
+    {
+      "id": "board-editor",
+      "workspace": "tooling",
+      "role": "tools-engineer",
+      "tools": ["godot --editor (Dev/BoardEditor.tscn)"],
+      "notes": [
+        "Dev-only scene inside the game project; stripped from release builds",
+        "Writes map JSON to content-data/maps/ — the same files the game loads",
+        "v1 scope is map geometry plus playtest. Wave editing and live validation are deliberately out"
       ]
     }
   ]

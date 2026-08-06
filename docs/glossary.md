@@ -32,6 +32,18 @@ Stable reference. Load it when a term in a spec is doing work you can't pin down
 | **`SimRandom`** | The seeded PRNG. The only randomness Core may use, advanced only inside the tick loop. |
 | **`SimEvent`** | An ordered, tick-stamped fact the view can react to ("creep died", "build rejected"). |
 | **Command** | Player intent queued into the sim, applied at phase 1 of the next tick. |
+| **Phase** | One of the nine ordered steps inside a tick. Knowing yours is most of knowing you're correct. |
+| **Slot vs. id** | An entity's id is stable for life; its slot is where it currently sits in the arrays and changes on death. Iterate by id. |
+
+## Assets and tools
+
+| Term | Meaning |
+|---|---|
+| **Placeholder** | Procedural C# geometry standing in for real art. Hour budget, distinct silhouette, deleted on replacement. |
+| **Style anchor** | The verbatim block at the top of every Ludo.ai prompt. Paraphrasing it is how a set drifts. |
+| **Prompt set** | One file per asset: sprite form, mesh form, every animation clip, iteration log. The durable artifact. |
+| **`IUnitView`** | The interface placeholders, sprites, and meshes all sit behind (ADR-0004). |
+| **Playtest (editor)** | `F5` in the board editor: run the unsaved map with a test wave, `Esc` to return. |
 
 ## Method vocabulary
 

@@ -1,6 +1,9 @@
 # Art Direction
 
 Load when making a visual judgment call. The projection math is not here — that is `docs/iso-grid.md`.
+What a placeholder may and may not be is in [`placeholder-standard.md`](placeholder-standard.md); how
+final assets get generated is in [`ludo-prompt-guide.md`](ludo-prompt-guide.md). This file is the
+aesthetic those two answer to, and it applies to both.
 
 ## The look
 
@@ -9,8 +12,12 @@ Clean geometric isometry. Readable solids, strong silhouettes, restrained palett
 spectacle and legibility, legibility wins — that is pillar 2, and it is not negotiable at wave 18.
 
 Geometry is **procedural C#** wherever it can be: terrain, tiles, walls, tower bodies, projectiles.
-Authored assets are reserved for things that carry identity and cannot be generated convincingly.
 This keeps the repo free of binary churn and makes every visual a tunable constant.
+
+**Everything on screen today is a placeholder**, and that is the intended state for a while. Final
+assets are generated with Ludo.ai and tweaked by hand; placeholders exist so the game can be played and
+balanced before any of that happens. Both are legitimate, both coexist, and a half-arted build is
+normal rather than broken.
 
 ## Palette
 
@@ -52,6 +59,7 @@ drown out a leak.
 
 ## What NOT to do
 
+- Don't polish placeholders. They have an hour budget; see `placeholder-standard.md`.
 - Don't add a binary asset without noting its source and license here.
 - Don't rotate the camera off the contract angles for a shot. Every asset's implied lighting assumes
   them.

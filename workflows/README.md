@@ -13,12 +13,25 @@ A **Scope** (`*/CONTEXT.md`) tells an agent *where it is and what to load*. A **
 | [04 · Implementation](pipeline/04-implementation.md) | An architecture note is handed to production | `production` → `04-build` |
 | [05 · Verification](pipeline/05-verification.md) | The build is green and needs judging | `production` → `05-verify` |
 | [06 · Release Slice](pipeline/06-release-slice.md) | Every criterion passed | `production` → `06-release` |
-| [Content & Balance Pass](cross-cutting/content-balance-pass.md) | Any number changes | `content-data` |
-| [Iso Presentation Pass](cross-cutting/iso-presentation-pass.md) | Anything the player sees changes | `presentation` |
-| [Architecture Decision Record](cross-cutting/architecture-decision-record.md) | A technical choice has a real alternative | `engine-systems` |
+| [X1 · Content & Balance Pass](cross-cutting/content-balance-pass.md) | Any number changes | `content-data` |
+| [X2 · Iso Presentation Pass](cross-cutting/iso-presentation-pass.md) | Anything the player sees changes | `presentation` |
+| [X3 · Architecture Decision Record](cross-cutting/architecture-decision-record.md) | A technical choice has a real alternative | `engine-systems` |
+| [X4 · Asset Prompt Pass](cross-cutting/asset-prompt-pass.md) | A placeholder needs the Ludo.ai + animation prompts that will replace it | `presentation` |
+| [X5 · Dev Tooling Pass](cross-cutting/dev-tooling-pass.md) | Board editor or headless CLI work | `tooling` |
 
 Pipeline workflows 01→06 are the spine: one slice, one slug, six stages. Cross-cutting workflows can
 run at any time and feed the spine.
+
+## Writing engine code? Read the manual, not just the workflow
+
+A workflow tells you the procedure. [`docs/engine-guide/`](../docs/engine-guide/README.md) tells you how
+`Gridfall.Core` actually works — the nine tick phases, `Fix32`, the state hash, the flow field, and the
+playbook for when the determinism harness goes red. WF-04 assumes you have read the chapter that covers
+what you are touching.
+
+Two recipes there are step-by-step and cross several workspaces:
+[add a system](../docs/engine-guide/09-recipe-new-system.md) and
+[add a tower end to end](../docs/engine-guide/10-recipe-new-tower.md).
 
 ## The shape every workflow shares
 

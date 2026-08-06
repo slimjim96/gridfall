@@ -3,17 +3,24 @@
 ## What This Area Is
 
 Everything the player sees, clicks, and hears: the isometric projection, the camera, tile and unit
-rendering, depth sorting, the HUD, input picking, and game feel. This layer **reads** simulation state
-and never mutates it — a click becomes a queued sim command, not a direct state change.
+rendering, depth sorting, the HUD, input picking, and game feel — plus the **asset pipeline**, from
+cheap placeholders to the Ludo.ai prompts that replace them. This layer **reads** simulation state and
+never mutates it — a click becomes a queued sim command, not a direct state change.
 Upstream: `game-design`, and `docs/iso-grid.md` as the standing contract. Downstream: `production`.
+
+All art is currently a **placeholder**: procedural C#, minimal detail, built to make the game playable
+today. Finals come from Ludo.ai, run by the human. Both live behind `IUnitView`
+([ADR-0004](../engine-systems/decisions/ADR-0004-view-asset-abstraction.md)).
 
 ## What to Load
 
 | Task | Load These | Skip These |
 |------|-----------|------------|
-| Render / camera work | `../docs/iso-grid.md`, `docs/art-direction.md`, the render spec | `../engine-systems/decisions/**`, `../content-data/**` |
+| Render / camera work | `../docs/iso-grid.md`, `docs/art-direction.md`, the render spec | `../engine-systems/decisions/**`, `../content-data/**`, `prompts/**` |
 | HUD or input work | the UI spec, `../docs/iso-grid.md` §Picking | art direction, sim internals |
 | Game feel pass | `docs/art-direction.md`, the sim event list it hooks | balance data, architecture notes |
+| Build a placeholder | `docs/placeholder-standard.md`, `docs/art-direction.md` §Palette | `prompts/**`, `../docs/engine-guide/**` |
+| Write asset prompts | `docs/ludo-prompt-guide.md`, `prompts/README.md`, the two nearest prompt files | the full prompt catalogue, `../engine-systems/**` |
 | Readability check | `../docs/iso-grid.md`, the wave table's peak density | everything else |
 
 ## The Process
@@ -32,6 +39,7 @@ Upstream: `game-design`, and `docs/iso-grid.md` as the standing contract. Downst
 |--------------|----------------|---------|
 | `dotnet build` | Every change | Validates Godot API usage; the only automated check available here |
 | `godot --headless --quit` | After scene-structure changes | Catches broken scene/resource wiring without a display |
+| Ludo.ai | Human-operated, after a prompt set is written | Generates the final asset; you write the prompt, they run it |
 | Human sign-off | Before any presentation slice reaches `06-release` | Agents cannot judge how it looks |
 
 ## What NOT to Do
@@ -40,4 +48,7 @@ Upstream: `game-design`, and `docs/iso-grid.md` as the standing contract. Downst
 - Don't claim a visual result you did not see. "Compiles; not visually verified" is the honest line, and
   it belongs in the verify report.
 - Don't hardcode a projection constant that already lives in `../docs/iso-grid.md`.
-- Don't add art assets as binary files without noting the source in `docs/art-direction.md`.
+- Don't polish a placeholder. It has an hour budget and a silhouette requirement; everything past that
+  is work on something scheduled for deletion.
+- Don't write prompts before the placeholder exists — its silhouette is the spec the generated art gets
+  checked against.

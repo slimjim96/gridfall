@@ -19,18 +19,18 @@ Two rules define the codebase and everything downstream of it:
 
 ```
 gridfall/
-├── CLAUDE.md              ← you are here (Layer 1, always loaded)
-├── CONTEXT.md             ← the router (Layer 2, read once per task)
-├── workspace.config.json  ← machine-readable definition of everything below
-├── docs/                  ← project-wide stable reference; load on demand, never by default
-├── workflows/             ← the runnable procedures agents follow (start at workflows/README.md)
-├── game-design/           ← requirements, pillars, feature design
-├── engine-systems/        ← simulation architecture + ADRs
-├── content-data/          ← tower/enemy/wave/map data + balance
-├── presentation/          ← isometric view, camera, HUD, feel
-└── production/            ← the pipeline: one slice, six stages
-    ├── 01-requirements/ 02-design/ 03-architecture/
-    └── 04-build/ 05-verify/ 06-release/
+├── CLAUDE.md / CONTEXT.md   ← Layer 1 map (always loaded) + Layer 2 router
+├── workspace.config.json    ← machine-readable definition of everything below
+├── docs/                    ← stable reference, load on demand
+│   └── engine-guide/        ← the developer manual for Gridfall.Core (11 chapters)
+├── workflows/               ← the runnable procedures (start at workflows/README.md)
+├── game-design/             ← requirements, pillars, feature design
+├── engine-systems/          ← simulation architecture + ADRs
+├── content-data/            ← tower/enemy/wave/map data + balance
+├── presentation/            ← iso view, HUD, placeholders, prompts/ for Ludo.ai
+├── tooling/                 ← board editor + headless CLIs
+└── production/              ← the pipeline: one slice, six stages
+    └── 01-requirements/ … 06-release/
 ```
 
 ## Quick Navigation
@@ -38,10 +38,12 @@ gridfall/
 | Want to... | Go here |
 |------------|---------|
 | Pick the right workflow for a task | `workflows/README.md` |
+| **Work inside the engine** | `docs/engine-guide/README.md` |
 | Analyze a request into requirements | `game-design/CONTEXT.md` |
 | Design a simulation system, or decide something technical | `engine-systems/CONTEXT.md` |
 | Change a number, a wave, or a map | `content-data/CONTEXT.md` |
-| Touch anything the player sees or clicks | `presentation/CONTEXT.md` |
+| Touch anything the player sees, or write asset prompts | `presentation/CONTEXT.md` |
+| Board editor or the headless CLIs | `tooling/CONTEXT.md` |
 | Move a slice through build → verify → release | `production/CONTEXT.md` |
 | Know what a term means | `docs/glossary.md` |
 | Know how grid coords become screen coords | `docs/iso-grid.md` |
@@ -80,8 +82,9 @@ stages, pulling from the domains on the way in.
 
 ```
 game-design ──┬──▶ engine-systems ──┐
-              ├──▶ content-data ────┼──▶ production
-              └──▶ presentation ────┘
+              ├──▶ content-data ◀───┼── tooling
+              ├──▶ presentation ────┼──▶ production
+              └─────────────────────┘
 
 production:  01-requirements → 02-design → 03-architecture → 04-build → 05-verify → 06-release
                                     ▲                            │
