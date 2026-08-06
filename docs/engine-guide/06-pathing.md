@@ -2,9 +2,9 @@
 
 Pillar 1 says the maze is the game, so the walkable grid changes constantly and every creep must
 re-route. Gridfall does this with **one flow field**, not per-creep pathfinding. See
-[ADR-0003](../../_examples/path-recompute/03-architecture-adr-0003.md) — it still sits in the worked
-example rather than in `engine-systems/decisions/`, because the slice that would accept it has not run
-yet. Move it when it does.
+[ADR-0003](../../engine-systems/decisions/ADR-0003-flow-field-pathfinding.md).
+
+Implemented in `Gridfall.Core/Path/PathSystem.cs`. The code below is the real thing, lightly trimmed.
 
 ## The data
 

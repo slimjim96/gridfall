@@ -1,8 +1,13 @@
 # ADR-0003 — Flow Field Pathfinding Over Per-Unit A*
 
-**Status:** example — not yet a decision this project has made
-**Date:** — · **Raised by:** `path-recompute`
-*Workflow: WF-X3. Would live at `engine-systems/decisions/ADR-0003-flow-field-pathfinding.md`.*
+**Status:** superseded — promoted to
+[`engine-systems/decisions/ADR-0003-flow-field-pathfinding.md`](../../engine-systems/decisions/ADR-0003-flow-field-pathfinding.md)
+on 2026-08-06, when the `core-foundation` slice implemented it.
+**Raised by:** `path-recompute` · *Workflow: WF-X3*
+
+> Kept here as teaching material: this is what an ADR looks like when it is written during stage 03,
+> before anyone has built the thing. The real one records what was actually built and what it measured.
+> Read this for the shape; read that one for the truth.
 
 ## Context
 

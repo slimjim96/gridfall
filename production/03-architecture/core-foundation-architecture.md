@@ -71,5 +71,5 @@ All new. Phase numbers are the tick order from
 
 Implements [ADR-0001](../../engine-systems/decisions/ADR-0001-core-view-boundary.md) (Godot-free core)
 and [ADR-0002](../../engine-systems/decisions/ADR-0002-fixed-point-arithmetic.md) (`Fix32`).
-Pathing follows [ADR-0003](../../_examples/path-recompute/03-architecture-adr-0003.md), which this slice
-promotes from example to real — moved into `engine-systems/decisions/` on release.
+Pathing follows ADR-0003, which this slice promoted from worked example to a real decision:
+[`engine-systems/decisions/ADR-0003-flow-field-pathfinding.md`](../../engine-systems/decisions/ADR-0003-flow-field-pathfinding.md).
