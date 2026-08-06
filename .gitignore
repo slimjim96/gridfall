@@ -1,0 +1,21 @@
+# .NET
+bin/
+obj/
+*.user
+
+# Godot
+.godot/
+.import/
+export_presets.cfg
+*.translation
+
+# Generated from content-data JSON — never hand-edited, never committed
+godot/resources/generated/
+
+# Determinism traces are large and regenerable; the hash in the release note is the record
+Gridfall.Verify/traces/*.trace
+!Gridfall.Verify/traces/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db

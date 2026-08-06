@@ -1,0 +1,366 @@
+{
+  "version": 2,
+  "_status": "ready",
+  "project": {
+    "name": "Gridfall",
+    "description": "Isometric tower defense built with Godot 4 + C#. Agent-oriented workflow: a deterministic simulation core, an isometric presentation layer, and a vertical-slice pipeline from requirements analysis through release.",
+    "type": "game-development",
+    "objectives": [
+      "Keep the simulation deterministic and engine-agnostic so waves, balance, and replays are reproducible",
+      "Route design, systems, content, and presentation work to focused agent workspaces with tight load/skip discipline",
+      "Move every feature through requirements → design → architecture → build → verify → release as one traceable slice"
+    ]
+  },
+  "workspaces": [
+    {
+      "id": "game-design",
+      "name": "game-design",
+      "description": "Requirements analysis, design pillars, feature design, and player-facing intent",
+      "subfolders": ["docs", "features"],
+      "flowsTo": ["engine-systems", "content-data", "presentation", "production"],
+      "keywords": [
+        "requirements",
+        "design",
+        "gdd",
+        "pillars",
+        "player",
+        "mechanic",
+        "feature",
+        "fantasy",
+        "progression",
+        "difficulty",
+        "economy",
+        "ux intent",
+        "why"
+      ],
+      "responsibilities": [
+        "Turn raw ideas into requirements with acceptance criteria",
+        "Own the design pillars and say no to features that fight them",
+        "Define tuning intent (what a knob is for) without setting the numbers"
+      ],
+      "artifacts": ["requirements", "design-spec", "pillar-note"]
+    },
+    {
+      "id": "engine-systems",
+      "name": "engine-systems",
+      "description": "Deterministic simulation core, system boundaries, tick model, and architecture decisions",
+      "subfolders": ["docs", "decisions"],
+      "flowsTo": ["production"],
+      "keywords": [
+        "architecture",
+        "engine",
+        "systems",
+        "deterministic",
+        "tick",
+        "simulation",
+        "pathfinding",
+        "flow field",
+        "targeting",
+        "spatial",
+        "ecs",
+        "adr",
+        "boundary",
+        "performance",
+        "data structure"
+      ],
+      "responsibilities": [
+        "Design the simulation core so it produces identical traces from identical inputs",
+        "Hold the Core/View boundary — no Godot types below the boundary",
+        "Record every non-obvious technical decision as an ADR"
+      ],
+      "artifacts": ["architecture-note", "adr", "system-diagram"]
+    },
+    {
+      "id": "content-data",
+      "name": "content-data",
+      "description": "Tower, enemy, wave, and map data plus the balance targets they must hit",
+      "subfolders": ["docs", "towers", "enemies", "waves", "maps"],
+      "flowsTo": ["production"],
+      "keywords": [
+        "balance",
+        "tuning",
+        "numbers",
+        "tower",
+        "enemy",
+        "creep",
+        "wave",
+        "map",
+        "level",
+        "economy",
+        "cost",
+        "dps",
+        "hp",
+        "spawn",
+        "table",
+        "data"
+      ],
+      "responsibilities": [
+        "Author tower/enemy/wave/map data as plain data, never as code",
+        "Prove balance changes against the headless balance sim before they land",
+        "Keep every number traceable to a design intent"
+      ],
+      "artifacts": ["tower-def", "enemy-def", "wave-table", "map-layout", "balance-report"]
+    },
+    {
+      "id": "presentation",
+      "name": "presentation",
+      "description": "Isometric rendering, camera, HUD, input mapping, and game feel",
+      "subfolders": ["docs", "specs"],
+      "flowsTo": ["production"],
+      "keywords": [
+        "isometric",
+        "render",
+        "camera",
+        "sprite",
+        "mesh",
+        "shader",
+        "hud",
+        "ui",
+        "input",
+        "click",
+        "picking",
+        "vfx",
+        "audio",
+        "juice",
+        "readability",
+        "art"
+      ],
+      "responsibilities": [
+        "Own the projection contract between grid coordinates and screen space",
+        "Read simulation state; never mutate it",
+        "Keep the board readable at the wave densities the design calls for"
+      ],
+      "artifacts": ["ui-spec", "render-spec", "feel-note"]
+    },
+    {
+      "id": "production",
+      "name": "production",
+      "description": "The vertical-slice pipeline — one unit of work moving from requirements to release",
+      "subfolders": ["docs"],
+      "flowsTo": [],
+      "keywords": [
+        "implement",
+        "build",
+        "code",
+        "verify",
+        "test",
+        "qa",
+        "determinism",
+        "regression",
+        "release",
+        "ship",
+        "slice",
+        "pipeline",
+        "stage"
+      ],
+      "responsibilities": [
+        "Carry exactly one slice at a time through the six stages",
+        "Implement against the architecture note, not the requirements",
+        "Refuse to release a slice with an unverified acceptance criterion"
+      ],
+      "artifacts": ["build-notes", "verify-report", "release-note"]
+    }
+  ],
+  "roles": [
+    {
+      "id": "design-lead",
+      "title": "Design Lead",
+      "workspace": "game-design",
+      "responsibilities": [
+        "Run requirements analysis on incoming ideas",
+        "Write feature design specs and name the tuning knobs"
+      ],
+      "owns": ["game-design/docs/pillars.md", "game-design/features"],
+      "artifacts": ["requirements", "design-spec"],
+      "loads": ["docs/glossary.md", "game-design/docs/pillars.md"],
+      "skips": ["engine-systems/**", "content-data/**"]
+    },
+    {
+      "id": "systems-architect",
+      "title": "Systems Architect",
+      "workspace": "engine-systems",
+      "responsibilities": [
+        "Design simulation systems and their boundaries",
+        "Guard determinism and record ADRs"
+      ],
+      "owns": ["engine-systems/decisions", "docs/tech-standards.md"],
+      "artifacts": ["architecture-note", "adr"],
+      "loads": ["docs/tech-standards.md", "docs/iso-grid.md", "engine-systems/decisions/**"],
+      "skips": ["presentation/**", "content-data/waves/**"]
+    },
+    {
+      "id": "content-designer",
+      "title": "Content & Balance Designer",
+      "workspace": "content-data",
+      "responsibilities": [
+        "Author and tune tower, enemy, wave, and map data",
+        "Run the balance sim and report the deltas"
+      ],
+      "owns": ["content-data/towers", "content-data/enemies", "content-data/waves", "content-data/maps"],
+      "artifacts": ["tower-def", "enemy-def", "wave-table", "map-layout", "balance-report"],
+      "loads": ["content-data/docs/balance-targets.md", "game-design/docs/pillars.md"],
+      "skips": ["engine-systems/**", "presentation/**"]
+    },
+    {
+      "id": "presentation-engineer",
+      "title": "Presentation Engineer",
+      "workspace": "presentation",
+      "responsibilities": [
+        "Build the isometric view layer, camera, HUD, and input picking",
+        "Keep the projection contract in sync with the grid"
+      ],
+      "owns": ["presentation/specs", "docs/iso-grid.md"],
+      "artifacts": ["ui-spec", "render-spec", "feel-note"],
+      "loads": ["docs/iso-grid.md", "presentation/docs/art-direction.md"],
+      "skips": ["engine-systems/decisions/**", "content-data/**"]
+    },
+    {
+      "id": "gameplay-engineer",
+      "title": "Gameplay Engineer",
+      "workspace": "production",
+      "responsibilities": [
+        "Implement the slice against the architecture note",
+        "Record build decisions as they are made, not afterwards"
+      ],
+      "owns": ["production/04-build"],
+      "artifacts": ["build-notes"],
+      "loads": ["production/03-architecture/*", "docs/tech-standards.md", "docs/conventions.md"],
+      "skips": ["production/01-requirements/*"]
+    },
+    {
+      "id": "verification-engineer",
+      "title": "Verification Engineer",
+      "workspace": "production",
+      "responsibilities": [
+        "Run the determinism harness and the acceptance criteria",
+        "On failure, name the single stage the slice loops back to"
+      ],
+      "owns": ["production/05-verify"],
+      "artifacts": ["verify-report"],
+      "loads": ["production/02-design/*", "production/03-architecture/*", "production/04-build/**"],
+      "skips": ["presentation/docs/art-direction.md"]
+    }
+  ],
+  "pipeline": {
+    "enabled": true,
+    "workspace": "production",
+    "stages": [
+      {
+        "id": "requirements",
+        "folder": "01-requirements",
+        "label": "requirements",
+        "filePattern": "[slug]-requirements.md"
+      },
+      {
+        "id": "design",
+        "folder": "02-design",
+        "label": "design",
+        "filePattern": "[slug]-design.md"
+      },
+      {
+        "id": "architecture",
+        "folder": "03-architecture",
+        "label": "architecture",
+        "filePattern": "[slug]-architecture.md"
+      },
+      {
+        "id": "build",
+        "folder": "04-build",
+        "label": "build",
+        "filePattern": "[slug]",
+        "isFolder": true
+      },
+      {
+        "id": "verify",
+        "folder": "05-verify",
+        "label": "verify",
+        "filePattern": "[slug]-report.md"
+      },
+      {
+        "id": "release",
+        "folder": "06-release",
+        "label": "release",
+        "filePattern": "[slug]-v1.md"
+      }
+    ]
+  },
+  "statuses": {
+    "order": ["backlog", "ready", "in-progress", "review", "done"],
+    "final": ["done"],
+    "active": ["ready", "in-progress", "review"],
+    "blocked": []
+  },
+  "routing": {
+    "defaultWorkspace": "production",
+    "strategy": "hybrid"
+  },
+  "handoffs": {
+    "requireNote": true,
+    "warnOnReverseFlow": true,
+    "fields": ["summary", "nextOwner", "openQuestions"]
+  },
+  "scanner": {
+    "extensions": [".md", ".cs", ".json", ".tres", ".tscn", ".csv", ".cfg"],
+    "excludedFolders": [".git", "node_modules", ".godot", "bin", "obj", "dist", ".import", "addons", "_examples"]
+  },
+  "artifacts": {
+    "requirements": { "label": "Requirements analysis", "defaultExtension": ".md" },
+    "design-spec": { "label": "Feature design spec", "defaultExtension": ".md" },
+    "architecture-note": { "label": "Systems architecture note", "defaultExtension": ".md" },
+    "adr": { "label": "Architecture decision record", "defaultExtension": ".md" },
+    "pillar-note": { "label": "Design pillar note", "defaultExtension": ".md" },
+    "tower-def": { "label": "Tower definition", "defaultExtension": ".json" },
+    "enemy-def": { "label": "Enemy definition", "defaultExtension": ".json" },
+    "wave-table": { "label": "Wave table", "defaultExtension": ".json" },
+    "map-layout": { "label": "Map layout", "defaultExtension": ".json" },
+    "balance-report": { "label": "Balance sim report", "defaultExtension": ".md" },
+    "ui-spec": { "label": "HUD / UI spec", "defaultExtension": ".md" },
+    "render-spec": { "label": "Render / camera spec", "defaultExtension": ".md" },
+    "feel-note": { "label": "Game feel note", "defaultExtension": ".md" },
+    "build-notes": { "label": "Build narrative and decisions", "defaultExtension": ".md" },
+    "verify-report": { "label": "Verification report", "defaultExtension": ".md" },
+    "release-note": { "label": "Release note", "defaultExtension": ".md" }
+  },
+  "toolHints": [
+    {
+      "id": "core-build",
+      "workspace": "production",
+      "role": "gameplay-engineer",
+      "tools": ["dotnet build", "dotnet test"],
+      "notes": [
+        "Gridfall.Core targets net8.0 and must build with zero Godot references",
+        "Run before every 04-build → 05-verify advance"
+      ]
+    },
+    {
+      "id": "determinism-harness",
+      "workspace": "production",
+      "role": "verification-engineer",
+      "tools": ["Gridfall.Verify"],
+      "notes": [
+        "Replays recorded input traces and diffs tick-by-tick state hashes",
+        "A slice that touches the core is not verifiable without a green trace diff"
+      ]
+    },
+    {
+      "id": "balance-sim",
+      "workspace": "content-data",
+      "role": "content-designer",
+      "tools": ["Gridfall.Verify --balance"],
+      "notes": [
+        "Headless N-run wave sim; reports leak rate, gold curve, and time-to-clear",
+        "Required before any data change is handed to production"
+      ]
+    },
+    {
+      "id": "godot-editor",
+      "workspace": "presentation",
+      "role": "presentation-engineer",
+      "tools": ["godot --editor", "godot --headless --quit"],
+      "notes": [
+        "Agents cannot visually verify — compile-check with dotnet build and hand visual sign-off to the human",
+        "State plainly in the verify report when something was compile-checked but not seen"
+      ]
+    }
+  ]
+}

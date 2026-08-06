@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "folder-workflow-mcp": {
+      "command": "node",
+      "args": ["/home/slimjim96/projects/claude/folder-workflow-mcp/dist/index.js"]
+    }
+  }
+}
