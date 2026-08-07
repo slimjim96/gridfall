@@ -27,6 +27,7 @@ public sealed partial class BoardEditor : Node3D
     private MapDraft _draft = null!;
     private PathSystem _path = null!;
     private WorldRenderer _world = null!;
+    private Backdrop _backdrop = null!;
     private RouteOverlay _routes = null!;
     private EditorHud _hud = null!;
     private Camera3D _camera = null!;
@@ -71,6 +72,9 @@ public sealed partial class BoardEditor : Node3D
 
         _camera = new Camera3D();
         AddChild(_camera);
+
+        _backdrop = new Backdrop();
+        AddChild(_backdrop);
 
         _world = new WorldRenderer();
         AddChild(_world);
@@ -420,6 +424,11 @@ public sealed partial class BoardEditor : Node3D
         MapDef map = _draft.ToMapDef();
 
         IsoGrid.ConfigureCamera(_camera, map);
+
+        // Before the goal check: the surround is scenery and does not care
+        // whether the draft is legal. It is also self-throttling -- it only
+        // rebuilds when the theme, the board size, or the tile library moves.
+        _backdrop.Initialise(map);
 
         // A draft with no goal has no flow field: PathSystem seeds its queue from
         // the goal index unconditionally and throws IndexOutOfRange.

@@ -92,6 +92,10 @@ public sealed partial class GameplayScene : Node3D
         AddChild(_camera);
         IsoGrid.ConfigureCamera(_camera, map);
 
+        var backdrop = new Backdrop();
+        AddChild(backdrop);
+        backdrop.Initialise(map);
+
         _world = new WorldRenderer();
         AddChild(_world);
         _world.Initialise(map, _driver.Sim.Path);

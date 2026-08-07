@@ -236,6 +236,9 @@ public sealed class ThemeTiles
         }
     }
 
+    /// <summary>
+    /// Folders that name a <see cref="CellKind"/> — one image per cell on the grid.
+    /// </summary>
     private static readonly Dictionary<string, CellKind> KindFolders = new()
     {
         ["buildable"] = CellKind.Buildable,
@@ -246,6 +249,24 @@ public sealed class ThemeTiles
         ["goal"] = CellKind.Goal,
     };
 
+    /// <summary>
+    /// The one folder that is NOT a cell kind: the surround the board sits in.
+    ///
+    /// Worth keeping the distinction sharp. Every other folder here answers
+    /// "what does this cell look like" and is therefore downstream of a
+    /// simulation concept. This one is scenery — it is not on the grid, nothing
+    /// walks on it, and it can never be picked. If a second scene folder ever
+    /// appears it belongs beside this one, not in the table above.
+    /// </summary>
+    private const string BackgroundFolder = "background";
+
+    /// <summary>
+    /// The tiling surround, or null when this theme has no `background/` folder —
+    /// in which case the board keeps the empty scene colour behind it, exactly as
+    /// it did before backgrounds existed.
+    /// </summary>
+    public TerrainTile? Background { get; private set; }
+
     public static ThemeTiles? Load(string directory)
     {
         var theme = new ThemeTiles { Id = Path.GetFileName(directory) };
@@ -253,9 +274,16 @@ public sealed class ThemeTiles
         foreach (string kindDir in Directory.GetDirectories(directory).OrderBy(d => d, System.StringComparer.Ordinal))
         {
             string folder = Path.GetFileName(kindDir).ToLowerInvariant();
+
+            if (folder == BackgroundFolder)
+            {
+                theme.LoadBackground(kindDir);
+                continue;
+            }
+
             if (!KindFolders.TryGetValue(folder, out CellKind kind))
             {
-                GD.Print($"tiles: ignoring {theme.Id}/{folder}/ -- not a cell kind");
+                GD.Print($"tiles: ignoring {theme.Id}/{folder}/ -- not a cell kind or 'background'");
                 continue;
             }
 
@@ -322,6 +350,38 @@ public sealed class ThemeTiles
             if (score < bestScore) { bestScore = score; best = candidate.Key; }
         }
         return best;
+    }
+
+    /// <summary>
+    /// The surround image: the first PNG in `background/`, ordinally.
+    ///
+    /// One, not a variant list. It is drawn on a single large quad with repeating
+    /// UVs, so there is no per-cell choice to make — extra files would be dead
+    /// weight nobody could tell was unused.
+    /// </summary>
+    private void LoadBackground(string directory)
+    {
+        string[] files = Directory.GetFiles(directory, "*.png");
+        if (files.Length == 0) return;
+
+        System.Array.Sort(files, System.StringComparer.Ordinal);
+
+        Image? image = Image.LoadFromFile(files[0]);
+        if (image is null)
+        {
+            GD.PrintErr($"tiles: could not read {files[0]}");
+            return;
+        }
+
+        Background = new TerrainTile
+        {
+            Texture = ImageTexture.CreateFromImage(image),
+            Average = MeanColour(image),
+        };
+        TileCount++;
+
+        if (files.Length > 1)
+            GD.Print($"tiles: {Id}/background/ has {files.Length} files; using {Path.GetFileName(files[0])}");
     }
 
     private void Add(CellKind kind, string file)

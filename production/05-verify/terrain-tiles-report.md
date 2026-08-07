@@ -13,18 +13,23 @@ art in and select it. They are one slice because the tile picker *is* part of th
 | `dotnet test` | PASS | **176 passed**, 0 failed (was 175; +1) |
 | Determinism trace | PASS | `Verify replay` — `crossroads-baseline`, 3000 ticks, 30/30 checkpoints |
 | Sim untouched by the visuals | PASS | Game capture hash `b9c3bc7c95e6f726` identical before and after the last render change |
-| Scene wiring | PASS | `./run-game.sh --headless --quit` clean; prints `tiles: loaded roadway (24)` |
-| **Untiled board unchanged** | PASS | `md5 711cb6f427594330b4b4ea27f8e0bd3d` — byte-identical to the committed `board-baseline.png` |
+| Scene wiring | PASS | `./run-game.sh --headless --quit` clean; prints all seven themes loaded |
+| Every theme renders | PASS | All seven captured, 0 exceptions |
+| Sim untouched by every visual change | PASS | `board` `b9c3bc7c95e6f726`, `sapper` `3efe266df68d3e3a`, `repair` `c9b71ea326e7b6e3` — all unchanged |
 
-That last row is the one that matters most. The terrain mesh was restructured (UVs added, tops split
-from sides, per-texture surfaces); a board with no tile folder still renders **the same bytes** it did
-before any of it. The refactor is provably invisible where it should be.
+**On the untiled-board proof.** Mid-slice, an un-tiled board rendered byte-identically to the
+committed baseline (`md5 711cb6f4…`) after the terrain mesh was restructured — UVs added, tops split
+from sides, per-texture surfaces. That proved the refactor invisible where it should be.
+
+That check is now **retired, deliberately**: every registered theme ships tiles, so there is no
+un-tiled shipped board left to compare. What replaces it is the sim-hash row above — three seeds,
+three unchanged hashes, across a change that altered every frame.
 
 ## Criteria
 
 | # | Criterion | Result | Evidence |
 |---|---|---|---|
-| 1 | A folder of PNGs becomes a selectable theme with no code change | PASS | `presentation/tiles/roadway/` loads as `roadway`; console `tiles: loaded roadway (24)` |
+| 1 | A folder of PNGs becomes a selectable theme with no code change | PASS | seven folders load as seven themes; `F4` cycles them |
 | 2 | Path tiles connect like a road | PASS | `editor-tiles-baseline.png` — two corners, a straight, and both arms of the seeded road |
 | 3 | Multiple variants per kind, distributed | PASS | Same capture — stone and bush mixed along one wall |
 | 4 | Variant choice is stable, not random | PASS by construction | `TileLibrary.VariantIndex` is a coordinate hash, no RNG, no state; repeated captures identical |
@@ -111,7 +116,7 @@ Three changes:
 
 `F7` rescans and builds **all-new** `ImageTexture` objects, so `WorldRenderer`'s per-texture layer
 cache was keyed on textures nothing would ask for again. It hid them rather than freeing them, so
-every reload leaked one `MeshInstance3D` per tile — 24 per press with `roadway`. `TileLibrary` now
+every reload leaked one `MeshInstance3D` per tile — 25 per press per theme. `TileLibrary` now
 carries a `Generation` counter and the renderer drops the whole cache when it moves.
 
 ### A latent test hole, closed
@@ -125,13 +130,51 @@ and silently fallen back to slate at runtime. The test now requires at least one
 ```bash
 cd presentation/tiles
 mkdir -p patchy/path patchy/blocked empty typo/pathz
-cp roadway/path/ns.png roadway/path/ew.png patchy/path/
-cp roadway/blocked/stone.png patchy/blocked/
-cp roadway/path/ns.png typo/pathz/
+cp desert/path/ns.png desert/path/ew.png patchy/path/
+cp desert/blocked/slab.png patchy/blocked/
+cp desert/path/ns.png typo/pathz/
 cd ../.. && ./run-editor.sh --theme patchy
 ```
 
 The fixtures are not committed — they would pollute the `F4` rotation for no ongoing benefit.
+
+## Raised in review: theme everything, and give the board a surround
+
+> "have all assets themed, so desert/path would have desert looking paths, with desert blocking,
+> then same with forest… include background or a more general image that is repeated to surround the
+> actual board that is themed as well."
+
+The folder layout already supported it — `desert/path/` was always the expected shape. What was
+missing was that only one demo theme had art, and there was no surround at all.
+
+| Change | Result |
+|---|---|
+| All 7 themes get a 25-tile set, 175 total | PASS — every one captured, 0 exceptions |
+| Tiles derived from `TerrainTheme.cs`, not a second palette | PASS — generator parses the registry |
+| `background/` as a non-cell-kind folder | PASS — `desert.png`, `forest.png` captures |
+| A theme without `background/` keeps the void | PASS by construction — `Backdrop` hides itself |
+| The backdrop cannot steal a click | PASS by construction — `TryPick` is analytic and map-bounded |
+| Markers still clear every themed board | PASS — goal visible on `underwater`, the case `map-themes` had to fix |
+| Board still reads at peak density | PASS — `sapper-baseline`, wave 7, 28 towers, 39 creeps |
+
+### Three colour defects, all found in a frame and none findable otherwise
+
+1. **The road vanished.** Band lift of 1.55x put desert's road at `(99,65,47)` against a buildable of
+   `(107,74,55)`. Across all seven ramps `Buildable` is only 1.6x–1.8x above `PathOnly`, so the band
+   had climbed onto the tier above it and only its dark verge still showed. Capped near 1.3x, with
+   the ratio written into the generator as the number to check against.
+2. **Forest's boulders came out grey.** Brightening by blending toward white desaturates, and half
+   these ramps are deliberately low-saturation — `17211a` blended 30% toward white is neutral.
+   Brightening now scales channels, which keeps hue.
+3. **The first surround was invisible**, darkened so far it matched the empty scene colour it was
+   meant to replace. And the first `mound` speckled its floor with the same tones as its blobs, so
+   the shape dissolved into salt-and-pepper — the third instance this slice of *a shape must beat its
+   own background, not tie with it*.
+
+### What this cost
+
+Both shipped maps now look different, and all five visual baselines were re-recorded. That is a
+deliberate visual change, not a regression — the sim hashes above are what prove the distinction.
 
 ## Scope
 

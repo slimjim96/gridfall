@@ -5,26 +5,31 @@ Godot import step.
 
 ```
 presentation/tiles/
-└── roadway/              ← the folder name IS the theme id
+└── desert/               ← the folder name IS the theme id
     ├── buildable/
-    │   ├── grass.png
-    │   ├── grass-2.png
-    │   └── grass-3.png
+    │   ├── ground.png
+    │   ├── ground-2.png
+    │   └── ground-3.png
     ├── path/
     │   ├── ns.png        ← a straight
     │   ├── es.png        ← a corner
     │   ├── nesw.png      ← a crossroads
     │   └── … 16 in all
     ├── blocked/
-    │   ├── stone.png
-    │   ├── stone-2.png
-    │   └── bush.png
+    │   ├── slab.png
+    │   ├── slab-2.png
+    │   └── mound.png
     ├── spawn/pad.png
-    └── goal/pad.png
+    ├── goal/pad.png
+    └── background/
+        └── surround.png  ← tiled around and under the board
 ```
 
-Then in the board editor: `F4` cycles to it, `F7` re-reads this folder without relaunching.
-In the game: set `"theme": "roadway"` in the map's JSON, or `./run-game.sh --theme roadway`.
+All seven registered themes ship a full set — `slate`, `forest`, `desert`, `ocean`, `underwater`,
+`mountain`, `space`.
+
+Then in the board editor: `F4` cycles themes, `F7` re-reads this folder without relaunching.
+In the game: set `"theme": "desert"` in the map's JSON, or `./run-game.sh --theme desert`.
 
 Implemented in [`godot/Placeholders/TileLibrary.cs`](../../godot/Placeholders/TileLibrary.cs).
 
@@ -40,7 +45,9 @@ code path by which an image reaches the simulation, and `TheThemeIsNotSimulation
 So painting a bush over a corridor does not block it, and a road tile on open ground does not make
 it path-only. If you want the behaviour, paint the cell kind.
 
-## The five kind folders
+## The folders
+
+Five of them name a **cell kind** — one image per cell on the grid:
 
 | Folder | Cell kind | Painted with |
 |---|---|---|
@@ -50,10 +57,42 @@ it path-only. If you want the behaviour, paint the cell kind.
 | `spawn/` | `Spawn` | `4` |
 | `goal/` | `Goal` | `5` |
 
-**Every one is optional.** A kind with no folder falls back to the theme's flat colour, so you can
-build a theme one folder at a time — drop in `blocked/` alone and you get stone walls on a plain
-coloured board. A folder whose name is not in that table is ignored, with a line in the console
-saying so.
+One does not:
+
+| Folder | What it is |
+|---|---|
+| `background/` | The **surround** — ground the board sits in. Not on the grid, never walked on, never clicked. |
+
+Worth keeping that line sharp. Every kind folder answers "what does this cell look like" and is
+therefore downstream of a simulation concept. `background/` is scenery. If a second scene folder
+ever appears, it belongs beside `background/`, not in the first table.
+
+**Every folder is optional.** A kind with no folder falls back to the theme's flat colour, so you
+can build a theme one folder at a time — drop in `blocked/` alone and you get stone walls on a plain
+coloured board. A theme with no `background/` keeps the empty scene colour behind it, exactly as
+before backgrounds existed. A folder whose name is in neither table is ignored, with a line in the
+console saying so.
+
+### `background/`
+
+One image, tiled across a single large quad that extends well past the board and sits **below** it.
+Take the first PNG in the folder, ordinally — variants make no sense here, since there is no
+per-cell choice to make.
+
+Three things are decided in code and worth knowing before you draw one
+([`godot/View/Backdrop.cs`](../../godot/View/Backdrop.cs)):
+
+- **It tiles at 4 cells per repeat**, coarser than the board's one-image-per-cell. A surround
+  tiling at the grid's own pitch reads as more playable board, and where the playable area ends is
+  information the player needs at a glance.
+- **It sits 0.35 world units below the board**, so the board reads as a plateau standing in a
+  landscape rather than a decal lying on it.
+- **It can never be clicked.** `IsoGrid.TryPick` solves the ground plane analytically and
+  bounds-checks against the map, so no amount of backdrop steals a pick.
+
+Draw it **darker and lower-contrast than the board**. Nothing enforces this — a bright backdrop is
+not modulated down, because silently darkening art somebody authored is worse than letting them see
+it — but the board is what the player reads, and a busy surround fights it.
 
 > **Think twice before overriding `spawn/` and `goal/`.** They are the only two markers that look
 > identical on every board, deliberately: a player learns "purple is where they come from, green is
@@ -161,15 +200,15 @@ So the smallest complete `path/` folder is one file with a non-compass name.
 
 They compose. `TerrainTheme.cs` registers seven colour ramps (`slate`, `forest`, `desert`, `ocean`,
 `underwater`, `mountain`, `space`); this folder can add tiles to any of them, or introduce a theme
-that exists only as tiles — `roadway` has no ramp at all and falls back to `slate`'s colours for
+that exists only as tiles — a folder with no ramp falls back to `slate`'s colours for
 anything it does not cover.
 
 `TerrainTheme.AllIds` is the union, and it is what `F4` cycles.
 
 ## Regenerating the placeholders
 
-`roadway` is placeholder art and is meant to be replaced. It is produced by a script rather than
-committed as pixels somebody once drew:
+Every shipped tile is placeholder art and is meant to be replaced. It is produced by a script rather
+than committed as pixels somebody once drew:
 
 ```bash
 python3 presentation/tiles/make-placeholder-tiles.py
@@ -177,6 +216,28 @@ python3 presentation/tiles/make-placeholder-tiles.py
 
 Byte-identical on every run — every speckle comes from a fixed LCG seeded from the tile's own name —
 so regenerating never churns git, and "the tiles changed" always means somebody meant it.
+
+**The script defines no palette.** It parses each theme's three ramp colours out of
+`godot/Placeholders/TerrainTheme.cs` and builds the tiles from those. That is not tidiness: those
+ramps were validated against rendered frames with units on the board — `desert` rotated away from the
+brute's khaki band, `underwater` away from the goal marker's green — and a second palette written in
+the generator would drift and quietly un-validate all of it. Add an eighth theme to `TerrainTheme.cs`,
+re-run, and it gets a tileset.
+
+Shapes are theme-agnostic and only colours differ, which is why nothing is named for a material: a
+"bush" would be wrong on `space` and a "dune" wrong on `underwater`, so the blocked variants are
+`slab` and `mound` and the theme's own hues decide whether a mound reads as foliage, rubble or hull
+plating.
+
+### The one hard constraint if you retune it
+
+Across all seven ramps, `Buildable` sits **1.6x–1.8x above `PathOnly`**. So the road band cannot be
+lifted much past ~1.3x or it lands *on* the buildable tier and the road stops being visible. The
+first pass used 1.55x: desert's band came out `(99,65,47)` against a buildable of `(107,74,55)`, and
+the rendered road vanished into the board, leaving only its dark verge as thin channels.
+
+The verge is likewise not the buildable colour, however good it looks — a path-only cell you cannot
+build on must not have corners that read as ground you can.
 
 ## Known limits
 

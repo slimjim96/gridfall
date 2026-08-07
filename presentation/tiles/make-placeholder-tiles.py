@@ -1,56 +1,82 @@
 #!/usr/bin/env python3
 """
-Generate the `roadway` placeholder tileset.
-
-Placeholder art is disposable and regenerable -- that is the whole point of it
-existing as a script rather than as committed pixels somebody once drew. Run
-this to rebuild the set from scratch:
+Generate a placeholder tileset for every registered terrain theme.
 
     python3 presentation/tiles/make-placeholder-tiles.py
 
-Output is **byte-identical** on every run. Every "random" speckle comes from a
-fixed LCG seeded from the tile's own name, so regenerating never churns git and
-"the tiles changed" always means somebody meant it.
+Placeholder art is disposable and regenerable -- that is the whole point of it
+existing as a script rather than as committed pixels somebody once drew.
 
-It writes PNGs with nothing but zlib and struct, because this machine has no
-image library and a tileset that needs a dependency nobody has installed is a
-tileset nobody regenerates.
+## Where the colours come from
+
+**This file defines no palette.** It parses the three ramp colours of each theme
+out of `godot/Placeholders/TerrainTheme.cs` and builds the tiles from those.
+
+That is deliberate and not just tidiness. Those seven ramps were validated
+against rendered frames with units on the board -- `desert` was rotated away from
+the brute's khaki band, `underwater` away from the goal marker's green -- and a
+second palette written here would drift out of agreement with the first and
+quietly un-validate all of it. Same reasoning as MapThemeTests reading the
+registry out of the view's source rather than copying the list.
+
+Add an eighth theme to TerrainTheme.cs, re-run this, and it gets a tileset.
+
+## Shapes are theme-agnostic, colours are not
+
+Every theme gets the same geometry: a road band for the 16 path masks, masonry
+slabs and a rounded boulder for blocked, speckled ground for buildable. Only the
+colours differ. A "bush" would be wrong on `space` and a "sand dune" wrong on
+`underwater`, so nothing here is named for a material -- the theme's own hues do
+that work.
+
+Output is **byte-identical** on every run. Every speckle comes from a fixed LCG
+seeded from the tile's own name, so regenerating never churns git and "the tiles
+changed" always means somebody meant it.
+
+Written with nothing but zlib and struct: this machine has no image library, and
+a tileset that needs a dependency nobody has installed is one nobody regenerates.
 
 Read tiles/README.md for the folder contract this produces.
 """
 
 import os
+import re
 import struct
 import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-THEME = os.path.join(HERE, "roadway")
+REPO = os.path.dirname(os.path.dirname(HERE))
+REGISTRY = os.path.join(REPO, "godot", "Placeholders", "TerrainTheme.cs")
 
 SIZE = 64
+BACKGROUND_SIZE = 128       # tiles at 4 cells per repeat, so it wants more room
 
 # The 24px road band, centred, is what makes a corner tile meet a straight tile
 # without a seam: both draw the band from the same centre to the same edge.
 ROAD_HALF = 12
-EDGE = 2          # darker lip either side of the band
+EDGE = 2
 
-GRASS = (74, 98, 71)
-GRASS_SPECKLE = ((69, 93, 66), (79, 103, 76), (71, 96, 69))
-ROAD = (150, 132, 104)
-ROAD_SPECKLE = ((143, 125, 98), (157, 139, 111), (147, 130, 102))
-ROAD_EDGE = (112, 97, 74)
-STONE = (58, 58, 66)
-STONE_SPECKLE = ((66, 66, 75), (51, 51, 58), (61, 61, 69))
-# Foliage over dark earth. The first pass put the blobs within ~14 levels of
-# their ground and a rendered tile showed one flat green square -- the same
-# mistake, and the same fix, as the original slate terrain ramp. Judge these
-# from an image, never from the tuples.
-BUSH_GROUND = (38, 54, 40)
-BUSH = (62, 96, 58)
-BUSH_LIT = (84, 120, 70)
-# Functional markers keep the hues Palette.cs reserves for them -- see the note
-# in README.md about why overriding these is usually a mistake.
-SPAWN = (122, 90, 160)
-GOAL = (70, 160, 122)
+
+# ---- colour ---------------------------------------------------------------
+
+def from_hex(text):
+    return tuple(int(text[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def lift(colour, gain):
+    """
+    Brighten by SCALING the channels, which keeps the hue.
+
+    Not by blending toward white, which does not. Half these ramps are dark and
+    deliberately low-saturation -- forest blocked is 17211a -- and blending that
+    30% toward white gives a neutral grey. The first pass did exactly that and
+    forest's boulders came out the same colour as mountain's.
+    """
+    return tuple(min(255, round(c * gain)) for c in colour)
+
+
+def darken(colour, amount):
+    return tuple(max(0, round(c * (1.0 - amount))) for c in colour)
 
 
 class Rng:
@@ -64,24 +90,43 @@ class Rng:
         return self.state % n
 
 
-def blank(colour):
-    return [[colour for _ in range(SIZE)] for _ in range(SIZE)]
+def seed_of(name):
+    h = 2166136261
+    for ch in name:
+        h = ((h ^ ord(ch)) * 16777619) & 0xFFFFFFFF
+    return h
+
+
+# ---- raster ---------------------------------------------------------------
+
+def blank(colour, size=SIZE):
+    return [[colour for _ in range(size)] for _ in range(size)]
 
 
 def speckle(px, rng, palette, density=6):
-    for y in range(SIZE):
-        for x in range(SIZE):
+    for y in range(len(px)):
+        for x in range(len(px)):
             if rng.next(density) == 0:
                 px[y][x] = palette[rng.next(len(palette))]
 
 
 def fill(px, x0, y0, x1, y1, colour):
-    for y in range(max(0, y0), min(SIZE, y1)):
-        for x in range(max(0, x0), min(SIZE, x1)):
+    size = len(px)
+    for y in range(max(0, y0), min(size, y1)):
+        for x in range(max(0, x0), min(size, x1)):
             px[y][x] = colour
 
 
+def disc(px, cx, cy, r, colour):
+    size = len(px)
+    for y in range(cy - r, cy + r):
+        for x in range(cx - r, cx + r):
+            if 0 <= x < size and 0 <= y < size and (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
+                px[y][x] = colour
+
+
 def write_png(path, px):
+    size = len(px)
     raw = b"".join(b"\x00" + bytes(v for p in row for v in p) for row in px)
 
     def chunk(tag, data):
@@ -90,7 +135,7 @@ def write_png(path, px):
 
     png = (
         b"\x89PNG\r\n\x1a\n"
-        + chunk(b"IHDR", struct.pack(">IIBBBBB", SIZE, SIZE, 8, 2, 0, 0, 0))
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0))
         + chunk(b"IDAT", zlib.compress(raw, 9))
         + chunk(b"IEND", b"")
     )
@@ -101,64 +146,102 @@ def write_png(path, px):
 
 # ---- tiles ----------------------------------------------------------------
 
-def grass(seed):
-    px = blank(GRASS)
-    speckle(px, Rng(seed), GRASS_SPECKLE, density=5)
+def ground(base, seed):
+    """Buildable: the ramp colour, lightly broken up so it is not a flat slab."""
+    px = blank(base)
+    speckle(px, Rng(seed), (darken(base, 0.10), lift(base, 1.14), base), density=5)
     return px
 
 
-def stone(seed):
-    px = blank(STONE)
+def masonry(base, seed):
+    """Blocked, variant A: overlapping slabs, so a wall reads as built."""
+    px = blank(base)
     rng = Rng(seed)
-    speckle(px, rng, STONE_SPECKLE, density=4)
-    # Blocky masonry: a few larger slabs so a wall reads as built, not noisy.
+    tones = (lift(base, 1.60), darken(base, 0.34), lift(base, 1.22))
+    speckle(px, rng, tones, density=4)
     for _ in range(7):
         x, y = rng.next(SIZE - 18), rng.next(SIZE - 18)
         w, h = 10 + rng.next(8), 8 + rng.next(6)
-        fill(px, x, y, x + w, y + h, STONE_SPECKLE[rng.next(len(STONE_SPECKLE))])
+        fill(px, x, y, x + w, y + h, tones[rng.next(len(tones))])
     return px
 
 
-def bush(seed):
-    px = blank(BUSH_GROUND)
+def boulder(base, seed):
+    """
+    Blocked, variant B: rounded blobs over darker ground.
+
+    Deliberately not "a bush" -- the same geometry has to serve forest, space and
+    underwater, so the shape stays generic and the theme's hue decides whether it
+    reads as foliage, rubble or hull plating.
+
+    The blobs must clear their own ground by a wide margin. The first version of
+    this sat ~14 levels above it and rendered as one flat square -- the same
+    mistake, and the same fix, as the original slate terrain ramp.
+    """
+    floor = darken(base, 0.40)
+    px = blank(floor)
     rng = Rng(seed)
-    speckle(px, rng, (BUSH, BUSH_LIT), density=3)
-    # Three overlapping blobs. Round-ish, so a bush is not mistaken for masonry.
+
+    # The floor speckle must stay NEAR the floor. Speckling it with the same
+    # tones the blobs use makes salt-and-pepper that the blobs then dissolve
+    # into -- the shape has to win against its own background, not tie with it.
+    speckle(px, rng, (darken(base, 0.30), darken(base, 0.52)), density=7)
+
+    body, rim = lift(base, 1.95), lift(base, 1.40)
     for _ in range(3):
-        cx, cy, r = 16 + rng.next(32), 16 + rng.next(32), 9 + rng.next(6)
-        tone = BUSH if rng.next(2) else BUSH_LIT
-        for y in range(cy - r, cy + r):
-            for x in range(cx - r, cx + r):
-                if 0 <= x < SIZE and 0 <= y < SIZE and (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
-                    px[y][x] = tone
+        cx, cy, r = 18 + rng.next(28), 18 + rng.next(28), 10 + rng.next(6)
+        disc(px, cx, cy, r + 2, rim)     # a darker lip, so blobs read as separate
+        disc(px, cx, cy, r, body)
     return px
 
 
 def marker(colour, seed):
     """A spawn or goal pad: the reserved hue, with a lighter inner square."""
     px = blank(colour)
-    speckle(px, Rng(seed), (colour,), density=8)
-    inner = tuple(min(255, c + 28) for c in colour)
-    fill(px, 18, 18, SIZE - 18, SIZE - 18, inner)
+    speckle(px, Rng(seed), (colour, lift(colour, 1.08)), density=8)
+    fill(px, 18, 18, SIZE - 18, SIZE - 18, lift(colour, 1.32))
     return px
 
 
-def road(mask, seed):
+def road(base, mask, seed):
     """
-    A dirt road leaving through whichever edges `mask` names.
+    A worn track leaving through whichever edges `mask` names.
+
+    Both tones straddle the theme's path-only colour -- the band lighter, the
+    verge darker -- so the tile AVERAGES to the ramp value it replaces. That is
+    what keeps the three-tier read (blocked darkest, path-only middle, buildable
+    lightest) intact once tiles are switched on.
+
+    The verge is emphatically not the buildable colour, however good it looks: a
+    path-only cell you cannot build on must not have corners that read as ground
+    you can.
+
+    **The band gain has a ceiling and it is not a matter of taste.** Across all
+    seven ramps Buildable sits 1.6x-1.8x above PathOnly, so a band lifted much
+    past ~1.3x lands ON the buildable tier and the road stops being visible. The
+    first pass used 1.55x: desert's band came out (99,65,47) against a buildable
+    of (107,74,55), and the rendered road disappeared into the board, leaving only
+    its dark verge showing as thin channels. Check a capture, not the numbers --
+    but if you must change this, that ratio is the number to check it against.
 
     Every arm is drawn from the tile centre to its edge, so the geometry of a
     corner and the geometry of a straight agree by construction -- there is no
-    separate "corner tile" that can be drawn one pixel off and leave a seam.
+    separate "corner tile" that can be drawn a pixel off and leave a seam.
     """
-    px = grass(seed)
+    verge = darken(base, 0.22)
+    band = lift(base, 1.28)
+    lip = darken(base, 0.10)
+
+    px = blank(verge)
+    speckle(px, Rng(seed), (verge, darken(base, 0.40)), density=5)
+
     lo, hi = SIZE // 2 - ROAD_HALF, SIZE // 2 + ROAD_HALF
 
     arms = []
-    if mask & 1:  arms.append((lo, 0, hi, hi))          # north: y-  (up the image)
-    if mask & 2:  arms.append((lo, lo, SIZE, hi))       # east:  x+
-    if mask & 4:  arms.append((lo, lo, hi, SIZE))       # south: y+
-    if mask & 8:  arms.append((0, lo, hi, hi))          # west:  x-
+    if mask & 1: arms.append((lo, 0, hi, hi))          # north: up the image
+    if mask & 2: arms.append((lo, lo, SIZE, hi))       # east
+    if mask & 4: arms.append((lo, lo, hi, SIZE))       # south
+    if mask & 8: arms.append((0, lo, hi, hi))          # west
 
     # A dead end or an orphan still needs a centre patch, or the arm starts in
     # mid-air and the road appears to float away from the junction.
@@ -166,17 +249,73 @@ def road(mask, seed):
         arms.append((lo, lo, hi, hi))
 
     for x0, y0, x1, y1 in arms:
-        fill(px, x0 - EDGE, y0 - EDGE, x1 + EDGE, y1 + EDGE, ROAD_EDGE)
+        fill(px, x0 - EDGE, y0 - EDGE, x1 + EDGE, y1 + EDGE, lip)
     for x0, y0, x1, y1 in arms:
-        fill(px, x0, y0, x1, y1, ROAD)
+        fill(px, x0, y0, x1, y1, band)
 
     rng = Rng(seed + 977)
     for y in range(SIZE):
         for x in range(SIZE):
-            if px[y][x] == ROAD and rng.next(7) == 0:
-                px[y][x] = ROAD_SPECKLE[rng.next(len(ROAD_SPECKLE))]
+            if px[y][x] == band and rng.next(7) == 0:
+                px[y][x] = lift(base, 1.16) if rng.next(2) else lift(base, 1.40)
     return px
 
+
+def background(base, seed):
+    """
+    The surround: ground the board sits in, not ground you can play on.
+
+    Built from the theme's BLOCKED colour taken darker still, at a coarser grain
+    than the board tiles. Both choices are legibility, not taste -- a surround as
+    bright and as finely detailed as the board makes the edge of the playable
+    area hard to find, and the edge of the playable area is information.
+    """
+    floor = lift(base, 1.15)
+    px = blank(floor, BACKGROUND_SIZE)
+    rng = Rng(seed)
+
+    tones = (darken(base, 0.18), lift(base, 1.16), floor)
+    # Coarse patches rather than per-pixel noise: at 4 cells per repeat, pixel
+    # speckle averages out to flat and the extra detail is wasted.
+    for _ in range(90):
+        x, y = rng.next(BACKGROUND_SIZE), rng.next(BACKGROUND_SIZE)
+        r = 5 + rng.next(14)
+        disc(px, x, y, r, tones[rng.next(len(tones))])
+
+    speckle(px, rng, tones, density=9)
+    return px
+
+
+# ---- registry -------------------------------------------------------------
+
+THEME_BLOCK = re.compile(
+    r'\["(?P<id>[a-z-]+)"\]\s*=\s*new TerrainTheme\s*\{(?P<body>.*?)\}', re.S)
+
+
+def read_themes():
+    with open(REGISTRY, encoding="utf-8") as f:
+        source = f.read()
+
+    themes = {}
+    for match in THEME_BLOCK.finditer(source):
+        body = match.group("body")
+        colours = {}
+        for slot in ("Blocked", "PathOnly", "Buildable"):
+            found = re.search(slot + r'\s*=\s*Color\.FromHtml\("([0-9a-fA-F]{6})"\)', body)
+            if not found:
+                raise SystemExit(f"{match.group('id')}: no {slot} in the registry block")
+            colours[slot] = from_hex(found.group(1))
+        themes[match.group("id")] = colours
+
+    if len(themes) < 2:
+        raise SystemExit("parsed suspiciously few themes -- has TerrainTheme.cs changed shape?")
+    return themes
+
+
+# Functional markers, identical on every board. Same hues as Palette.cs, and the
+# README says why overriding them is usually a mistake.
+SPAWN = from_hex("7a5aa0")
+GOAL = from_hex("46a07a")
 
 # Canonical NESW order, matching TileLibrary's mask parser.
 MASK_NAMES = {
@@ -186,39 +325,41 @@ MASK_NAMES = {
 }
 
 
-def seed_of(name):
-    h = 2166136261
-    for ch in name:
-        h = ((h ^ ord(ch)) * 16777619) & 0xFFFFFFFF
-    return h
+def build(theme, colours):
+    root = os.path.join(HERE, theme)
+    count = 0
+
+    def emit(kind, name, px):
+        nonlocal count
+        write_png(os.path.join(root, kind, name + ".png"), px)
+        count += 1
+
+    for mask, name in sorted(MASK_NAMES.items()):
+        emit("path", name, road(colours["PathOnly"], mask, seed_of(theme + "/path/" + name)))
+
+    for name in ("ground", "ground-2", "ground-3"):
+        emit("buildable", name, ground(colours["Buildable"], seed_of(theme + "/buildable/" + name)))
+
+    emit("blocked", "slab", masonry(colours["Blocked"], seed_of(theme + "/blocked/slab")))
+    emit("blocked", "slab-2", masonry(colours["Blocked"], seed_of(theme + "/blocked/slab-2")))
+    emit("blocked", "mound", boulder(colours["Blocked"], seed_of(theme + "/blocked/mound")))
+
+    emit("spawn", "pad", marker(SPAWN, seed_of(theme + "/spawn")))
+    emit("goal", "pad", marker(GOAL, seed_of(theme + "/goal")))
+
+    emit("background", "surround", background(colours["Blocked"], seed_of(theme + "/background")))
+
+    return count
 
 
 def main():
-    made = []
-
-    for mask, name in sorted(MASK_NAMES.items()):
-        path = os.path.join(THEME, "path", name + ".png")
-        write_png(path, road(mask, seed_of("path/" + name)))
-        made.append(path)
-
-    for name in ("grass", "grass-2", "grass-3"):
-        path = os.path.join(THEME, "buildable", name + ".png")
-        write_png(path, grass(seed_of("buildable/" + name)))
-        made.append(path)
-
-    for name in ("stone", "stone-2"):
-        path = os.path.join(THEME, "blocked", name + ".png")
-        write_png(path, stone(seed_of("blocked/" + name)))
-        made.append(path)
-    path = os.path.join(THEME, "blocked", "bush.png")
-    write_png(path, bush(seed_of("blocked/bush")))
-    made.append(path)
-
-    write_png(os.path.join(THEME, "spawn", "pad.png"), marker(SPAWN, seed_of("spawn")))
-    write_png(os.path.join(THEME, "goal", "pad.png"), marker(GOAL, seed_of("goal")))
-    made += [os.path.join(THEME, "spawn", "pad.png"), os.path.join(THEME, "goal", "pad.png")]
-
-    print(f"wrote {len(made)} tiles under {THEME}")
+    themes = read_themes()
+    total = 0
+    for theme, colours in sorted(themes.items()):
+        made = build(theme, colours)
+        total += made
+        print(f"{theme:12} {made} tiles")
+    print(f"\n{len(themes)} themes, {total} tiles, from {os.path.relpath(REGISTRY, REPO)}")
 
 
 if __name__ == "__main__":

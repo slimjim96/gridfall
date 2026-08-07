@@ -113,6 +113,16 @@ theme missing tiles the last one had. That must never error, and it must never b
 Both halves are load-bearing. Substituting without saying so trades a visible bug for an invisible
 one, and the invisible one gets reported months later as "the tiles look weird sometimes".
 
+### The surround
+
+A theme may also carry `background/` — one image tiled across a large quad under and around the
+board, so a board reads as a place rather than a slab in a void. It is **scenery, not board**:
+nothing walks on it, and it can never be picked, because `IsoGrid.TryPick` solves the ground plane
+analytically and bounds-checks against the map.
+
+This is the one folder in the contract that is not a cell kind, and the distinction is worth keeping
+sharp — everything else there is downstream of a simulation concept, and this is not.
+
 **Why this is inside the scope above and not creep past it.** The theme is already an opaque string
 that Core carries and never reads, so nothing new crosses the boundary; the editor gained no rule of
 its own; and it removes a real hand-edit, which is the bar every feature here has to clear. What is
@@ -150,7 +160,7 @@ Three regions, and a card that appears over them:
               │ ▣  ▤  ▩  ◆  ★     │              the five brushes, as the
               │ 1  2  3  4  5     │              tiles they actually paint
               │ path-only  1x1    │
-              │ theme: roadway    │
+              │ theme: desert     │
               └───────────────────┘
 ```
 
