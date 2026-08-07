@@ -36,7 +36,7 @@ public sealed partial class Hud : CanvasLayer
         AddChild(_help);
     }
 
-    public void Refresh(SimState state, string towerName, float delta)
+    public void Refresh(SimStateView state, string towerName, float delta)
     {
         _stats.Text = $"gold {state.Gold}    lives {state.Lives}    wave {state.WaveIndex}    " +
                       $"creeps {state.CreepCount}    towers {state.TowerCount}    [{towerName}]";

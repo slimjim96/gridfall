@@ -112,7 +112,7 @@ public class DeterminismTests
                 sim.Tick();
                 int slot = sim.State.SlotOfCreep(1);   // first spawned entity
                 if (slot < 0) continue;
-                int cell = sim.State.CreepCellIndex[slot];
+                int cell = sim.State.CreepCellIndex(slot);
                 if (route.Count == 0 || route[^1] != cell) route.Add(cell);
             }
             return route;

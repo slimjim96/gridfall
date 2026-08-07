@@ -82,7 +82,7 @@ public sealed partial class UnitRenderer : Node3D
 
     private void SyncEntities()
     {
-        SimState state = _driver.State;
+        SimStateView state = _driver.State;
         MapDef map = _driver.Map;
         ContentSet content = _driver.Content;
 
@@ -90,12 +90,12 @@ public sealed partial class UnitRenderer : Node3D
         for (int k = 0; k < state.CreepCount; k++)
         {
             int slot = state.CreepSlotByOrder(k);
-            int id = state.CreepId[slot];
+            int id = state.CreepId(slot);
             Vector3 world = CreepWorldPosition(state, map, slot);
 
             if (!_creeps.TryGetValue(id, out Tracked? tracked))
             {
-                string contentId = content.Enemy(state.CreepDefIndex[slot]).Id;
+                string contentId = content.Enemy(state.CreepDefIndex(slot)).Id;
                 IUnitView view = PlaceholderFactory.CreateCreep(contentId, id);
                 AddChild(view.Node);
                 tracked = new Tracked { View = view, Previous = world, Current = world };
@@ -113,13 +113,13 @@ public sealed partial class UnitRenderer : Node3D
         for (int k = 0; k < state.TowerCount; k++)
         {
             int slot = state.TowerSlotByOrder(k);
-            int id = state.TowerId[slot];
-            int cellIndex = state.TowerCellIndex[slot];
+            int id = state.TowerId(slot);
+            int cellIndex = state.TowerCellIndex(slot);
             Vector3 world = IsoGrid.CellCentre(cellIndex % map.Width, cellIndex / map.Width);
 
             if (_towers.ContainsKey(id)) continue;
 
-            string contentId = content.Tower(state.TowerDefIndex[slot]).Id;
+            string contentId = content.Tower(state.TowerDefIndex(slot)).Id;
             IUnitView view = PlaceholderFactory.CreateTower(contentId, id);
             AddChild(view.Node);
             _towers[id] = new Tracked { View = view, Previous = world, Current = world };
@@ -129,8 +129,8 @@ public sealed partial class UnitRenderer : Node3D
         // Projectiles
         for (int slot = 0; slot < state.ProjectileCount; slot++)
         {
-            int id = state.ProjectileId[slot];
-            FixVec2 pos = state.ProjectilePos[slot];
+            int id = state.ProjectileId(slot);
+            FixVec2 pos = state.ProjectilePos(slot);
             var world = new Vector3(
                 pos.X.ToFloat() + IsoGrid.CellSize * 0.5f,
                 0.45f,
@@ -153,7 +153,7 @@ public sealed partial class UnitRenderer : Node3D
         bool LiveProjectile(int id)
         {
             for (int i = 0; i < state.ProjectileCount; i++)
-                if (state.ProjectileId[i] == id) return true;
+                if (state.ProjectileId(i) == id) return true;
             return false;
         }
     }
@@ -162,14 +162,14 @@ public sealed partial class UnitRenderer : Node3D
     /// World position from cell + progress along heading. Fix32 becomes float
     /// here and nowhere else in the entity path -- this is the boundary.
     /// </summary>
-    private static Vector3 CreepWorldPosition(SimState state, MapDef map, int slot)
+    private static Vector3 CreepWorldPosition(SimStateView state, MapDef map, int slot)
     {
-        int cellIndex = state.CreepCellIndex[slot];
+        int cellIndex = state.CreepCellIndex(slot);
         int cx = cellIndex % map.Width;
         int cy = cellIndex / map.Width;
 
-        (int dx, int dy) = Directions.Offsets[state.CreepHeading[slot]];
-        float progress = state.CreepProgress[slot].ToFloat();
+        (int dx, int dy) = Directions.Offsets[state.CreepHeading(slot)];
+        float progress = state.CreepProgress(slot).ToFloat();
 
         return IsoGrid.CellCentre(cx, cy) + new Vector3(dx * progress, 0f, dy * progress) * IsoGrid.CellSize;
     }

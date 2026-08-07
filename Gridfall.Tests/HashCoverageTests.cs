@@ -25,7 +25,7 @@ public class HashCoverageTests
     {
         Sim sim = SimWithEntities();
         ulong before = sim.Hash();
-        mutate(sim.State);
+        mutate(sim.MutableState);
         Assert.NotEqual(before, sim.Hash());
     }
 
@@ -99,14 +99,14 @@ public class HashCoverageTests
         Sim b = SimWithEntities();
 
         int[] idsA = Enumerable.Range(0, a.State.CreepCount).Select(a.State.CreepSlotByOrder)
-            .Select(s => a.State.CreepId[s]).ToArray();
+            .Select(s => a.State.CreepId(s)).ToArray();
         Assert.True(idsA.Length >= 3, "need at least three creeps to reorder slots");
 
         // Remove the same two creeps, in opposite orders.
-        a.State.RemoveCreepBySlot(a.State.SlotOfCreep(idsA[0]));
-        a.State.RemoveCreepBySlot(a.State.SlotOfCreep(idsA[1]));
-        b.State.RemoveCreepBySlot(b.State.SlotOfCreep(idsA[1]));
-        b.State.RemoveCreepBySlot(b.State.SlotOfCreep(idsA[0]));
+        a.MutableState.RemoveCreepBySlot(a.State.SlotOfCreep(idsA[0]));
+        a.MutableState.RemoveCreepBySlot(a.State.SlotOfCreep(idsA[1]));
+        b.MutableState.RemoveCreepBySlot(b.State.SlotOfCreep(idsA[1]));
+        b.MutableState.RemoveCreepBySlot(b.State.SlotOfCreep(idsA[0]));
 
         Assert.Equal(a.Hash(), b.Hash());
     }

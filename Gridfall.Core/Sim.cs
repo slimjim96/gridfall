@@ -48,7 +48,20 @@ public sealed class Sim
     }
 
     public int TickCount { get; private set; }
-    public SimState State => _state;
+
+    /// <summary>
+    /// Read-only. The renderer gets this and cannot write through it -- see
+    /// SimStateView and ADR-0001.
+    /// </summary>
+    public SimStateView State => new(_state);
+
+    /// <summary>
+    /// The mutable state, for first-party tooling only: the test suite proving
+    /// hash coverage, and the perf harness setting up a board. Not visible to
+    /// the Godot project, which is the point.
+    /// </summary>
+    internal SimState MutableState => _state;
+
     public EventLog Events => _events;
     public MapDef Map => _map;
     public ContentSet Content => _content;

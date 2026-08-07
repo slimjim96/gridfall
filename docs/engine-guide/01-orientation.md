@@ -69,18 +69,22 @@ public sealed class Sim
 
     public void Tick();                       // advance exactly one 33 ms step
     public void Enqueue(ICommand command);    // player intent; applied in phase 1 of the next tick
-    public SimState State { get; }            // see the caveat below
+    public SimStateView State { get; }        // read-only; the renderer gets this
     public EventLog Events { get; }           // ordered, tick-stamped, cleared each tick
     public ulong Hash();                      // state hash — the determinism primitive
     public int TickCount { get; }
 }
 ```
 
-> **Gap, honestly stated.** This guide originally specified `SimStateView`, a read-only façade that
-> would make "the view never mutates state" a compile-time fact. It does not exist yet: `State` returns
-> the mutable `SimState`, and the view layer refrains from writing to it **by discipline, not by the
-> type system**. Follow-up slug `sim-state-view`. Until it lands, a code review is the only thing
-> standing between the renderer and a determinism bug.
+`SimStateView` is a read-only façade with no setter and no way to reach an underlying array, so "the
+view never mutates state" is a compile-time fact rather than a code-review convention. A struct
+wrapping one reference — nothing allocates per frame.
+
+First-party tooling that genuinely needs to write — the test suite proving hash coverage, the perf
+harness granting itself gold — uses `Sim.MutableState`, which is `internal` and exposed only to
+`Gridfall.Tests` and `Gridfall.Verify` via `InternalsVisibleTo`. **The Godot project is deliberately
+not on that list**, so the renderer has no write path at all. Verified: a write attempt from the view
+fails with `CS0200`, and reaching for `MutableState` fails with `CS1061`.
 
 ## Running it
 

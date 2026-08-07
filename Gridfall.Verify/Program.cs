@@ -269,7 +269,7 @@ int Perf()
     // Load the board up: as many towers as gold allows, then run waves on repeat
     // so the tick loop is doing real work rather than idling.
     var sim = new Sim(map, content, 1);
-    sim.State.Gold = 100000;
+    sim.MutableState.Gold = 100000;
     ushort arrow = content.TowerIndexOf("arrow-tower");
     for (int y = 0; y < map.Height; y++)
         for (int x = 0; x < map.Width; x++)

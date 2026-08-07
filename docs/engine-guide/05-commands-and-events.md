@@ -108,20 +108,39 @@ events.
 ```csharp
 public readonly struct SimStateView
 {
+    public int Gold { get; }
+    public int Lives { get; }
+    public int WaveIndex { get; }
+    public bool WaveActive { get; }
+
     public int CreepCount { get; }
-    public Vector2I CreepCell(int slot);
-    public FixVec2  CreepOffset(int slot);
-    public int      CreepHp(int slot);
-    public int      Gold { get; }
-    public int      Lives { get; }
-    public byte     FlowAt(Vector2I cell);
-    public ushort   DistanceAt(Vector2I cell);
-    public RoutePreview PreviewRoute(Vector2I candidateCell);   // pure, allocation-free, mutates nothing
+    public int CreepSlotByOrder(int k);      // iterate with this -- ascending id
+    public int SlotOfCreep(int id);          // -1 if gone
+    public int CreepId(int slot);
+    public int CreepCellIndex(int slot);
+    public Fix32 CreepProgress(int slot);
+    public byte CreepHeading(int slot);
+    public int CreepHp(int slot);
+    // towers and projectiles follow the same shape
 }
 ```
 
-Read-only by construction. `PreviewRoute` runs the same BFS as the block check on a scratch buffer —
-same code, so the drag preview and the refusal can never disagree ([Chapter 06](06-pathing.md)).
+Read-only by construction: no setter, and **accessors are methods returning copies, not arrays**. A
+caller cannot take a reference and write through it, which is the difference between a guarantee and a
+naming convention. `SimStateViewTests` asserts both properties by reflection so they cannot quietly
+erode.
+
+Pathing is read from `Sim.Path` (`FlowAt`, `DistanceAt`, `IsBlocked`), which is already read-only in
+practice. `PreviewRoute` for the drag preview is **not implemented yet** — the block check exists as
+`PathSystem.WouldRemainConnected`, and exposing it to the view is follow-up work.
+
+### The escape hatch, and who gets it
+
+`Sim.MutableState` is `internal`, visible via `InternalsVisibleTo` to `Gridfall.Tests` (which mutates
+single fields to prove hash coverage) and `Gridfall.Verify` (which grants itself gold to fill a board).
+
+The Godot project is **not** on that list. That is the entire design: the boundary that matters is
+Core↔View, and the renderer having no write path is enforced by the compiler, not by review.
 
 **Widen this reluctantly.** Every getter added here is a thing the view can couple to, and a thing the
 next refactor has to preserve. When the view wants to know something new, ask first whether an event

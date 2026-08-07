@@ -41,7 +41,7 @@ public sealed class SimDriver
     }
 
     public Sim Sim => _sim;
-    public SimState State => _sim.State;
+    public SimStateView State => _sim.State;
     public MapDef Map => _sim.Map;
     public ContentSet Content => _sim.Content;
     public int TickCount => _sim.TickCount;

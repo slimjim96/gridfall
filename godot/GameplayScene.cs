@@ -121,12 +121,12 @@ public sealed partial class GameplayScene : Node3D
         else if (click.ButtonIndex == MouseButton.Right)
         {
             int index = _driver.Map.Index(cell);
-            SimState state = _driver.State;
+            SimStateView state = _driver.State;
             for (int k = 0; k < state.TowerCount; k++)
             {
                 int slot = state.TowerSlotByOrder(k);
-                if (state.TowerCellIndex[slot] != index) continue;
-                _driver.Enqueue(new SellCommand(state.TowerId[slot]));
+                if (state.TowerCellIndex(slot) != index) continue;
+                _driver.Enqueue(new SellCommand(state.TowerId(slot)));
                 break;
             }
         }

@@ -126,20 +126,20 @@ public class SimulationTests
         {
             sim.Tick();
             slot = sim.State.SlotOfCreep(1);
-            if (slot >= 0 && sim.State.CreepProgress[slot] > Fix32.FromFraction(3, 10)) break;
+            if (slot >= 0 && sim.State.CreepProgress(slot) > Fix32.FromFraction(3, 10)) break;
         }
         Assert.True(slot >= 0, "no creep to observe");
 
-        byte headingBefore = sim.State.CreepHeading[slot];
-        int cellBefore = sim.State.CreepCellIndex[slot];
+        byte headingBefore = sim.State.CreepHeading(slot);
+        int cellBefore = sim.State.CreepCellIndex(slot);
 
         // Change the maze under it, mid-crossing.
         sim.Enqueue(new BuildCommand(new GridCell(8, 3), sim.Content.TowerIndexOf("arrow-tower")));
         sim.Tick();
 
         slot = sim.State.SlotOfCreep(1);
-        if (sim.State.CreepCellIndex[slot] == cellBefore)
-            Assert.Equal(headingBefore, sim.State.CreepHeading[slot]);
+        if (sim.State.CreepCellIndex(slot) == cellBefore)
+            Assert.Equal(headingBefore, sim.State.CreepHeading(slot));
     }
 
     [Fact]
@@ -152,7 +152,7 @@ public class SimulationTests
         sim.Enqueue(new BuildCommand(new GridCell(4, 3), arrow));
         sim.Tick();
 
-        int towerId = sim.State.TowerId[0];
+        int towerId = sim.State.TowerId(0);
         Assert.Equal(goldBefore - 50, sim.State.Gold);
         Assert.True(sim.Path.IsBlocked(sim.Map.Index(new GridCell(4, 3))));
 
@@ -168,7 +168,7 @@ public class SimulationTests
     public void BuildingWithoutEnoughGold_IsRefused()
     {
         Sim sim = TestContent.NewSim(TestContent.ArenaMap, seed: 1);
-        sim.State.Gold = 10;
+        sim.MutableState.Gold = 10;
 
         sim.Enqueue(new BuildCommand(new GridCell(4, 3), sim.Content.TowerIndexOf("arrow-tower")));
         sim.Tick();
