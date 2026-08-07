@@ -302,7 +302,7 @@ side-car would be a second file to keep in step. There is a test asserting two m
 their theme hash the same at every tick.
 
 Core holds **no list of valid themes**. It carries the string; the registry lives in the view
-(`godot/Placeholders/TerrainTheme.cs`) and an unknown id falls back to `slate` rather than failing the
+(`godot/View/TerrainTheme.cs`) and an unknown id falls back to `slate` rather than failing the
 load — a board in the wrong palette beats a map that will not open. The typo is caught instead by
 `EveryShippedMapNamesAKnownTheme`, which reads the registry out of the view's source rather than
 duplicating the list.

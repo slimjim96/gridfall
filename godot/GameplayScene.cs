@@ -7,7 +7,6 @@ using Gridfall.Core.Events;
 using Gridfall.Io;
 using Gridfall.View;
 using Gridfall.View.Hud;
-using Gridfall.View.Placeholders;
 using Gridfall.View.Units;
 
 namespace Gridfall;

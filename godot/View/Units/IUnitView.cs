@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Gridfall.View.Placeholders;
+namespace Gridfall.View.Units;
 
 /// <summary>
 /// What gameplay code needs from a visual, and nothing more.

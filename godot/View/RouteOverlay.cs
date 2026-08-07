@@ -2,7 +2,6 @@ using Godot;
 using Gridfall.Core;
 using Gridfall.Core.Content;
 using Gridfall.Core.Path;
-using Gridfall.View.Placeholders;
 
 namespace Gridfall.View;
 

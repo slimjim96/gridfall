@@ -91,7 +91,7 @@ than per cell.
 
 `F4` cycles the theme. The brush bar says which one you are on and where it came from:
 
-- `theme: slate (colours, F4)` — a colour ramp defined in `godot/Placeholders/TerrainTheme.cs`
+- `theme: slate (colours, F4)` — a colour ramp defined in `godot/View/TerrainTheme.cs`
 - `theme: desert (25 tiles, F4)` — a folder of PNGs under `presentation/tiles/desert/`
 
 All seven themes ship a full tileset, so `F4` now changes the whole board and its surround.

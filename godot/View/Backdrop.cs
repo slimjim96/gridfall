@@ -1,6 +1,5 @@
 using Godot;
 using Gridfall.Core.Content;
-using Gridfall.View.Placeholders;
 
 namespace Gridfall.View;
 

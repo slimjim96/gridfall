@@ -5,7 +5,7 @@ using Godot;
 using Gridfall.Core;
 using Gridfall.Core.Content;
 
-namespace Gridfall.View.Placeholders;
+namespace Gridfall.View;
 
 /// <summary>One tile image, plus the average colour its raised sides are painted.</summary>
 public readonly struct TerrainTile

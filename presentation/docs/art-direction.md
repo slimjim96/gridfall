@@ -35,7 +35,7 @@ Gradients are built in code (`Gradient` + `GradientTexture2D`), not shipped as i
 ### Terrain themes
 
 A map declares a `theme` and the view draws its ground from that palette — `slate`, `forest`, `desert`,
-`ocean`, `underwater`, `mountain`, `space`. Registry: `godot/Placeholders/TerrainTheme.cs`.
+`ocean`, `underwater`, `mountain`, `space`. Registry: `godot/View/TerrainTheme.cs`.
 
 **A theme is three colours, not five.** Blocked, path-only, buildable. **Spawn and goal keep the same
 hue on every board**, because they are functional markers rather than terrain — a player learns "purple

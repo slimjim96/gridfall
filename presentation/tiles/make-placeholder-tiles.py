@@ -10,7 +10,7 @@ existing as a script rather than as committed pixels somebody once drew.
 ## Where the colours come from
 
 **This file defines no palette.** It parses the three ramp colours of each theme
-out of `godot/Placeholders/TerrainTheme.cs` and builds the tiles from those.
+out of `godot/View/TerrainTheme.cs` and builds the tiles from those.
 
 That is deliberate and not just tidiness. Those seven ramps were validated
 against rendered frames with units on the board -- `desert` was rotated away from
@@ -46,7 +46,7 @@ import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
-REGISTRY = os.path.join(REPO, "godot", "Placeholders", "TerrainTheme.cs")
+REGISTRY = os.path.join(REPO, "godot", "View", "TerrainTheme.cs")
 
 SIZE = 64
 BACKGROUND_SIZE = 128       # tiles at 4 cells per repeat, so it wants more room

@@ -31,7 +31,7 @@ All seven registered themes ship a full set — `slate`, `forest`, `desert`, `oc
 Then in the board editor: `F4` cycles themes, `F7` re-reads this folder without relaunching.
 In the game: set `"theme": "desert"` in the map's JSON, or `./run-game.sh --theme desert`.
 
-Implemented in [`godot/Placeholders/TileLibrary.cs`](../../godot/Placeholders/TileLibrary.cs).
+Implemented in [`godot/View/TileLibrary.cs`](../../godot/View/TileLibrary.cs).
 
 ---
 
@@ -218,7 +218,7 @@ Byte-identical on every run — every speckle comes from a fixed LCG seeded from
 so regenerating never churns git, and "the tiles changed" always means somebody meant it.
 
 **The script defines no palette.** It parses each theme's three ramp colours out of
-`godot/Placeholders/TerrainTheme.cs` and builds the tiles from those. That is not tidiness: those
+`godot/View/TerrainTheme.cs` and builds the tiles from those. That is not tidiness: those
 ramps were validated against rendered frames with units on the board — `desert` rotated away from the
 brute's khaki band, `underwater` away from the goal marker's green — and a second palette written in
 the generator would drift and quietly un-validate all of it. Add an eighth theme to `TerrainTheme.cs`,

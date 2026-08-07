@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Godot;
 using Gridfall.Core;
 using Gridfall.Core.Content;
-using Gridfall.View.Placeholders;
+using Gridfall.View;
 
 namespace Gridfall.Dev;
 

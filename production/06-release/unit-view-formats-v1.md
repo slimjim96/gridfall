@@ -90,9 +90,38 @@ still draws its placeholder and `board-baseline.png` is byte-identical at
 |---|---|---|
 | Run the frost spire bake-off and record the answer in ADR-0004 | presentation | `ludo-tile-prompts` / ADR update |
 | Delete the losing half of the pipeline and every prompt set, once the answer lands | presentation | — |
-| `IUnitView` still lives in the `Placeholders` namespace, which is now wrong — it is the general view contract | presentation | `unit-view-namespace` |
 | Sprite `move` / `hit` / `death` and mesh clips beyond `fire` | presentation | with the first real asset |
 | Export preset — `presentation/` is outside `res://`, so packing final art is still unproven | production | `release-export` |
+
+## Follow-up done in the same pass: the namespace
+
+`Gridfall.View.Placeholders` held seven types and **four of them were not placeholders** — `IUnitView`
+(the general view contract that final assets implement too), `Palette` (the art direction's colour
+slots, used by nine files), `TerrainTheme`, and `TileLibrary`. The last was misfiled by the tiles
+slice a day earlier.
+
+A namespace whose name asserts "these are placeholders" has to be true of everything in it, or it
+stops carrying information — and the cost was concrete: every file that wanted `Palette` had to
+import a namespace saying its contents were disposable.
+
+Moved:
+
+| Type | To | File |
+|---|---|---|
+| `IUnitView` | `Gridfall.View.Units` | `godot/View/Units/IUnitView.cs` |
+| `Palette`, `TerrainTheme`, `TileLibrary` | `Gridfall.View` | `godot/View/` |
+
+`Gridfall.View.Placeholders` now contains exactly three things, all genuinely placeholders:
+`PlaceholderFactory`, `PlaceholderUnitView`, `Shapes`.
+
+Two source paths followed the files — `MapThemeTests` reads the theme registry by path, and so does
+the tile generator — plus five docs. `production/04-build/tower-repair/build-notes.md` still names
+the old `Palette.cs` path and was **left alone**: production artifacts are dated records of what a
+slice touched at the time, not live pointers.
+
+**Purely mechanical, and checked rather than asserted:** `board-baseline`, `unit-formats-baseline`
+and `editor-tiles-baseline` are all byte-identical after the move, the tile generator reproduces all
+175 tiles with no diff, and the determinism trace is unchanged.
 
 ## Known Not Verified
 

@@ -110,15 +110,26 @@ tower that vanishes with no prior warning is exactly the unexplainable loss pill
 ## Naming and location
 
 ```
-godot/Placeholders/
+godot/Placeholders/            ← only things that ARE placeholders
 ├── PlaceholderFactory.cs        maps content id → a placeholder view
-├── Shapes.cs                    the shared primitive builders
-└── Palette.cs                   the palette slots from art-direction.md
+├── PlaceholderUnitView.cs       the shared bob / flash / collapse motions
+└── Shapes.cs                    the shared primitive builders
+
+godot/View/                    ← the view layer's shared vocabulary
+├── Palette.cs                   the palette slots from art-direction.md
+├── TerrainTheme.cs              the colour ramps
+└── Units/IUnitView.cs           the contract all three views implement
 ```
 
-One `case` per content id in the factory. When a final asset arrives, the case changes to return a
-`SpriteUnitView` or `MeshUnitView` and the placeholder code is deleted in the same commit — not left
-behind "in case".
+`Palette` and `IUnitView` used to live under `Placeholders/` and do not belong there: the palette is
+the art direction, and the interface is the general view contract that *final* assets implement too.
+A namespace whose name asserts "these are placeholders" has to be true of everything in it, or it
+stops carrying information.
+
+One `case` per content id in the factory — and a final asset no longer needs that case edited at all.
+Dropping a folder into `presentation/units/<content-id>/` makes `UnitViewFactory` stop reaching the
+placeholder branch on its own, so the placeholder is superseded rather than deleted, and comes back
+if the folder moves away.
 
 ## The exit
 

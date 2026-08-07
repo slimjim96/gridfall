@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Gridfall.View.Placeholders;
+namespace Gridfall.View;
 
 /// <summary>
 /// The palette slots from presentation/docs/art-direction.md. Placeholder colours

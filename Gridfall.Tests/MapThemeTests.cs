@@ -32,7 +32,7 @@ public class MapThemeTests
     /// </summary>
     private static HashSet<string> RegisteredThemes()
     {
-        string path = Path.Combine(RepoRoot().FullName, "godot", "Placeholders", "TerrainTheme.cs");
+        string path = Path.Combine(RepoRoot().FullName, "godot", "View", "TerrainTheme.cs");
         Assert.True(File.Exists(path), $"theme registry not found at {path}");
 
         var ids = new HashSet<string>();

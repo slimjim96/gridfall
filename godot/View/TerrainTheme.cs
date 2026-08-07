@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Godot;
 
-namespace Gridfall.View.Placeholders;
+namespace Gridfall.View;
 
 /// <summary>
 /// A map's ground palette. Themes exist so boards read as places -- forest,
