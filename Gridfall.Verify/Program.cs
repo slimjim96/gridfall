@@ -47,12 +47,16 @@ int Usage()
                                    the old one diverged and have decided the new
                                    behaviour is correct.
 
-      balance --map <id> [--runs N] [--seed N]
+      balance --map <id> [--runs N] [--seed N] [--salvage]
                                    Headless N-run wave sim driven by a scripted player;
                                    reports leak rate, per-wave leaks, gold curve and
                                    time-to-clear against the balance targets.
                                    The policy is a competent BEGINNER, so the numbers
                                    are a floor on difficulty, not a verdict.
+                                   --salvage makes it cut doomed towers loose mid-wave.
+                                   Salvaging must never come out AHEAD on gold
+                                   destroyed -- if it does, cashing out wrecks is
+                                   profitable again (salvage-value).
 
       maps                         Geometry report for every map against MapTargets.
 
@@ -215,6 +219,8 @@ int Balance()
     int runs = int.TryParse(Opt("runs"), out int r) ? r : 200;
     uint baseSeed = uint.TryParse(Opt("seed"), out uint s) ? s : 1u;
 
+    PlayPolicy.Salvages = Flag("salvage");
+
     MapDef map = ContentFiles.LoadMap(root, mapId);
     ContentSet content = ContentFiles.LoadContent(root, mapId);
     int waveCount = content.Waves.Length;
@@ -225,7 +231,13 @@ int Balance()
     for (int i = 0; i < waveCount; i++) perWaveTicks[i] = new List<int>();
 
     int totalSpawned = 0, totalLeaked = 0, runsLost = 0, totalBuilds = 0, noPlacement = 0, refused = 0, upgrades = 0;
-    int repairs = 0, repairGold = 0, towersDestroyed = 0;
+    int repairs = 0, repairGold = 0, towersDestroyed = 0, salvaged = 0, salvageGold = 0;
+    // Investment the enemy took off the board and the player could not recover.
+    // "Towers lost" counts destructions only, and a tower SOLD at 1 hp is not
+    // destroyed -- so that number reads 0 while the same gold is still gone.
+    // This is the invariant tower-combat actually installed, measured in the one
+    // unit that both routes share.
+    long goldDestroyed = 0;
     var towersStanding = new List<int>();
     var coverage = new List<int>();
     var goldAtWave = new List<int>[waveCount];
@@ -244,6 +256,11 @@ int Balance()
         var sim = new Sim(map, content, baseSeed + (uint)run);
         var policy = new PlayPolicy(sim, baseSeed + (uint)run);
         int earned = 0;
+
+        // towerId -> (def, level), rebuilt from events so it needs no new state
+        // in the sim and no accessor the view does not already have.
+        var towerDefOf = new Dictionary<int, ushort>();
+        var towerLevelOf = new Dictionary<int, int>();
 
         int wave = 0;
         int waveStartTick = 0;
@@ -277,7 +294,18 @@ int Balance()
                 if (e.Kind == EventKind.CreepSpawned) { perWaveSpawned[wave]++; totalSpawned++; }
                 if (e.Kind == EventKind.CreepLeaked) { perWaveLeaked[wave]++; totalLeaked++; }
                 if (e.Kind == EventKind.GoldChanged && e.B > 0) earned += e.B;
-                if (e.Kind == EventKind.TowerDestroyed) towersDestroyed++;
+                if (e.Kind == EventKind.BuildPlaced) { towerDefOf[e.A] = (ushort)e.B; towerLevelOf[e.A] = 1; }
+                if (e.Kind == EventKind.TowerUpgraded) towerLevelOf[e.A] = e.B;
+                if (e.Kind == EventKind.TowerDestroyed)
+                {
+                    towersDestroyed++;
+                    goldDestroyed += SpentOn(e.A);   // destroyed: the whole investment
+                }
+                if (e.Kind == EventKind.TowerSold)
+                {
+                    salvageGold += e.B;
+                    goldDestroyed += SpentOn(e.A) - e.B;   // salvaged: whatever the refund missed
+                }
                 if (e.Kind == EventKind.WaveCleared && !counted)
                 {
                     perWaveTicks[wave].Add(sim.TickCount - waveStartTick);
@@ -288,6 +316,11 @@ int Balance()
             if (sim.State.Lives <= 0) break;
         }
 
+        int SpentOn(int towerId)
+            => towerDefOf.TryGetValue(towerId, out ushort d)
+                ? content.Tower(d).TotalSpentAt(towerLevelOf.GetValueOrDefault(towerId, 1))
+                : 0;
+
         totalBuilds += policy.BuildsPlaced;
         towersStanding.Add(sim.State.TowerCount);
         coverage.Add(policy.TotalCoverage());
@@ -296,6 +329,7 @@ int Balance()
         upgrades += policy.UpgradesBought;
         repairs += policy.RepairsBought;
         repairGold += policy.GoldSpentRepairing;
+        salvaged += policy.TowersSalvaged;
         finalLives.Add(sim.State.Lives);
         if (sim.State.Lives <= 0) runsLost++;
     }
@@ -312,6 +346,10 @@ int Balance()
     // The number this slice exists to keep above zero. Repair that drives it to
     // zero has not balanced tower-combat, it has switched it off.
     Console.WriteLine($"  towers lost     {towersDestroyed / (double)runs:F1} avg per run");
+    Console.WriteLine($"  towers salvaged {salvaged / (double)runs:F1} avg per run, " +
+                      $"{salvageGold / (double)runs:F0} gold refunded");
+    Console.WriteLine($"  gold destroyed  {goldDestroyed / (double)runs:F0} avg per run " +
+                      $"-- investment the enemy took and the player could not recover");
     Console.WriteLine($"  coverage        {coverage.Average():F0} route-cells covered in total, " +
                       $"{coverage.Average() / System.Math.Max(1, towersStanding.Average()):F1} per tower");
     Console.WriteLine($"  no placement    {noPlacement / (double)runs:F0} attempts found nowhere to go ({refused / (double)runs:F0} of them blocked by the seal check)");

@@ -125,6 +125,31 @@ The knob moves the repair *bill* and not tower survival. If you are reaching for
 longer, it is the wrong knob —
 [the balance report](../../content-data/docs/reports/2026-08-07-tower-repair-balance.md) has the sweep.
 
+## Selling
+
+Selling refunds `SellValueAt(level) x remainingHealth / maxHealth` -- half of everything spent, scaled
+by how much of the tower is left. **There is no knob**, deliberately: a `salvagePercent` would be a
+third control over what enemy damage costs, alongside `repairPercent` and enemy `attackDamage`, and
+attribution across three is impossible.
+
+An **undamaged** tower refunds exactly `SellValueAt(level)`, guaranteed by an early return rather than
+by `x * Hp / Hp` happening to round correctly. Repositioning is pillar 1 and must not pay a rounding tax
+for a rule aimed at wrecks.
+
+Note the rounding directions, which look inconsistent and are not:
+
+| | rounds | because |
+|---|---|---|
+| `RepairCostFor` | **up** | the player pays it |
+| `SalvageValueAt` | **down** | the player receives it |
+
+Both round *against* the player. Rounding toward them at either end opens a granularity exploit -- ten
+small repairs beating one large one, or ten partial sales beating one whole one.
+
+Before this scaled, cashing out a wreck paid the same as cashing out a pristine tower, which made
+pre-empting every destruction profitable and drove destructions per run to zero.
+[The balance report](../../content-data/docs/reports/2026-08-07-salvage-value-balance.md) has the sweep.
+
 ## Upgrades
 
 ```json

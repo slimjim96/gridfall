@@ -58,6 +58,19 @@ public sealed class PlayPolicy
     /// </summary>
     private const int RepairBelowPercent = 40;
 
+    /// <summary>
+    /// Sell a tower mid-wave once it drops below this. A tower this hurt is
+    /// probably not surviving the wave, and a destroyed tower refunds nothing.
+    /// </summary>
+    private const int SalvageBelowPercent = 25;
+
+    /// <summary>
+    /// Whether the player cuts doomed towers loose mid-wave. Set from the balance
+    /// runner: the beginner policy never sells, so without this the sim cannot
+    /// see the behaviour `salvage-value` exists to price.
+    /// </summary>
+    public static bool Salvages;
+
 
     /// <summary>
     /// Cap on seal checks per build attempt. Each one is a BFS, and on a
@@ -100,6 +113,8 @@ public sealed class PlayPolicy
     /// finding in its own right, not just an input to the leak rate.
     /// </summary>
     public int GoldSpentRepairing { get; private set; }
+
+    public int TowersSalvaged { get; private set; }
 
     /// <summary>
     /// Total route cells covered, summed over every standing tower. Tower COUNT
@@ -151,7 +166,45 @@ public sealed class PlayPolicy
         // No repair branch here: the sim refuses a repair while a wave is running,
         // so a policy that tried would only generate rejections. The decision this
         // mechanic creates lives entirely in the between-waves branch above.
+        if (Salvages && TrySalvage()) return;
         TryBuild();
+    }
+
+    /// <summary>
+    /// Cut loose the worst-hurt tower mid-wave, before it dies for nothing.
+    ///
+    /// Mid-wave only: between waves the same tower can be repaired, which is
+    /// cheaper than selling and rebuilding. This models the player noticing that
+    /// selling still works while a wave runs and repairing does not.
+    /// </summary>
+    /// <returns>True if a sale was queued this tick.</returns>
+    private bool TrySalvage()
+    {
+        SimStateView state = _sim.State;
+
+        int bestTowerId = -1;
+        long bestHp = 0, bestMax = 1;
+
+        for (int k = 0; k < state.TowerCount; k++)
+        {
+            int slot = state.TowerSlotByOrder(k);
+            TowerDef def = _sim.Content.Tower(state.TowerDefIndex(slot));
+            int hp = state.TowerHp(slot);
+
+            if (hp * 100L >= def.Hp * (long)SalvageBelowPercent) continue;
+            if (bestTowerId >= 0 && hp * bestMax >= bestHp * def.Hp) continue;
+
+            bestTowerId = state.TowerId(slot);
+            bestHp = hp;
+            bestMax = def.Hp;
+        }
+
+        if (bestTowerId < 0) return false;
+
+        _nextBuildTick = _sim.TickCount + BuildCooldownTicks;
+        _sim.Enqueue(new SellCommand(bestTowerId));
+        TowersSalvaged++;
+        return true;
     }
 
     /// <summary>

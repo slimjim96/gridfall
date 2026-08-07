@@ -77,6 +77,18 @@ constants so they cannot disagree.
 - The check costs a loop over upgrade levels per tower at load. Irrelevant at this scale, but it is
   work in a path that previously only parsed.
 
+### Amended by `salvage-value` (2026-08-07)
+
+The bound compares repair-to-full against `SellValueAt(level)` — the refund for an **undamaged** tower.
+Since `salvage-value`, refunds scale with remaining health, so the real sell-and-rebuild alternative for
+a *damaged* tower costs more than `SellValueAt` suggests.
+
+The check is therefore **conservative rather than exact**: it still guarantees repair beats
+sell-and-rebuild, by a wider margin than when it was written. Left as-is deliberately — the tight
+version would have to model the health at which the player is deciding, which is not a property of the
+def and cannot be validated at load. A bound that is safe and computable beats one that is exact and
+situational.
+
 ### Forecloses
 - An intentionally unrepairable tower archetype cannot be expressed as "repair so expensive nobody does
   it". It needs an explicit representation instead. That is the better design anyway — *unrepairable*

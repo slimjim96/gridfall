@@ -104,6 +104,12 @@ to react to. That fails pillar 4.
 > bounded below half a tower's cost by the sell-and-rebuild alternative, and a tower costs 50–90 gold
 > against 6,479 earned. Restricting repair to **between waves** gives 5.8 lost per run.
 > See [tower repair](reports/2026-08-07-tower-repair-balance.md).
+>
+> **And nearly restored a second time, by a different route (2026-08-07).** Selling refunded half of a
+> tower's *cost* regardless of damage, so cashing out a wreck paid the same as cashing out a pristine
+> tower. A player who sold every doomed tower took destructions from 5.8 to **0.0** — and `towers lost`
+> could not see it, because a sold tower is not a destroyed one. Refunds now scale with remaining
+> health. See [salvage value](reports/2026-08-07-salvage-value-balance.md).
 
 The first four are also `MapTargets` constants in code — read by the balance sim's map report and by the
 board editor's live validation panel. **Changing a number here means changing the constant too.** Two
@@ -139,9 +145,27 @@ driving tower destruction — the *previous* slice's entire result — to exactl
 document could see it, because the defence on the board came out the same either way.
 
 **Measure that the previous pass's mechanic is still doing something too.** A new mechanic can hit every
-target while quietly deleting the one before it. `balance` now prints **towers lost per run** on every
-run for exactly this reason: the number that catches a deletion has to be on screen by default, because
-nobody thinks to go looking for it.
+target while quietly deleting the one before it. `balance` prints the guard number on every run for
+exactly this reason: the number that catches a deletion has to be on screen by default, because nobody
+thinks to go looking for it.
+
+Then `salvage-value` deleted the same mechanic again, past the guard. `towers lost` counts destructions,
+and a tower **sold** at 1 hp is not destroyed — so it read 0.0 while the same investment was just as
+gone.
+
+| Pass | Failure the targets missed | Number added |
+|---|---|---|
+| `tower-combat` | Tuning that hit targets while the mechanic did nothing | towers built vs standing |
+| `tower-repair` | A new mechanic deleting the previous one | towers lost |
+| `salvage-value` | The **same** deletion by a route that metric did not cover | **gold destroyed** |
+
+The lesson is not "add a metric per pass". Each of these was **too specific**, and the fix each time was
+to measure one level more abstractly — from tower counts, to destructions, to the gold those
+destructions represent.
+
+**`gold destroyed` is now the first number to check** when a pass touches towers. It counts
+unrecoverable investment whether the tower was destroyed or sold at a discount, which is what the
+invariant is actually about.
 
 ## Hard invariants
 

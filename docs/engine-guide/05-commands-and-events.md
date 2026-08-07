@@ -80,7 +80,7 @@ contiguous array the renderer walks once.
 | `CreepSpawned` | 3 | Entity id A, def B |
 | `PathRecomputed` | 2 | New field version A |
 | `BuildPlaced` / `BuildRejected` | 1 | Cell, tower def / reject reason |
-| `TowerSold` | 1 | Tower A sold for refund B |
+| `TowerSold` | 1 | Tower A sold for refund B. B scales with remaining health (`salvage-value`) |
 | `TowerUpgraded` / `UpgradeRejected` | 1 | Tower A, new level B / reject reason A, tower B |
 | `TowerRepaired` / `RepairRejected` | 1 | Tower A, health B restored / reject reason A, tower B |
 | `CreepStranded` | 4 | Creep A has no route. Should be impossible — the block check exists to prevent it |

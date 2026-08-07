@@ -102,9 +102,10 @@ internal static class CommandSystem
         int cellIndex = state.TowerCellIndex[slot];
         TowerDef def = content.Tower(state.TowerDefIndex[slot]);
 
-        // Half of EVERYTHING spent, upgrades included. A flat base refund would
-        // make upgrade-then-sell a money printer.
-        int refund = def.SellValueAt(state.TowerLevel[slot]);
+        // Half of EVERYTHING spent, upgrades included -- a flat base refund would
+        // make upgrade-then-sell a money printer -- and then scaled by how much of
+        // the tower is left, so a wreck cannot be cashed out at full price.
+        int refund = def.SalvageValueAt(state.TowerLevel[slot], state.TowerHp[slot]);
 
         state.RemoveTowerBySlot(slot);
         state.Gold += refund;

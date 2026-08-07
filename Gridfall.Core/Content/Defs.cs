@@ -76,6 +76,27 @@ public sealed class TowerDef
     /// </summary>
     public int SellValueAt(int level) => TotalSpentAt(level) / 2;
 
+    /// <summary>
+    /// What selling actually pays: half of everything spent, scaled by how much
+    /// of the tower is still standing.
+    ///
+    /// Selling used to refund the full half regardless of damage, which made
+    /// cashing out a nearly-destroyed tower strictly better than losing it and
+    /// drove towers-destroyed-per-run to zero -- the player pre-empted every
+    /// destruction. The value the enemy destroyed is now value the player cannot
+    /// recover, which is the whole point of destructible towers.
+    ///
+    /// An undamaged tower returns SellValueAt unchanged, by an explicit early
+    /// return rather than by arithmetic that happens to land there. Repositioning
+    /// is pillar 1 and must not pay a rounding tax for a feature aimed at wrecks.
+    /// </summary>
+    public int SalvageValueAt(int level, int hp)
+    {
+        if (hp >= Hp) return SellValueAt(level);
+        if (hp <= 0) return 0;
+        return (int)((long)SellValueAt(level) * hp / Hp);
+    }
+
     /// <summary>Base cost plus every upgrade bought to reach this level.</summary>
     public int TotalSpentAt(int level)
     {

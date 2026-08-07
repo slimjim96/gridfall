@@ -174,17 +174,27 @@ public sealed partial class GameplayScene : Node3D
 
         SimStateView state = _driver.State;
         TowerDef def = _driver.Content.Tower(state.TowerDefIndex(slot));
-        int missing = def.Hp - state.TowerHp(slot);
-        if (missing <= 0) return null;
+        int level = state.TowerLevel(slot);
+        int hp = state.TowerHp(slot);
+        int missing = def.Hp - hp;
 
-        int cost = def.RepairCostFor(state.TowerLevel(slot), missing);
-        int percent = 100 * state.TowerHp(slot) / def.Hp;
+        // Selling was the one command in the game whose price was never shown
+        // before the click -- and now that the price MOVES with damage, hiding it
+        // means the player cannot tell a repair from a write-off (pillar 2).
+        int sell = def.SalvageValueAt(level, hp);
+        string sellPart = $"sell {sell} (right click)";
+
+        if (missing <= 0) return $"{def.Name}  --  {sellPart}";
+
+        int percent = 100 * hp / def.Hp;
 
         // Naming the rule where the player meets it, rather than only in a
         // refusal after they have already clicked.
-        return state.WaveActive
-            ? $"{def.Name} at {percent}%  --  repair between waves"
-            : $"{def.Name} at {percent}%  --  repair {cost} gold (middle click)";
+        string repairPart = state.WaveActive
+            ? "repair between waves"
+            : $"repair {def.RepairCostFor(level, missing)} gold (middle click)";
+
+        return $"{def.Name} at {percent}%  --  {repairPart}  ·  {sellPart}";
     }
 
     /// <summary>The slot of the tower standing on a cell, or null.</summary>
