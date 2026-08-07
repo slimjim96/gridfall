@@ -31,6 +31,7 @@ internal static class CommandSystem
                 case CommandKind.Sell: Sell(state, content, path, events, tick, e.TowerId); break;
                 case CommandKind.StartWave: StartWave(state, content, events, tick); break;
                 case CommandKind.Upgrade: Upgrade(state, content, events, tick, e.TowerId); break;
+                case CommandKind.Repair: Repair(state, content, events, tick, e.TowerId); break;
             }
         }
         queue.Clear();
@@ -147,6 +148,68 @@ internal static class CommandSystem
         state.TowerLevel[slot] = (byte)(level + 1);
 
         events.Add(new SimEvent(tick, EventKind.TowerUpgraded, towerId, level + 1));
+        events.Add(new SimEvent(tick, EventKind.GoldChanged, state.Gold, -cost));
+    }
+
+    /// <summary>
+    /// Restore a damaged tower to full structure health for gold. Only between
+    /// waves.
+    ///
+    /// The between-waves restriction is the whole mechanic, and it was measured
+    /// rather than argued. Repair available DURING a wave drove towers lost per
+    /// run to exactly zero at every legal price -- because tower destruction is
+    /// driven by throughput, and an unlimited-rate counter beats a throughput
+    /// threat at any cost the player can afford. Restricted to between waves it
+    /// reduces losses (9.9 -> 5.8 per run) instead of erasing them, which is what
+    /// a counter-mechanic is supposed to do. See the balance report.
+    ///
+    /// The rate limit costs no new state: WaveActive is already hashed.
+    ///
+    /// No block check, for the same reason Upgrade has none: a repaired tower
+    /// occupies the cell it already occupied, so the walkable grid never changes
+    /// and phase 2 is never dirtied.
+    ///
+    /// Every rejection path returns before any mutation, so a refused repair
+    /// leaves the state byte-identical -- the same discipline Build's seal check
+    /// follows.
+    /// </summary>
+    private static void Repair(
+        SimState state, ContentSet content, EventLog events, int tick, int towerId)
+    {
+        int slot = state.SlotOfTower(towerId);
+        if (slot < 0) return;   // already destroyed; repairing a corpse is not an error
+
+        if (state.WaveActive)
+        {
+            events.Add(new SimEvent(tick, EventKind.RepairRejected, (int)RejectReason.WaveInProgress, towerId));
+            return;
+        }
+
+        TowerDef def = content.Tower(state.TowerDefIndex[slot]);
+
+        // <= 0 rather than == 0: nothing pushes HP above max today, but a guard
+        // that caught only the exact case would turn a future overshoot into a
+        // negative cost, which is free gold.
+        int missing = def.Hp - state.TowerHp[slot];
+        if (missing <= 0)
+        {
+            events.Add(new SimEvent(tick, EventKind.RepairRejected, (int)RejectReason.NotDamaged, towerId));
+            return;
+        }
+
+        int cost = def.RepairCostFor(state.TowerLevel[slot], missing);
+        if (state.Gold < cost)
+        {
+            events.Add(new SimEvent(tick, EventKind.RepairRejected, (int)RejectReason.InsufficientGold, towerId));
+            return;
+        }
+
+        state.Gold -= cost;
+        state.TowerHp[slot] = def.Hp;
+        // Level and cooldown are read, never written. Repair restores health and
+        // only health -- a repaired tower does not get a free shot.
+
+        events.Add(new SimEvent(tick, EventKind.TowerRepaired, towerId, missing));
         events.Add(new SimEvent(tick, EventKind.GoldChanged, state.Gold, -cost));
     }
 

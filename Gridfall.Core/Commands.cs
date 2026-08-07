@@ -19,6 +19,7 @@ public enum CommandKind : byte
     Sell = 2,
     StartWave = 3,
     Upgrade = 4,
+    Repair = 5,
 }
 
 public readonly struct BuildCommand : ICommand
@@ -57,6 +58,18 @@ public readonly struct UpgradeCommand : ICommand
     public readonly int TowerId;
     public UpgradeCommand(int towerId) => TowerId = towerId;
     public CommandKind Kind => CommandKind.Upgrade;
+}
+
+/// <summary>
+/// Restore a damaged tower's structure health to full. No amount field: repair
+/// is always to full, and the cost already scales with the damage taken, so a
+/// partial repair is a second knob that buys no extra decision (design spec).
+/// </summary>
+public readonly struct RepairCommand : ICommand
+{
+    public readonly int TowerId;
+    public RepairCommand(int towerId) => TowerId = towerId;
+    public CommandKind Kind => CommandKind.Repair;
 }
 
 /// <summary>
@@ -99,6 +112,10 @@ public sealed class CommandQueue
             case UpgradeCommand u:
                 e.Kind = CommandKind.Upgrade;
                 e.TowerId = u.TowerId;
+                break;
+            case RepairCommand r:
+                e.Kind = CommandKind.Repair;
+                e.TowerId = r.TowerId;
                 break;
             default:
                 throw new ArgumentException($"Unknown command type {command.GetType().Name}");

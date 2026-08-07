@@ -115,6 +115,17 @@ public static class ContentLoader
             if (damage < 0) throw new ContentException($"{file}: damage must be >= 0");
             int cooldown = SecondsToTicks(RequireProperty(r, "cooldown", file), file);
 
+            // Every tower is repairable unless a future design says otherwise, so
+            // this defaults rather than opting in the way an enemy's attackDamage
+            // does. ADR-0007 records why "unrepairable" must eventually be its own
+            // field instead of a cost nobody would pay.
+            int repairPercent = r.TryGetProperty("repairPercent", out var rp) ? rp.GetInt32() : 60;
+            if (repairPercent is <= 0 or >= 100)
+                throw new ContentException(
+                    $"{file}: repairPercent must be between 1 and 99 (got {repairPercent}). " +
+                    "It is a percentage of the sell-and-rebuild cost, so 100 IS the wall: " +
+                    "at or above it nobody would ever repair.");
+
             towers[i] = new TowerDef
             {
                 Index = (ushort)i,
@@ -131,11 +142,42 @@ public static class ContentLoader
                 Targeting = ParseTargeting(r, file),
                 SellValue = r.TryGetProperty("sellValue", out var sv) ? sv.GetInt32() : cost / 2,
                 Hp = r.TryGetProperty("hp", out var thp) ? thp.GetInt32() : 100,
+                RepairPercent = repairPercent,
                 Upgrades = ParseUpgrades(r, file, damage, range),
             };
             doc.Dispose();
+
+            ValidateRepairCurve(towers[i], file);
         }
         return towers;
+    }
+
+    /// <summary>
+    /// The repair cost bound, enforced rather than trusted (ADR-0007).
+    ///
+    /// repairPercent and the cost fields live in different places and either can
+    /// be edited without looking at the other. When they conflict the mechanic
+    /// does not crash -- it just becomes arithmetically dominated by
+    /// sell-and-rebuild, and the next balance report reads as "players don't
+    /// repair much" rather than "repair is impossible to justify".
+    ///
+    /// The loader is the only place underneath all three consumers: the game,
+    /// the board editor, and the balance sim.
+    /// </summary>
+    private static void ValidateRepairCurve(TowerDef def, string file)
+    {
+        for (int level = 1; level <= def.MaxLevel; level++)
+        {
+            int toFull = def.RepairCostFor(level, def.Hp);
+            int sellRebuild = def.SellValueAt(level);
+            if (toFull < sellRebuild) continue;
+
+            throw new ContentException(
+                $"{file}: repairing '{def.Id}' at level {level} from zero costs {toFull} gold, " +
+                $"but selling and rebuilding it costs only {sellRebuild}. " +
+                $"Nobody would ever repair. Lower repairPercent (currently {def.RepairPercent}) " +
+                $"or raise the level-{level} cost (total spent {def.TotalSpentAt(level)}).");
+        }
     }
 
     private static Fix32 AttackRange(JsonElement r, string file)

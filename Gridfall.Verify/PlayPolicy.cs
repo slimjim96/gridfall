@@ -22,9 +22,14 @@ namespace Gridfall.Verify;
 ///   4. When there is nowhere useful left to build, upgrade the tower covering
 ///      the most of the route instead. Board saturation is exactly the moment
 ///      upgrades are for.
-///   5. Spend down BEFORE pulling the next wave, not during it. A real player
+///   5. Between waves, repair a tower that is visibly about to die BEFORE
+///      building a new one. Losing a built tower costs more than not having
+///      another. A beginner notices a tower gone dark red; they do not
+///      micro-manage scratches, so this triggers on a threshold rather than on
+///      any damage at all.
+///   6. Spend down BEFORE pulling the next wave, not during it. A real player
 ///      with 200 gold in hand does not start wave 1 with one tower.
-///   6. Never sell, never re-maze deliberately.
+///   7. Never sell, never re-maze deliberately.
 ///
 /// That is a reasonable beginner who understands coverage: clearly better than
 /// nothing, clearly worse than a good player. Balance numbers from it are a
@@ -44,6 +49,17 @@ public sealed class PlayPolicy
     private const int JitterTopN = 3;
 
     /// <summary>
+    /// Repair a tower once it drops below this percentage of full health.
+    ///
+    /// Not 100: repairing every scratch is micro no beginner does, and because
+    /// cost scales with damage taken it would also be indistinguishable from a
+    /// continuous drain. 40% is roughly where the placeholder's darkening reads
+    /// as "this one is in trouble" rather than "this one has been shot at".
+    /// </summary>
+    private const int RepairBelowPercent = 40;
+
+
+    /// <summary>
     /// Cap on seal checks per build attempt. Each one is a BFS, and on a
     /// saturated board almost every candidate fails -- without a cap the policy
     /// would spend a full board scan of BFS calls every third tick.
@@ -56,6 +72,7 @@ public sealed class PlayPolicy
     private readonly List<(int cell, int score)> _candidates = new();
 
     private int _nextBuildTick;
+    private int _pendingRepairCost;
 
     public PlayPolicy(Sim sim, uint seed)
     {
@@ -74,6 +91,15 @@ public sealed class PlayPolicy
     public int NoPlacementFound { get; private set; }
 
     public int UpgradesBought { get; private set; }
+
+    public int RepairsBought { get; private set; }
+
+    /// <summary>
+    /// Gold sunk into repairs. Reported because repair is the first sink whose
+    /// size the ENEMY sets rather than the player, so how big it gets is a
+    /// finding in its own right, not just an input to the leak rate.
+    /// </summary>
+    public int GoldSpentRepairing { get; private set; }
 
     /// <summary>
     /// Total route cells covered, summed over every standing tower. Tower COUNT
@@ -112,6 +138,7 @@ public sealed class PlayPolicy
         if (!state.WaveActive && state.CreepCount == 0)
         {
             if (_sim.TickCount < _nextBuildTick) return;
+            if (TryRepair()) return;
             if (TryBuild()) return;
             if (TryUpgrade()) return;
 
@@ -120,7 +147,56 @@ public sealed class PlayPolicy
         }
 
         if (_sim.TickCount < _nextBuildTick) return;
+
+        // No repair branch here: the sim refuses a repair while a wave is running,
+        // so a policy that tried would only generate rejections. The decision this
+        // mechanic creates lives entirely in the between-waves branch above.
         TryBuild();
+    }
+
+    /// <summary>
+    /// Repair the worst-hurt tower that is below the threshold and affordable.
+    ///
+    /// Worst-hurt by health FRACTION, not by points missing: an 800-hp arrow
+    /// tower at 200 is in more danger than a 1440-hp cannon at 400, and the
+    /// beginner being modelled is reading the colour, which tracks the fraction.
+    /// </summary>
+    /// <returns>True if a repair was queued this tick.</returns>
+    private bool TryRepair()
+    {
+        SimStateView state = _sim.State;
+
+        int bestTowerId = -1;
+        long bestHp = 0, bestMax = 1;   // compared as a fraction, cross-multiplied
+
+        // Ascending tower id, so ties resolve identically every run.
+        for (int k = 0; k < state.TowerCount; k++)
+        {
+            int slot = state.TowerSlotByOrder(k);
+            TowerDef def = _sim.Content.Tower(state.TowerDefIndex(slot));
+            int hp = state.TowerHp(slot);
+
+            if (hp * 100L >= def.Hp * (long)RepairBelowPercent) continue;
+
+            int cost = def.RepairCostFor(state.TowerLevel(slot), def.Hp - hp);
+            if (state.Gold < cost) continue;
+
+            // hp/def.Hp < bestHp/bestMax, without dividing.
+            if (bestTowerId >= 0 && hp * bestMax >= bestHp * def.Hp) continue;
+
+            bestTowerId = state.TowerId(slot);
+            bestHp = hp;
+            bestMax = def.Hp;
+            _pendingRepairCost = cost;
+        }
+
+        if (bestTowerId < 0) return false;
+
+        _nextBuildTick = _sim.TickCount + BuildCooldownTicks;
+        _sim.Enqueue(new RepairCommand(bestTowerId));
+        RepairsBought++;
+        GoldSpentRepairing += _pendingRepairCost;
+        return true;
     }
 
     /// <returns>True if a build was queued this tick.</returns>

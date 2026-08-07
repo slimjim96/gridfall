@@ -225,6 +225,7 @@ int Balance()
     for (int i = 0; i < waveCount; i++) perWaveTicks[i] = new List<int>();
 
     int totalSpawned = 0, totalLeaked = 0, runsLost = 0, totalBuilds = 0, noPlacement = 0, refused = 0, upgrades = 0;
+    int repairs = 0, repairGold = 0, towersDestroyed = 0;
     var towersStanding = new List<int>();
     var coverage = new List<int>();
     var goldAtWave = new List<int>[waveCount];
@@ -276,6 +277,7 @@ int Balance()
                 if (e.Kind == EventKind.CreepSpawned) { perWaveSpawned[wave]++; totalSpawned++; }
                 if (e.Kind == EventKind.CreepLeaked) { perWaveLeaked[wave]++; totalLeaked++; }
                 if (e.Kind == EventKind.GoldChanged && e.B > 0) earned += e.B;
+                if (e.Kind == EventKind.TowerDestroyed) towersDestroyed++;
                 if (e.Kind == EventKind.WaveCleared && !counted)
                 {
                     perWaveTicks[wave].Add(sim.TickCount - waveStartTick);
@@ -292,6 +294,8 @@ int Balance()
         noPlacement += policy.NoPlacementFound;
         refused += policy.BuildsRefused;
         upgrades += policy.UpgradesBought;
+        repairs += policy.RepairsBought;
+        repairGold += policy.GoldSpentRepairing;
         finalLives.Add(sim.State.Lives);
         if (sim.State.Lives <= 0) runsLost++;
     }
@@ -303,6 +307,11 @@ int Balance()
     Console.WriteLine($"  policy          competent-beginner (coverage placement, best dps/gold, no reserve)");
     Console.WriteLine($"  towers built    {totalBuilds / (double)runs:F1} avg per run, {towersStanding.Average():F1} standing at end");
     Console.WriteLine($"  upgrades bought {upgrades / (double)runs:F1} avg per run");
+    Console.WriteLine($"  repairs bought  {repairs / (double)runs:F1} avg per run, " +
+                      $"{repairGold / (double)runs:F0} gold spent on them");
+    // The number this slice exists to keep above zero. Repair that drives it to
+    // zero has not balanced tower-combat, it has switched it off.
+    Console.WriteLine($"  towers lost     {towersDestroyed / (double)runs:F1} avg per run");
     Console.WriteLine($"  coverage        {coverage.Average():F0} route-cells covered in total, " +
                       $"{coverage.Average() / System.Math.Max(1, towersStanding.Average()):F1} per tower");
     Console.WriteLine($"  no placement    {noPlacement / (double)runs:F0} attempts found nowhere to go ({refused / (double)runs:F0} of them blocked by the seal check)");

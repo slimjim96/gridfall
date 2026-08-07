@@ -90,6 +90,41 @@ the balance sweep found tower loss is driven by **attack throughput** across man
 damage per hit, so a tower must survive a lot of individual chips. Do not "tidy" these numbers toward
 each other without re-running the sweep.
 
+## Repair
+
+```json
+"repairPercent": 60
+```
+
+| Field | On | Default | Meaning |
+|---|---|---|---|
+| `repairPercent` | tower | `60` | Cost to repair from zero to full, as a **percentage of the sell-and-rebuild cost**. Must be 1–99. |
+
+Repairing costs `ceil(S × repairPercent × missingHp / (200 × maxHp))`, where `S` is everything spent on
+the tower including upgrades and the `200` is 100 percent × the 2 in the sell refund. Two properties are
+load-bearing:
+
+- **Ceiling division.** Truncating would make ten small repairs cheaper than one large one. Rounding up
+  makes granular repair strictly worse, so the exploit closes arithmetically.
+- **A `long` intermediate.** The product reaches ~10¹⁴. Int overflow would be *deterministic* — every
+  machine agreeing on the same wrong number, with the state hash confirming it.
+
+**The loader refuses a def whose repair cost reaches its sell-and-rebuild cost**
+([ADR-0007](../../engine-systems/decisions/ADR-0007-repair-bounds-validated-at-load.md)) — above that
+line nobody would ever repair, and the failure is silent rather than loud. `repairPercent` and the
+`cost` fields live apart and either can be edited without the other; the loader is the only place
+underneath the game, the board editor, and the balance sim alike.
+
+**Repair is refused while a wave is running,** and that is the mechanic rather than a limitation of it.
+Tower destruction is throughput-driven, so a counter available at unlimited rate wins at any affordable
+price: repair-at-any-time drove towers lost per run to **0.0 across the entire legal range of
+`repairPercent`**, with every balance target still reading "ok". Restricting it to between waves gives
+5.8 lost per run against 9.9 with no repair at all.
+
+The knob moves the repair *bill* and not tower survival. If you are reaching for it to make towers live
+longer, it is the wrong knob —
+[the balance report](../../content-data/docs/reports/2026-08-07-tower-repair-balance.md) has the sweep.
+
 ## Upgrades
 
 ```json

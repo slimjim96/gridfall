@@ -121,6 +121,7 @@ one, so verifying a new cue never perturbs a committed baseline:
 |---|---|---|
 | `upgrades` (default) | A level-2 tower beside a level-1 one | `presentation/docs/board-baseline.png` |
 | `sappers` | Wave 7, sappers mid-attack, a tower at 28% health | `presentation/docs/sapper-baseline.png` |
+| `repair` | Between waves, a tower at 58% with its repair price on hover | `presentation/docs/repair-baseline.png` |
 
 ## C# conventions
 

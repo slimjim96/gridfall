@@ -97,6 +97,13 @@ to react to. That fails pillar 4.
 > destructible towers, `crossroads` builds 55.7 towers a run and finishes with **45.8** — the first
 > time in this project those two numbers have differed. `hpGrowth` fell 1.09 → 1.08 to pay for it.
 > See [destructible towers](reports/2026-08-07-tower-combat-balance.md).
+>
+> **And nearly restored by accident (2026-08-07).** `tower-repair` gave the player a way to undo that
+> damage, and at *every legal price* it drove towers lost per run to **0.0** — built and standing equal
+> again at 45.6, with both run-level targets still reading ok. Price was never the lever: repair is
+> bounded below half a tower's cost by the sell-and-rebuild alternative, and a tower costs 50–90 gold
+> against 6,479 earned. Restricting repair to **between waves** gives 5.8 lost per run.
+> See [tower repair](reports/2026-08-07-tower-repair-balance.md).
 
 The first four are also `MapTargets` constants in code — read by the balance sim's map report and by the
 board editor's live validation panel. **Changing a number here means changing the constant too.** Two
@@ -126,6 +133,15 @@ mechanic off while satisfying its metrics.
 
 **When a pass adds a mechanic, measure that the mechanic is still doing something.** The targets here
 describe a game that is fun to lose; they cannot tell you whether the thing you just built matters.
+
+`tower-repair` then found the converse, and it is the sharper half. Repair satisfied every target while
+driving tower destruction — the *previous* slice's entire result — to exactly zero. Nothing in this
+document could see it, because the defence on the board came out the same either way.
+
+**Measure that the previous pass's mechanic is still doing something too.** A new mechanic can hit every
+target while quietly deleting the one before it. `balance` now prints **towers lost per run** on every
+run for exactly this reason: the number that catches a deletion has to be on screen by default, because
+nobody thinks to go looking for it.
 
 ## Hard invariants
 

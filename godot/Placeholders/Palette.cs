@@ -47,6 +47,13 @@ public static class Palette
     public static readonly Color Danger = Color.FromHtml("e2483d");
 
     /// <summary>
+    /// An offer, not a warning: a price the player may choose to pay. Warm so it
+    /// reads as available, and deliberately not Danger -- a repair prompt is not
+    /// a refusal, and the two appear in the same corner of the screen.
+    /// </summary>
+    public static readonly Color Hint = Color.FromHtml("e8c46a");
+
+    /// <summary>
     /// The route creeps currently take. Cool and quiet -- it is always on screen --
     /// but it has to clear the buildable terrain it sits on, and the first attempt
     /// (7f96ad) was close enough to that slate to vanish into it.

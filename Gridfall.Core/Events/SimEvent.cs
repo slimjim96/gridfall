@@ -12,7 +12,9 @@ public enum EventKind : byte
     TowerUpgraded,
     TowerDamaged,
     TowerDestroyed,
+    TowerRepaired,
     UpgradeRejected,
+    RepairRejected,
     TowerFired,
     CreepDamaged,
     CreepDied,
@@ -37,6 +39,8 @@ public enum RejectReason : byte
     CapacityExceeded = 7,
     AlreadyMaxLevel = 8,
     NoSuchTower = 9,
+    NotDamaged = 10,
+    WaveInProgress = 11,
 }
 
 /// <summary>

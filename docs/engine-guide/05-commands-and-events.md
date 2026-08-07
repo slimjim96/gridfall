@@ -20,6 +20,7 @@ public interface ICommand { }
 public readonly struct BuildCommand   : ICommand { public Vector2I Cell; public ushort TowerDef; }
 public readonly struct SellCommand    : ICommand { public int TowerId; }
 public readonly struct UpgradeCommand : ICommand { public int TowerId; public byte Path; }
+public readonly struct RepairCommand  : ICommand { public int TowerId; }
 public readonly struct StartWaveCommand : ICommand { }
 ```
 
@@ -51,6 +52,13 @@ if (!_path.WouldRemainConnected(cell))
 Every rejection reason has a player-facing message defined in the design spec. A refusal the player
 cannot see reads as an unresponsive game — that is a design rule, but this is where it is enforced.
 
+**A rejection can also be a mechanic.** `RepairCommand` is refused whenever a wave is running
+(`RejectReason.WaveInProgress`), and that refusal is the entire point of the feature rather than an
+error path: repair available at unlimited rate drove tower destruction to zero at every legal price
+([`tower-repair`](../../production/06-release/tower-repair-v1.md)). When a refusal carries design weight
+like this, say so where the player meets it — the HUD names the rule on hover, not only after a click
+that was going to fail.
+
 ## Events
 
 ```csharp
@@ -74,6 +82,7 @@ contiguous array the renderer walks once.
 | `BuildPlaced` / `BuildRejected` | 1 | Cell, tower def / reject reason |
 | `TowerSold` | 1 | Tower A sold for refund B |
 | `TowerUpgraded` / `UpgradeRejected` | 1 | Tower A, new level B / reject reason A, tower B |
+| `TowerRepaired` / `RepairRejected` | 1 | Tower A, health B restored / reject reason A, tower B |
 | `CreepStranded` | 4 | Creep A has no route. Should be impossible — the block check exists to prevent it |
 | `TowerFired` | 5 | Tower A targeted creep B |
 | `CreepDamaged` / `CreepDied` | 7 | Creep A, amount B / creep A, def B |

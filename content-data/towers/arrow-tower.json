@@ -10,6 +10,8 @@
   "sellValue": 25,
   "hp": 800,
   "_hpNote": "Structure health. Towers are destructible (ADR-0006) -- gold spent can be lost, which is what stops income compounding into permanent power.",
+  "repairPercent": 60,
+  "_repairNote": "Percent of the sell-and-rebuild cost to repair from zero to full. 100 is the wall -- at or above it nobody would ever repair -- and the loader refuses to load a def that reaches it (ADR-0007). Too LOW and no tower ever dies, which silently reverts tower-combat; that end is measured, not enforced.",
   "upgrades": [
     { "cost": 110, "damageMultiplier": 2.0, "rangeMultiplier": 1.0 },
     { "cost": 240, "damageMultiplier": 4.0, "rangeMultiplier": 1.15 }

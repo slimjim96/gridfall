@@ -119,6 +119,9 @@ public sealed class Trace
                 case "sell":
                     sim.Enqueue(new SellCommand(c.TowerId));
                     break;
+                case "repair":
+                    sim.Enqueue(new RepairCommand(c.TowerId));
+                    break;
                 case "startWave":
                     sim.Enqueue(new StartWaveCommand());
                     break;

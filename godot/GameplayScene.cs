@@ -50,6 +50,9 @@ public sealed partial class GameplayScene : Node3D
     // never perturbs an already-committed baseline.
     private string _shotSeed = "upgrades";
 
+    /// <summary>Cell the shot-mode cursor rests on, when the seed cares.</summary>
+    private GridCell? _shotHoverCell;
+
     public override void _Ready()
     {
         ParseCommandLine();
@@ -108,7 +111,7 @@ public sealed partial class GameplayScene : Node3D
         _units.Render(_shotPath is null ? dt : 1f / 60f);
 
         foreach (SimEvent e in _driver.FrameEvents)
-            if (e.Kind == EventKind.BuildRejected)
+            if (e.Kind is EventKind.BuildRejected or EventKind.RepairRejected)
                 _hud.ShowRefusal((RejectReason)e.A);
 
         _hud.Refresh(_driver.State, _selectedTowerName, dt);
@@ -147,16 +150,54 @@ public sealed partial class GameplayScene : Node3D
         }
         else if (click.ButtonIndex == MouseButton.Right)
         {
-            int index = _driver.Map.Index(cell);
-            SimStateView state = _driver.State;
-            for (int k = 0; k < state.TowerCount; k++)
-            {
-                int slot = state.TowerSlotByOrder(k);
-                if (state.TowerCellIndex(slot) != index) continue;
-                _driver.Enqueue(new SellCommand(state.TowerId(slot)));
-                break;
-            }
+            if (TowerSlotAt(cell) is { } slot)
+                _driver.Enqueue(new SellCommand(_driver.State.TowerId(slot)));
         }
+        else if (click.ButtonIndex == MouseButton.Middle)
+        {
+            if (TowerSlotAt(cell) is { } slot)
+                _driver.Enqueue(new RepairCommand(_driver.State.TowerId(slot)));
+        }
+    }
+
+    /// <summary>
+    /// The repair offer for the tower under the cursor, or null if there is
+    /// nothing to offer.
+    ///
+    /// Calls TowerDef.RepairCostFor rather than reimplementing the curve: a
+    /// second copy of the cost formula in the view is a divergence waiting to
+    /// happen, and this one would be the copy the player reads.
+    /// </summary>
+    private string? RepairPromptFor(GridCell cell)
+    {
+        if (TowerSlotAt(cell) is not { } slot) return null;
+
+        SimStateView state = _driver.State;
+        TowerDef def = _driver.Content.Tower(state.TowerDefIndex(slot));
+        int missing = def.Hp - state.TowerHp(slot);
+        if (missing <= 0) return null;
+
+        int cost = def.RepairCostFor(state.TowerLevel(slot), missing);
+        int percent = 100 * state.TowerHp(slot) / def.Hp;
+
+        // Naming the rule where the player meets it, rather than only in a
+        // refusal after they have already clicked.
+        return state.WaveActive
+            ? $"{def.Name} at {percent}%  --  repair between waves"
+            : $"{def.Name} at {percent}%  --  repair {cost} gold (middle click)";
+    }
+
+    /// <summary>The slot of the tower standing on a cell, or null.</summary>
+    private int? TowerSlotAt(GridCell cell)
+    {
+        int index = _driver.Map.Index(cell);
+        SimStateView state = _driver.State;
+        for (int k = 0; k < state.TowerCount; k++)
+        {
+            int slot = state.TowerSlotByOrder(k);
+            if (state.TowerCellIndex(slot) == index) return slot;
+        }
+        return null;
     }
 
     private void SelectTower(string id)
@@ -172,9 +213,13 @@ public sealed partial class GameplayScene : Node3D
         // shows the live route only and the preview goes unverified.
         if (_shotPath is not null)
         {
-            var hovered = new GridCell(10, 4);
+            // A seed that makes a claim about a hovered tower sets the cell; the
+            // rest hover a cell squarely on the lane, where a build forces a
+            // visible detour.
+            GridCell hovered = _shotHoverCell ?? new GridCell(10, 4);
             _world.ShowHover(hovered, true);
-            _routes.ShowPreviewFor(hovered);
+            _hud.ShowRepairPrompt(RepairPromptFor(hovered));
+            if (_shotHoverCell is null) _routes.ShowPreviewFor(hovered);
             return;
         }
 
@@ -183,6 +228,7 @@ public sealed partial class GameplayScene : Node3D
         {
             _world.HideHover();
             _routes.ClearPreview();
+            _hud.ShowRepairPrompt(null);
             return;
         }
 
@@ -190,6 +236,7 @@ public sealed partial class GameplayScene : Node3D
         bool buildable = _driver.Map.Cells[index] == CellKind.Buildable
                          && !_driver.Sim.Path.IsBlocked(index);
         _world.ShowHover(cell, buildable);
+        _hud.ShowRepairPrompt(RepairPromptFor(cell));
 
         // Only preview where a build is actually possible: showing a hypothetical
         // route for a cell you cannot build on answers a question nobody asked.
@@ -241,6 +288,7 @@ public sealed partial class GameplayScene : Node3D
     private void SeedForScreenshot()
     {
         if (_shotSeed == "sappers") { SeedSappers(); return; }
+        if (_shotSeed == "repair") { SeedRepair(); return; }
 
         ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
 
@@ -375,6 +423,80 @@ public sealed partial class GameplayScene : Node3D
                  $"lives={_driver.State.Lives} creeps={_driver.State.CreepCount} " +
                  $"towers={_driver.State.TowerCount} sappers={sappers} wounded={wounded}");
         GD.Print($"shot-worst: {worstAt}");
+    }
+
+    /// <summary>
+    /// Freezes BETWEEN waves with a damaged tower under the cursor, so the
+    /// capture shows the repair offer rather than the damage alone.
+    ///
+    /// Between waves is not incidental framing: repair is refused while a wave
+    /// runs, so a capture taken mid-wave would show the rule's refusal text and
+    /// verify the opposite of what criterion 12 claims.
+    /// </summary>
+    private void SeedRepair()
+    {
+        ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
+        ushort sapper = _driver.Content.EnemyIndexOf("sapper");
+        int cost = _driver.Content.Tower(arrow).Cost;
+
+        var refused = new HashSet<int>();
+        int pending = -1;
+        bool sappersSeen = false;
+
+        for (int t = 0; t < 20_000; t++)
+        {
+            // Stop pulling waves once a tower is hurt enough to be worth showing:
+            // the shot has to land in the gap between waves, and the only way to
+            // reach that gap is to stop asking for the next one.
+            bool holding = sappersSeen && AWoundedTowerExists(0.6f);
+            if (!holding && !_driver.State.WaveActive) _driver.Enqueue(new StartWaveCommand());
+
+            if (pending < 0 && _driver.State.Gold >= cost
+                && TryNextPlacement(refused, out GridCell spot))
+            {
+                pending = _driver.Map.Index(spot);
+                _driver.Enqueue(new BuildCommand(spot, arrow));
+            }
+
+            _driver.StepOneTick();
+
+            foreach (SimEvent e in _driver.FrameEvents)
+            {
+                if (e.Kind == EventKind.BuildRejected && pending >= 0) refused.Add(pending);
+                if (e.Kind is EventKind.BuildRejected or EventKind.BuildPlaced) pending = -1;
+            }
+
+            if (SapperOnBoard(sapper)) sappersSeen = true;
+
+            // The frame we want: hurt tower, no wave running, board still alive.
+            if (holding && !_driver.State.WaveActive && _driver.State.CreepCount == 0) break;
+        }
+
+        int worstSlot = -1;
+        float worst = 2f;
+        for (int k = 0; k < _driver.State.TowerCount; k++)
+        {
+            int slot = _driver.State.TowerSlotByOrder(k);
+            float f = (float)_driver.State.TowerHp(slot)
+                      / _driver.Content.Tower(_driver.State.TowerDefIndex(slot)).Hp;
+            if (f >= worst) continue;
+            worst = f;
+            worstSlot = slot;
+        }
+
+        string prompt = "none";
+        if (worstSlot >= 0)
+        {
+            int c = _driver.State.TowerCellIndex(worstSlot);
+            _shotHoverCell = new GridCell(c % _driver.Map.Width, c / _driver.Map.Width);
+            prompt = RepairPromptFor(_shotHoverCell.Value) ?? "none";
+        }
+
+        GD.Print($"shot-state: tick={_driver.TickCount} hash={_driver.Sim.Hash():x16} " +
+                 $"wave={_driver.State.WaveIndex} waveActive={_driver.State.WaveActive} " +
+                 $"gold={_driver.State.Gold} lives={_driver.State.Lives} " +
+                 $"towers={_driver.State.TowerCount} worstHp={worst:P0}");
+        GD.Print($"shot-prompt: {prompt}");
     }
 
     /// <summary>First route-adjacent cell that is free and not already blocked.</summary>

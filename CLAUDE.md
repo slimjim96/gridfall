@@ -22,14 +22,14 @@ gridfall/
 ├── Gridfall.Core/           ← the simulation. No Godot, no floats, no clock
 ├── Gridfall.Io/             ← reads content-data/; Core never touches disk
 ├── Gridfall.Verify/         ← net10.0 · determinism harness, balance sim, map/perf reports
-├── Gridfall.Tests/          ← net10.0 · 129 tests
+├── Gridfall.Tests/          ← net10.0 · 151 tests
 ├── godot/                   ← Godot 4.6.3 · renderer, HUD, Dev/BoardEditor
 │
 │   ── the workspaces ──
 ├── docs/                    ← stable reference + engine-guide/ (the Core manual, 11 chapters)
 ├── workflows/               ← the runnable procedures (start at workflows/README.md)
 ├── game-design/             ← requirements, pillars, feature design
-├── engine-systems/          ← simulation architecture + ADRs 0001–0006
+├── engine-systems/          ← simulation architecture + ADRs 0001–0007
 ├── content-data/            ← tower/enemy/wave/map data, balance targets, balance reports
 ├── presentation/            ← iso view, HUD, placeholders, prompts/ for Ludo.ai
 ├── tooling/                 ← board editor spec + headless CLIs

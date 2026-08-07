@@ -10,6 +10,8 @@
   "sellValue": 45,
   "hp": 1440,
   "_hpNote": "Structure health. Towers are destructible (ADR-0006) -- gold spent can be lost, which is what stops income compounding into permanent power.",
+  "repairPercent": 60,
+  "_repairNote": "Percent of the sell-and-rebuild cost to repair from zero to full. Same value as the arrow tower on purpose: this slice sweeps one knob, not a per-tower matrix. Differentiating maintenance cost by archetype is a later pass (sapper-tuning).",
   "upgrades": [
     { "cost": 198, "damageMultiplier": 2.0, "rangeMultiplier": 1.0 },
     { "cost": 432, "damageMultiplier": 4.0, "rangeMultiplier": 1.15 }

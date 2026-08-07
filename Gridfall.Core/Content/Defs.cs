@@ -49,6 +49,16 @@ public sealed class TowerDef
     /// <summary>Structure health. Towers are destructible (ADR-0006).</summary>
     public required int Hp { get; init; }
 
+    /// <summary>
+    /// Repairing from zero to full costs this percentage of what selling the
+    /// tower and rebuilding it to the same level would cost.
+    ///
+    /// Expressed against that alternative rather than against raw spend so the
+    /// knob carries its own bound: 100 IS the wall, and a value above it means
+    /// nobody would ever repair. Enforced at load, not trusted (ADR-0007).
+    /// </summary>
+    public required int RepairPercent { get; init; }
+
     /// <summary>Levels above the base. Empty means the tower cannot be upgraded.</summary>
     public required UpgradeLevel[] Upgrades { get; init; }
 
@@ -64,11 +74,49 @@ public sealed class TowerDef
     /// Half of everything spent to reach this level. Selling can never profit,
     /// however many upgrades were bought.
     /// </summary>
-    public int SellValueAt(int level)
+    public int SellValueAt(int level) => TotalSpentAt(level) / 2;
+
+    /// <summary>Base cost plus every upgrade bought to reach this level.</summary>
+    public int TotalSpentAt(int level)
     {
         int spent = Cost;
         for (int i = 0; i < level - 1; i++) spent += Upgrades[i].Cost;
-        return spent / 2;
+        return spent;
+    }
+
+    /// <summary>
+    /// Gold to restore <paramref name="missingHp"/> points of structure health.
+    ///
+    /// Anchored to total spend, not base cost, so a level-3 tower is
+    /// proportionally more expensive to keep alive than a level-1 one. That
+    /// maintenance liability is the design's whole interaction with upgrades.
+    ///
+    /// The 200 in the denominator is 100 (percent) x 2 (the sell refund), so a
+    /// full repair costs RepairPercent% of the sell-and-rebuild round trip. The
+    /// halving is folded in rather than calling SellValueAt, which would floor
+    /// once before this expression floors again.
+    ///
+    /// Two properties are load-bearing and neither is incidental:
+    ///
+    /// - The intermediate is <c>long</c>. spent x percent x missingHp reaches
+    ///   ~1e9 at plausible values and int overflow is silent. Integer arithmetic
+    ///   is exact and therefore deterministic; overflow is exact and therefore
+    ///   deterministically WRONG, which is the worse failure.
+    /// - Division rounds UP. Truncating would make ten small repairs cheaper
+    ///   than one large one -- a free heal for anyone willing to click. Rounding
+    ///   up makes granular repair strictly non-advantageous, so the exploit
+    ///   closes arithmetically instead of being policed.
+    ///
+    /// The upper bound on the result is SellValueAt(level): a player who does not
+    /// repair can sell for half and rebuild for full, a round trip whose net cost
+    /// is exactly that. Above it nobody ever repairs. Enforced at load (ADR-0007).
+    /// </summary>
+    public int RepairCostFor(int level, int missingHp)
+    {
+        if (missingHp <= 0) return 0;
+        long numerator = (long)TotalSpentAt(level) * RepairPercent * missingHp;
+        long denominator = 200L * Hp;
+        return (int)((numerator + denominator - 1) / denominator);
     }
 }
 
