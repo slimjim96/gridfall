@@ -47,6 +47,11 @@ public static class PlaceholderFactory
         "mite" => new PlaceholderUnitView(
             Shapes.StackedCones(0.15f), Palette.ForCreep(contentId), 0.18f, bobs: true, entityId),
 
+        // Inverted wedge, point down, and the roster's only red: this one eats
+        // your towers, so it is the one creep you must never mistake.
+        "sapper" => new PlaceholderUnitView(
+            Shapes.DrillWedge(0.17f, 0.58f), Palette.ForCreep(contentId), 0.30f, bobs: true, entityId),
+
         _ => new PlaceholderUnitView(
             Shapes.LowSphere(0.18f), Palette.CreepUnknown, 0.18f, bobs: true, entityId),
     };

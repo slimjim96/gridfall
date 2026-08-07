@@ -1,9 +1,8 @@
 {
   "map": "crossroads",
-  "_untuned": "Placeholder wave table. Waves 1-3 unchanged since the early-economy pass so the numbers stay comparable.",
-  "_growth": "hpGrowth 1.09 lands runs-lost at 20% -- inside the 15-30% target for the first time. Found by sweeping, after the income-vs-difficulty model over-predicted the player and suggested 1.25. See docs/reports/2026-08-07-income-vs-difficulty.md.",
-  "_roster": "husk enters at wave 5 and mite at wave 4. They ask opposite questions -- husk wants burst, mite wants coverage -- so a board optimised for either is punished by the other. That tension is what a monoculture of arrow towers cannot answer.",
-  "hpGrowth": 1.09,
+  "_growth": "hpGrowth 1.09 lands runs-lost at 20% -- inside the 15-30% target. See docs/reports/2026-08-07-income-vs-difficulty.md.",
+  "_sappers": "Sappers enter at wave 5. They are the first enemy that can destroy what the player built, which is the mechanic that stops cumulative income compounding into permanent defence.",
+  "hpGrowth": 1.08,
   "waves": [
     {
       "index": 1,
@@ -38,7 +37,8 @@
       "entries": [
         { "enemy": "runner", "count": 24, "spacingTicks": 10, "spawn": 0 },
         { "enemy": "brute", "count": 7, "spacingTicks": 36, "delayTicks": 70, "spawn": 0 },
-        { "enemy": "husk", "count": 2, "spacingTicks": 70, "delayTicks": 100, "spawn": 0 }
+        { "enemy": "husk", "count": 2, "spacingTicks": 70, "delayTicks": 100, "spawn": 0 },
+        { "enemy": "sapper", "count": 2, "spacingTicks": 45, "delayTicks": 110, "spawn": 0 }
       ]
     },
     {
@@ -47,7 +47,8 @@
         { "enemy": "runner", "count": 26, "spacingTicks": 9, "spawn": 0 },
         { "enemy": "brute", "count": 9, "spacingTicks": 32, "delayTicks": 60, "spawn": 0 },
         { "enemy": "mite", "count": 16, "spacingTicks": 5, "delayTicks": 30, "spawn": 0 },
-        { "enemy": "husk", "count": 3, "spacingTicks": 60, "delayTicks": 90, "spawn": 0 }
+        { "enemy": "husk", "count": 3, "spacingTicks": 60, "delayTicks": 90, "spawn": 0 },
+        { "enemy": "sapper", "count": 3, "spacingTicks": 45, "delayTicks": 110, "spawn": 0 }
       ]
     },
     {
@@ -56,7 +57,8 @@
         { "enemy": "runner", "count": 28, "spacingTicks": 8, "spawn": 0 },
         { "enemy": "brute", "count": 12, "spacingTicks": 28, "delayTicks": 55, "spawn": 0 },
         { "enemy": "mite", "count": 20, "spacingTicks": 5, "delayTicks": 25, "spawn": 0 },
-        { "enemy": "husk", "count": 5, "spacingTicks": 55, "delayTicks": 80, "spawn": 0 }
+        { "enemy": "husk", "count": 5, "spacingTicks": 55, "delayTicks": 80, "spawn": 0 },
+        { "enemy": "sapper", "count": 4, "spacingTicks": 45, "delayTicks": 110, "spawn": 0 }
       ]
     },
     {
@@ -65,7 +67,8 @@
         { "enemy": "runner", "count": 30, "spacingTicks": 8, "spawn": 0 },
         { "enemy": "brute", "count": 15, "spacingTicks": 26, "delayTicks": 50, "spawn": 0 },
         { "enemy": "mite", "count": 24, "spacingTicks": 4, "delayTicks": 25, "spawn": 0 },
-        { "enemy": "husk", "count": 7, "spacingTicks": 50, "delayTicks": 75, "spawn": 0 }
+        { "enemy": "husk", "count": 7, "spacingTicks": 50, "delayTicks": 75, "spawn": 0 },
+        { "enemy": "sapper", "count": 6, "spacingTicks": 45, "delayTicks": 110, "spawn": 0 }
       ]
     },
     {
@@ -74,7 +77,8 @@
         { "enemy": "runner", "count": 32, "spacingTicks": 7, "spawn": 0 },
         { "enemy": "brute", "count": 18, "spacingTicks": 24, "delayTicks": 45, "spawn": 0 },
         { "enemy": "mite", "count": 28, "spacingTicks": 4, "delayTicks": 20, "spawn": 0 },
-        { "enemy": "husk", "count": 9, "spacingTicks": 45, "delayTicks": 70, "spawn": 0 }
+        { "enemy": "husk", "count": 9, "spacingTicks": 45, "delayTicks": 70, "spawn": 0 },
+        { "enemy": "sapper", "count": 8, "spacingTicks": 45, "delayTicks": 110, "spawn": 0 }
       ]
     },
     {
@@ -83,7 +87,8 @@
         { "enemy": "runner", "count": 34, "spacingTicks": 7, "spawn": 0 },
         { "enemy": "brute", "count": 22, "spacingTicks": 22, "delayTicks": 40, "spawn": 0 },
         { "enemy": "mite", "count": 32, "spacingTicks": 4, "delayTicks": 20, "spawn": 0 },
-        { "enemy": "husk", "count": 12, "spacingTicks": 40, "delayTicks": 60, "spawn": 0 }
+        { "enemy": "husk", "count": 12, "spacingTicks": 40, "delayTicks": 60, "spawn": 0 },
+        { "enemy": "sapper", "count": 10, "spacingTicks": 45, "delayTicks": 110, "spawn": 0 }
       ]
     },
     {
@@ -92,7 +97,8 @@
         { "enemy": "runner", "count": 36, "spacingTicks": 6, "spawn": 0 },
         { "enemy": "brute", "count": 26, "spacingTicks": 20, "delayTicks": 36, "spawn": 0 },
         { "enemy": "mite", "count": 36, "spacingTicks": 3, "delayTicks": 18, "spawn": 0 },
-        { "enemy": "husk", "count": 15, "spacingTicks": 36, "delayTicks": 55, "spawn": 0 }
+        { "enemy": "husk", "count": 15, "spacingTicks": 36, "delayTicks": 55, "spawn": 0 },
+        { "enemy": "sapper", "count": 13, "spacingTicks": 45, "delayTicks": 110, "spawn": 0 }
       ]
     },
     {
@@ -101,7 +107,8 @@
         { "enemy": "runner", "count": 38, "spacingTicks": 6, "spawn": 0 },
         { "enemy": "brute", "count": 32, "spacingTicks": 18, "delayTicks": 32, "spawn": 0 },
         { "enemy": "mite", "count": 42, "spacingTicks": 3, "delayTicks": 15, "spawn": 0 },
-        { "enemy": "husk", "count": 19, "spacingTicks": 32, "delayTicks": 50, "spawn": 0 }
+        { "enemy": "husk", "count": 19, "spacingTicks": 32, "delayTicks": 50, "spawn": 0 },
+        { "enemy": "sapper", "count": 16, "spacingTicks": 45, "delayTicks": 110, "spawn": 0 }
       ]
     }
   ]

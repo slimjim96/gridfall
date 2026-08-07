@@ -46,3 +46,16 @@ elif [[ -n "${DISPLAY:-}" ]] && [[ ! -e "/tmp/.X11-unix/X${DISPLAY#:}" ]] \
 fi
 
 export GODOT
+
+# Build the C# before launching. Godot does NOT rebuild on run -- it loads
+# whatever assembly is already in .godot/mono, so an edited script runs as its
+# previous version with no warning at all. That silently produced a screenshot
+# of the old renderer and had me debugging code that was never executed.
+if [[ -n "${ROOT:-}" ]]; then
+    if ! build_log="$(dotnet build "$ROOT/godot/Gridfall.Godot.csproj" -v q --nologo 2>&1)"; then
+        echo "$build_log" >&2
+        echo "" >&2
+        echo "C# build failed -- refusing to launch a stale assembly." >&2
+        exit 1
+    fi
+fi

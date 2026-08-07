@@ -38,6 +38,7 @@ public sealed class TowerDef
     public readonly Fix32  RangeSquared;  // precomputed at load — never recompute in the tick loop
     public readonly int    Damage;
     public readonly int    CooldownTicks; // ticks, not seconds. Content authors write seconds.
+    public readonly int    Hp;            // structure health. Towers are destructible.
     public readonly TargetRule Targeting;
 }
 ```
@@ -68,6 +69,26 @@ The floor of 1 means no tower is ever useless against an enemy, only inefficient
 tower is a soft-lock waiting to happen.
 
 Armour does **not** scale with `hpGrowth`. A growing armour value becomes immunity.
+
+## Enemy attacks and tower health
+
+Enemies can destroy towers. Four fields, all optional:
+
+| Field | On | Default | Meaning |
+|---|---|---|---|
+| `hp` | tower | `100` | Structure health. Reaching 0 destroys the tower and frees its cell. |
+| `attackDamage` | enemy | `0` | Damage per hit. **`0` means the enemy never attacks** — this is what keeps every pre-existing enemy unchanged. |
+| `attackCooldown` | enemy | `1.0` s | Seconds between hits, converted to ticks at load. |
+| `attackRange` | enemy | `1.5` | Cells. Stored as `AttackRangeSquared`. |
+
+`AttacksTowers => AttackDamage > 0` is the only switch. Resolution happens in phase 5b and damage
+applies in phase 7, exactly like creep damage — see [chapter 02](02-tick-loop.md) and
+[ADR-0006](../../engine-systems/decisions/ADR-0006-enemy-attacks-in-phase-five.md).
+
+Tower `hp` is large relative to `attackDamage` (shipped: 800 against 22). That ratio is deliberate —
+the balance sweep found tower loss is driven by **attack throughput** across many attackers, not by
+damage per hit, so a tower must survive a lot of individual chips. Do not "tidy" these numbers toward
+each other without re-running the sweep.
 
 ## Upgrades
 

@@ -129,7 +129,7 @@ public class ArmourTests
     }
 
     [Fact]
-    public void TheRosterHasFourArchetypes_AndNoSharedSilhouette()
+    public void TheRosterHasFiveArchetypes_AndNoSharedSilhouette()
     {
         // Criterion 5. Silhouette is a view concern, so this asserts the roster
         // size and leaves the shapes to the placeholder factory -- which has a
@@ -138,7 +138,7 @@ public class ArmourTests
         string[] ids = Directory.EnumerateFiles(dir, "*.json")
             .Select(Path.GetFileNameWithoutExtension).OrderBy(x => x).ToArray()!;
 
-        Assert.Equal(new[] { "brute", "husk", "mite", "runner" }, ids);
+        Assert.Equal(new[] { "brute", "husk", "mite", "runner", "sapper" }, ids);
 
         string factory = File.ReadAllText(
             Path.Combine(RepoRoot(), "godot", "Placeholders", "PlaceholderFactory.cs"));

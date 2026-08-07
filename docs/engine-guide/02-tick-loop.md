@@ -63,15 +63,29 @@ Iterate creeps by **ascending entity id**. Always. Movement is independent per c
 affect the result today, but it will the first time something couples two creeps, and by then nobody
 will remember this line.
 
-### 5 · Acquire and fire — `TargetingSystem`
+### 5 · Acquire and fire — `TargetingSystem`, then `EnemyAttackSystem`
 
-Each tower picks a target and fires if off cooldown. Target selection is a fixed priority rule
-(default: furthest along the path, ties broken by lowest entity id). Never "closest by float distance"
-— compare squared `Fix32` distances, and break exact ties by id.
+Combat runs in **both directions**, and this one phase holds both. Two systems, in a fixed order:
+
+**5a — towers fire (`TargetingSystem`).** Each tower picks a target and fires if off cooldown. Target
+selection is a fixed priority rule (default: furthest along the path, ties broken by lowest entity id).
+Never "closest by float distance" — compare squared `Fix32` distances, and break exact ties by id.
 
 Firing creates projectiles; it does not deal damage. Damage happens in 7.
 
+**5b — enemies attack towers (`EnemyAttackSystem`).** Creeps whose def has `attackDamage > 0` pick the
+**nearest** tower in range (ties by lowest entity id) and buffer damage against it. They do not stop
+walking to do it — phase 4 has already moved them, and attacking never touches position.
+
+**Towers fire first, and that order is load-bearing** ([ADR-0006](../../engine-systems/decisions/ADR-0006-enemy-attacks-in-phase-five.md)):
+a tower destroyed this tick still gets its shot off. Swapping the two changes outcomes.
+
 **Iterate towers by ascending entity id**, and evaluate candidate targets in ascending id order too.
+The same rule applies to creeps in 5b.
+
+Enemy attacks live here rather than in a tenth phase because acquiring a target and firing is the same
+operation with the roles swapped. Tower damage goes into its own buffer and is applied in 7, exactly
+like creep damage.
 
 ### 6 · Resolve projectiles — `ProjectileSystem`
 

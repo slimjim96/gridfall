@@ -83,7 +83,7 @@ internal static class CommandSystem
             return;
         }
 
-        int id = state.AddTower(defIndex, index);
+        int id = state.AddTower(defIndex, index, def.Hp);
         state.Gold -= def.Cost;
         path.SetBlocked(index, true);   // sets the dirty flag; phase 2 consumes it
 

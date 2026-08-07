@@ -57,8 +57,13 @@ Practical vocabulary, cheap to build and easy to tell apart:
 | Low sphere | Speed | Fast creeps |
 | Broad box | Toughness | Armored creeps |
 | Stacked cones | Swarm | Groups that split |
+| Inverted wedge, point down | A drill, a demolisher | Creeps that attack structures |
 
 Silhouette first, then proportion, then color. Ornament never — that is what the final asset is for.
+
+**Build the wedge tall and narrow.** The camera looks down, so a wide low cone shows almost nothing but
+its top face and reads as a flat plate. The first sapper was 0.22 × 0.40 and became a red tile; 0.17 ×
+0.58 reads as the drill it is meant to be. Any point-down shape has the same trap.
 
 ## What a placeholder must NOT have
 
@@ -78,11 +83,29 @@ Placeholders do not get individual animation. They share three behaviors, implem
 | Motion | Trigger | What |
 |---|---|---|
 | Idle bob | Always, for creeps | 2% vertical sine, phase offset by entity id |
-| Hit flash | `CreepDamaged` | Whole-body tint to white for 80 ms |
-| Death collapse | `CreepDied` | Scale to zero over 150 ms |
+| Hit flash | `CreepDamaged`, `TowerDamaged` | Whole-body tint to white for 80 ms |
+| Death collapse | `CreepDied`, `TowerDestroyed` | Scale to zero over 150 ms |
 
-Towers do not animate at all except a muzzle flash quad on `TowerFired`. That is enough to read the
-game, and no placeholder needs more.
+Towers otherwise animate only a muzzle flash quad on `TowerFired`. That is enough to read the game, and
+no placeholder needs more.
+
+## Persistent state is not a clip
+
+A clip is an *event*. Anything that stays true — a tower's level, a tower's remaining health — must be
+a property on `IUnitView`, because a clip replays on reload and does not survive the view being
+recreated. Two exist:
+
+| State | Channel | Why that channel |
+|---|---|---|
+| `SetLevel` | Taller and brighter | Height survives greyscale; level is a *gain* so it reads brighter |
+| `SetHealthFraction` | Darker and redder | Level already owns height and brightness-up, so damage cannot use silhouette without contradicting it |
+
+Damage uses **two** channels on purpose. Darkening is the one that survives greyscale; the red is a
+redundant second signal, not the only one. A tower at 28% health is unmistakable beside a healthy one
+in `sapper-baseline.png`.
+
+Every player-visible state needs a visible representation, and destruction makes this load-bearing: a
+tower that vanishes with no prior warning is exactly the unexplainable loss pillar 4 forbids.
 
 ## Naming and location
 

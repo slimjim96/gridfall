@@ -59,6 +59,7 @@ public readonly struct SimStateView
     public int TowerCellIndex(int slot) => _state.TowerCellIndex[slot];
     public int TowerCooldown(int slot) => _state.TowerCooldown[slot];
     public byte TowerLevel(int slot) => _state.TowerLevel[slot];
+    public int TowerHp(int slot) => _state.TowerHp[slot];
 
     // ---- projectiles ------------------------------------------------------
 

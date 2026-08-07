@@ -32,6 +32,12 @@ public static class Palette
     public static readonly Color CreepBrute = Color.FromHtml("b8a05a");
     public static readonly Color CreepHusk = Color.FromHtml("c98a5e");
     public static readonly Color CreepMite = Color.FromHtml("9ad4c0");
+    /// <summary>The only red in the creep roster. Sappers attack towers, and
+    /// nothing else on the board does -- so nothing else gets this hue.</summary>
+    public static readonly Color CreepSapper = Color.FromHtml("c2565c");
+
+    /// <summary>What a tower tints toward as its structure health falls.</summary>
+    public static readonly Color Damaged = Color.FromHtml("6e2a2f");
     public static readonly Color CreepUnknown = Color.FromHtml("9aa8b8");
 
     /// <summary>
@@ -68,6 +74,7 @@ public static class Palette
         "brute" => CreepBrute,
         "husk" => CreepHusk,
         "mite" => CreepMite,
+        "sapper" => CreepSapper,
         _ => CreepUnknown,
     };
 

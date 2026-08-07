@@ -46,6 +46,9 @@ public sealed class TowerDef
     public required TargetRule Targeting { get; init; }
     public required int SellValue { get; init; }
 
+    /// <summary>Structure health. Towers are destructible (ADR-0006).</summary>
+    public required int Hp { get; init; }
+
     /// <summary>Levels above the base. Empty means the tower cannot be upgraded.</summary>
     public required UpgradeLevel[] Upgrades { get; init; }
 
@@ -87,6 +90,20 @@ public sealed class EnemyDef
     /// a roster of pure stat-variants cannot express.
     /// </summary>
     public required int Armour { get; init; }
+
+    /// <summary>
+    /// Damage dealt to a tower per attack. Zero means this archetype ignores
+    /// towers entirely, which is the default and what every pre-existing
+    /// archetype does.
+    /// </summary>
+    public required int AttackDamage { get; init; }
+
+    public required int AttackCooldownTicks { get; init; }
+
+    /// <summary>Precomputed at load, like TowerDef.RangeSquared.</summary>
+    public required Fix32 AttackRangeSquared { get; init; }
+
+    public bool AttacksTowers => AttackDamage > 0;
 }
 
 public sealed class WaveEntry

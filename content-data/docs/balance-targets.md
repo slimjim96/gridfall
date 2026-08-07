@@ -57,9 +57,13 @@ to react to. That fails pillar 4.
 >
 > **Vindicated, largely (2026-08-07.)** That measurement was taken before tower upgrades existed and
 > before `startingGold` was fixed. With the economy working, the playable band moved and the shipped
-> value is now **1.09** — just below the disputed 1.10 rather than a tenth of it. **Not editing the
+> value is now **1.08** — just below the disputed 1.10 rather than a tenth of it. **Not editing the
 > target to match the first measurement was the right call**, and this is the evidence. Resolve the
-> remaining 0.01 as `hp-growth-target`. See
+> remaining gap as `hp-growth-target`.
+>
+> It moved *down* again, 1.09 → 1.08, when destructible towers shipped: difficulty from losing towers
+> substitutes for difficulty from enemy hitpoints. The band is a property of the whole system, not of
+> the enemies alone. See
 > [income vs difficulty](reports/2026-08-07-income-vs-difficulty.md).
 
 ## Map targets
@@ -88,6 +92,11 @@ to react to. That fails pillar 4.
 > instead — 1.8 upgrades per tower against 0.77. **Total defence tracks cumulative income, and
 > constraining one sink diverts gold to another.** Six passes have now confirmed that from six
 > directions. See [the tighter-map pass](reports/2026-08-07-gauntlet-tighter-map-balance.md).
+>
+> **Broken on purpose (2026-08-07).** The invariant held only because towers were permanent. With
+> destructible towers, `crossroads` builds 55.7 towers a run and finishes with **45.8** — the first
+> time in this project those two numbers have differed. `hpGrowth` fell 1.09 → 1.08 to pay for it.
+> See [destructible towers](reports/2026-08-07-tower-combat-balance.md).
 
 The first four are also `MapTargets` constants in code — read by the balance sim's map report and by the
 board editor's live validation panel. **Changing a number here means changing the constant too.** Two
@@ -107,6 +116,16 @@ range. A cliff fails pillar 4 — a loss you cannot see coming is not explainabl
 currently measures it.**
 
 Proposed: sweep `hpGrowth` and report how sharply runs-lost changes. Tracked as `difficulty-slope`.
+
+## A target is necessary, not sufficient
+
+`tower-combat` found a configuration that hit **both** run-level targets — leak 1.3%, runs lost 20% —
+and it was the wrong answer: at that tuning only ~5 towers died per run and the numbers were
+indistinguishable from the build with no destructible towers at all. The tuning had turned the new
+mechanic off while satisfying its metrics.
+
+**When a pass adds a mechanic, measure that the mechanic is still doing something.** The targets here
+describe a game that is fun to lose; they cannot tell you whether the thing you just built matters.
 
 ## Hard invariants
 

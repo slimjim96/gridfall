@@ -10,6 +10,8 @@ public enum EventKind : byte
     BuildRejected,
     TowerSold,
     TowerUpgraded,
+    TowerDamaged,
+    TowerDestroyed,
     UpgradeRejected,
     TowerFired,
     CreepDamaged,

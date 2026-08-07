@@ -1,0 +1,14 @@
+{
+  "id": "sapper",
+  "name": "Sapper",
+  "hp": 90,
+  "speed": 0.05,
+  "armour": 2,
+  "bounty": 14,
+  "livesCost": 1,
+  "attackDamage": 22,
+  "attackCooldown": 1.2,
+  "attackRange": 1.6,
+  "_asks": "Can you protect what you built? It walks the route hitting whatever tower is nearest, without stopping. Towers on the lane earn more and die first.",
+  "_untuned": "Placeholder values. See content-data/docs/balance-targets.md."
+}

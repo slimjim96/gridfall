@@ -17,10 +17,12 @@ public sealed class SimState
     public Fix32[]    CreepHpFraction;// the DoT accumulator (Chapter 03)
     public byte[]     CreepHeading;   // 0-3, the direction it is crossing toward
     public ushort[]   CreepDefIndex;
+    public int[]      CreepAttackCooldown; // ticks until it can hit a tower again
 
     // towers — same shape
     public int TowerCount;
     public int[] TowerId;
+    public int[] TowerHp;             // structure health; 0 destroys the tower
     …
 }
 ```

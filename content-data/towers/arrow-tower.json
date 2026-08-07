@@ -8,6 +8,8 @@
   "projectileSpeed": 0.8,
   "targeting": "furthest-along-path",
   "sellValue": 25,
+  "hp": 800,
+  "_hpNote": "Structure health. Towers are destructible (ADR-0006) -- gold spent can be lost, which is what stops income compounding into permanent power.",
   "upgrades": [
     { "cost": 110, "damageMultiplier": 2.0, "rangeMultiplier": 1.0 },
     { "cost": 240, "damageMultiplier": 4.0, "rangeMultiplier": 1.15 }

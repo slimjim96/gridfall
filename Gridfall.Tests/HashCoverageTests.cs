@@ -51,6 +51,10 @@ public class HashCoverageTests
         AssertHashChanges(s => s.TowerCellIndex[s.TowerSlotByOrder(0)] += 1);
     [Fact] public void Hash_Covers_TowerDefIndex() =>
         AssertHashChanges(s => s.TowerDefIndex[s.TowerSlotByOrder(0)] ^= 1);
+    [Fact] public void Hash_Covers_TowerHp() =>
+        AssertHashChanges(s => s.TowerHp[s.TowerSlotByOrder(0)] -= 1);
+    [Fact] public void Hash_Covers_CreepAttackCooldown() =>
+        AssertHashChanges(s => s.CreepAttackCooldown[s.CreepSlotByOrder(0)] += 1);
 
     [Fact] public void Hash_Covers_WaveEntrySpawned() => AssertHashChanges(s => s.WaveEntrySpawned[0] += 1);
     [Fact] public void Hash_Covers_WaveEntryNextTick() => AssertHashChanges(s => s.WaveEntryNextTick[0] += 1);

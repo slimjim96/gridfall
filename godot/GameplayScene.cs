@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using Gridfall.Core;
 using Gridfall.Core.Content;
@@ -43,6 +44,11 @@ public sealed partial class GameplayScene : Node3D
     private string? _shotPath;
     private int _shotAfterFrames = 90;
     private int _framesRendered;
+
+    // --shot-seed <name>: which board state to set up before capturing. Each
+    // slice that makes a visual claim gets its own seed, so verifying a new one
+    // never perturbs an already-committed baseline.
+    private string _shotSeed = "upgrades";
 
     public override void _Ready()
     {
@@ -221,6 +227,7 @@ public sealed partial class GameplayScene : Node3D
         for (int i = 0; i < args.Length; i++)
         {
             if (args[i] == "--shot" && i + 1 < args.Length) _shotPath = args[i + 1];
+            if (args[i] == "--shot-seed" && i + 1 < args.Length) _shotSeed = args[i + 1];
             if (args[i] == "--shot-after" && i + 1 < args.Length && int.TryParse(args[i + 1], out int n))
                 _shotAfterFrames = n;
         }
@@ -233,6 +240,8 @@ public sealed partial class GameplayScene : Node3D
     /// </summary>
     private void SeedForScreenshot()
     {
+        if (_shotSeed == "sappers") { SeedSappers(); return; }
+
         ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
 
         // Budgeted deliberately. Starting gold is 200 and a level-2 upgrade costs
@@ -271,6 +280,178 @@ public sealed partial class GameplayScene : Node3D
                  $"gold={_driver.State.Gold} lives={_driver.State.Lives} " +
                  $"creeps={_driver.State.CreepCount} towers={_driver.State.TowerCount}" +
                  $" levels:{levels}");
+    }
+
+    /// <summary>
+    /// Runs to the first wave that contains sappers and freezes with at least
+    /// one of them on the board beside a damaged tower.
+    ///
+    /// Sappers first appear at wave 5, so unlike the upgrade seed this one has
+    /// to actually play the game to get there. Everything is stepped through
+    /// StepOneTick, so the frame stays byte-reproducible.
+    /// </summary>
+    private void SeedSappers()
+    {
+        ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
+        ushort sapper = _driver.Content.EnemyIndexOf("sapper");
+
+        // Build across the board as gold allows. One cursor over the list, never
+        // than parked in a corner. One cursor over the list, never revisited: the
+        // first version re-offered cells it had already built on, so every build
+        // after the sixth was refused and the run was lost before wave 5.
+        int cost = _driver.Content.Tower(arrow).Cost;
+
+        // Cells the sim has refused. Without this the seed livelocks: the first
+        // legal-looking cell is offered, the seal check refuses it, and the same
+        // cell is offered again next tick forever -- two towers built while
+        // holding 248 gold.
+        var refused = new HashSet<int>();
+        int pending = -1;
+
+        for (int t = 0; t < 20_000; t++)
+        {
+            if (!_driver.State.WaveActive) _driver.Enqueue(new StartWaveCommand());
+
+            // Recomputed rather than cached: every build can move the route, so
+            // a list taken once goes stale and starts naming cells nowhere near
+            // where the creeps now walk.
+            if (pending < 0 && _driver.State.Gold >= cost
+                && TryNextPlacement(refused, out GridCell spot))
+            {
+                pending = _driver.Map.Index(spot);
+                _driver.Enqueue(new BuildCommand(spot, arrow));
+            }
+
+            _driver.StepOneTick();
+
+            foreach (SimEvent e in _driver.FrameEvents)
+            {
+                if (e.Kind == EventKind.BuildRejected && pending >= 0) refused.Add(pending);
+                if (e.Kind is EventKind.BuildRejected or EventKind.BuildPlaced) pending = -1;
+            }
+
+            // Wait for real damage, not the first scratch. One 22-point hit on
+            // an 800-hp tower is a 3% tint shift -- a capture taken there would
+            // "verify" a cue nobody could see.
+            if (SapperOnBoard(sapper) && AWoundedTowerExists(0.3f)) break;
+        }
+
+        int wounded = 0, sappers = 0;
+        for (int k = 0; k < _driver.State.TowerCount; k++)
+        {
+            int slot = _driver.State.TowerSlotByOrder(k);
+            if (_driver.State.TowerHp(slot) < _driver.Content.Tower(_driver.State.TowerDefIndex(slot)).Hp)
+                wounded++;
+        }
+        for (int k = 0; k < _driver.State.CreepCount; k++)
+            if (_driver.State.CreepDefIndex(_driver.State.CreepSlotByOrder(k)) == sapper) sappers++;
+
+        // Where the worst-hurt tower is on screen, so a verification crop can be
+        // aimed at the cue instead of hunting for it.
+        int worstSlot = -1;
+        float worst = 2f;
+        for (int k = 0; k < _driver.State.TowerCount; k++)
+        {
+            int slot = _driver.State.TowerSlotByOrder(k);
+            float f = (float)_driver.State.TowerHp(slot)
+                      / _driver.Content.Tower(_driver.State.TowerDefIndex(slot)).Hp;
+            if (f >= worst) continue;
+            worst = f;
+            worstSlot = slot;
+        }
+
+        string worstAt = "none";
+        if (worstSlot >= 0)
+        {
+            int c = _driver.State.TowerCellIndex(worstSlot);
+            Vector3 world = IsoGrid.CellCentre(c % _driver.Map.Width, c / _driver.Map.Width);
+            Vector2 screen = _camera.UnprojectPosition(world);
+            worstAt = $"cell({c % _driver.Map.Width},{c / _driver.Map.Width}) " +
+                      $"screen({screen.X:F0},{screen.Y:F0}) hp={worst:P0}";
+        }
+
+        GD.Print($"shot-state: tick={_driver.TickCount} hash={_driver.Sim.Hash():x16} " +
+                 $"wave={_driver.State.WaveIndex} gold={_driver.State.Gold} " +
+                 $"lives={_driver.State.Lives} creeps={_driver.State.CreepCount} " +
+                 $"towers={_driver.State.TowerCount} sappers={sappers} wounded={wounded}");
+        GD.Print($"shot-worst: {worstAt}");
+    }
+
+    /// <summary>First route-adjacent cell that is free and not already blocked.</summary>
+    private bool TryNextPlacement(HashSet<int> refused, out GridCell cell)
+    {
+        var taken = new HashSet<int>();
+        for (int k = 0; k < _driver.State.TowerCount; k++)
+            taken.Add(_driver.State.TowerCellIndex(_driver.State.TowerSlotByOrder(k)));
+
+        foreach (GridCell candidate in BuildableBesideRoute())
+        {
+            int index = _driver.Map.Index(candidate);
+            if (taken.Contains(index) || refused.Contains(index)) continue;
+            if (_driver.Sim.Path.IsBlocked(index)) continue;
+            cell = candidate;
+            return true;
+        }
+
+        cell = default;
+        return false;
+    }
+
+    private bool SapperOnBoard(ushort sapper)
+    {
+        for (int k = 0; k < _driver.State.CreepCount; k++)
+            if (_driver.State.CreepDefIndex(_driver.State.CreepSlotByOrder(k)) == sapper) return true;
+        return false;
+    }
+
+    private bool AWoundedTowerExists(float below)
+    {
+        for (int k = 0; k < _driver.State.TowerCount; k++)
+        {
+            int slot = _driver.State.TowerSlotByOrder(k);
+            int full = _driver.Content.Tower(_driver.State.TowerDefIndex(slot)).Hp;
+            if (_driver.State.TowerHp(slot) < full * below) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Buildable cells beside the route the creeps actually walk, nearest the
+    /// spawn first. Coverage placement, the same idea the balance policy uses.
+    ///
+    /// It has to come from the flow field, not the terrain. crossroads is a
+    /// mazing map: the route runs over buildable cells, so "adjacent to a
+    /// PathOnly cell" found nine placements. Building in plain index order was
+    /// no better -- it filled a far corner, killed nothing, earned no bounty,
+    /// and the seeded run was dead by wave 12 with nine towers both times.
+    /// </summary>
+    private List<GridCell> BuildableBesideRoute()
+    {
+        MapDef map = _driver.Map;
+        var route = new int[4096];
+        var seen = new HashSet<int>();
+        var result = new List<GridCell>();
+
+        foreach (GridCell spawn in map.Spawns)
+        {
+            int count = _driver.Sim.Path.TraceRoute(map.Index(spawn), route);
+            for (int i = 0; i < count; i++)
+            {
+                int rx = route[i] % map.Width, ry = route[i] / map.Width;
+                foreach ((int dx, int dy) in new[] { (0, -1), (1, 0), (0, 1), (-1, 0) })
+                {
+                    int nx = rx + dx, ny = ry + dy;
+                    if (nx < 0 || ny < 0 || nx >= map.Width || ny >= map.Height) continue;
+
+                    var cell = new GridCell(nx, ny);
+                    int index = map.Index(cell);
+                    if (map.Cells[index] != CellKind.Buildable) continue;
+                    if (!seen.Add(index)) continue;
+                    result.Add(cell);
+                }
+            }
+        }
+        return result;
     }
 
     private bool _capturing;

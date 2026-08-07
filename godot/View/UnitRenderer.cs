@@ -35,13 +35,23 @@ public sealed partial class UnitRenderer : Node3D
 
     private SimDriver _driver = null!;
 
+    /// <summary>-1 so the very first rendered frame always syncs.</summary>
+    private int _lastRenderedTick = -1;
+
     public void Initialise(SimDriver driver) => _driver = driver;
 
     /// <summary>Called once per frame, after the driver has advanced.</summary>
     public void Render(float delta)
     {
-        if (_driver.Ticked)
+        // Guard on the tick NUMBER, not on the flag alone. In shot mode the
+        // driver is stepped by hand and Advance() -- the only thing that clears
+        // Ticked and FrameEvents -- never runs, so the flag stays true and the
+        // final tick's events replay on every rendered frame. That re-armed the
+        // hit flash forever and pinned a damaged tower solid white, hiding the
+        // very cue the capture existed to verify.
+        if (_driver.Ticked && _driver.TickCount != _lastRenderedTick)
         {
+            _lastRenderedTick = _driver.TickCount;
             HandleEvents();
             SyncEntities();
         }
@@ -73,6 +83,21 @@ public sealed partial class UnitRenderer : Node3D
 
                 case EventKind.TowerFired:
                     if (_towers.TryGetValue(e.A, out Tracked? tower)) tower.View.PlayClip("fire");
+                    break;
+
+                case EventKind.TowerDamaged:
+                    if (_towers.TryGetValue(e.A, out Tracked? struck)) struck.View.PlayClip("hit");
+                    break;
+
+                case EventKind.TowerDestroyed:
+                    // ReleaseMissing would collapse it anyway, but only on the
+                    // frame after it left the state. Handling the event puts the
+                    // collapse on the same frame as the cause.
+                    if (_towers.TryGetValue(e.A, out Tracked? razed) && !razed.Dying)
+                    {
+                        razed.View.PlayClip("death");
+                        razed.Dying = true;
+                    }
                     break;
             }
         }
@@ -117,15 +142,22 @@ public sealed partial class UnitRenderer : Node3D
             int cellIndex = state.TowerCellIndex(slot);
             Vector3 world = IsoGrid.CellCentre(cellIndex % map.Width, cellIndex / map.Width);
 
+            // Both no-op unless the value actually changed, so this is cheap
+            // enough to push every frame rather than tracking dirty flags.
+            float health = (float)state.TowerHp(slot)
+                           / content.Tower(state.TowerDefIndex(slot)).Hp;
+
             if (_towers.TryGetValue(id, out Tracked? existing))
             {
-                existing.View.SetLevel(state.TowerLevel(slot));   // cheap: no-ops unless it changed
+                existing.View.SetLevel(state.TowerLevel(slot));
+                existing.View.SetHealthFraction(health);
                 continue;
             }
 
             string contentId = content.Tower(state.TowerDefIndex(slot)).Id;
             IUnitView view = PlaceholderFactory.CreateTower(contentId, id);
             view.SetLevel(state.TowerLevel(slot));
+            view.SetHealthFraction(health);
             AddChild(view.Node);
             _towers[id] = new Tracked { View = view, Previous = world, Current = world };
         }

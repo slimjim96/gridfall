@@ -40,6 +40,17 @@ public interface IUnitView
     /// </summary>
     void SetLevel(int level);
 
+    /// <summary>
+    /// Remaining structure health, 0-1. Persistent state like level, and for the
+    /// same reason not a clip: a tower that reloads at half health must still
+    /// look damaged.
+    ///
+    /// Mandatory for the same design rule. A tower can now be destroyed, and a
+    /// destruction the player could not see coming is exactly the unexplainable
+    /// loss pillar 4 forbids.
+    /// </summary>
+    void SetHealthFraction(float fraction);
+
     /// <summary>Per-frame view-side animation. Never feeds back into the sim.</summary>
     void Advance(float delta);
 

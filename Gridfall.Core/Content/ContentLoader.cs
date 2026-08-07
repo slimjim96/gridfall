@@ -130,11 +130,20 @@ public static class ContentLoader
                     : Fix32.FromInt(1),
                 Targeting = ParseTargeting(r, file),
                 SellValue = r.TryGetProperty("sellValue", out var sv) ? sv.GetInt32() : cost / 2,
+                Hp = r.TryGetProperty("hp", out var thp) ? thp.GetInt32() : 100,
                 Upgrades = ParseUpgrades(r, file, damage, range),
             };
             doc.Dispose();
         }
         return towers;
+    }
+
+    private static Fix32 AttackRange(JsonElement r, string file)
+    {
+        Fix32 range = r.TryGetProperty("attackRange", out JsonElement ar)
+            ? ParseFix(ar, file)
+            : Fix32.FromFraction(12, 10);   // just over one cell: adjacent towers
+        return range * range;
     }
 
     private static UpgradeLevel[] ParseUpgrades(JsonElement r, string file, int baseDamage, Fix32 baseRange)
@@ -214,6 +223,10 @@ public static class ContentLoader
                 Bounty = RequireInt(r, "bounty", file),
                 LivesCost = r.TryGetProperty("livesCost", out var lc) ? lc.GetInt32() : 1,
                 Armour = r.TryGetProperty("armour", out var ar) ? ar.GetInt32() : 0,
+                AttackDamage = r.TryGetProperty("attackDamage", out var ad) ? ad.GetInt32() : 0,
+                AttackCooldownTicks = r.TryGetProperty("attackCooldown", out var ac)
+                    ? SecondsToTicks(ac, file) : 30,
+                AttackRangeSquared = AttackRange(r, file),
             };
             doc.Dispose();
         }

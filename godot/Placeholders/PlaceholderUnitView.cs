@@ -30,6 +30,7 @@ public sealed class PlaceholderUnitView : IUnitView
     private float _flashRemaining;
     private float _collapseRemaining;
     private bool _collapsing;
+    private float _healthFraction = 1f;
 
     public PlaceholderUnitView(Mesh mesh, Color colour, float restHeight, bool bobs, int phaseSeed)
     {
@@ -110,7 +111,31 @@ public sealed class PlaceholderUnitView : IUnitView
         _mesh.Position = new Vector3(0, _restHeight * grow + bob, 0);
     }
 
-    private Color CurrentTint => _level > 1 ? _levelTint : _baseColour;
+    /// <summary>
+    /// Damage darkens and reddens. Both, deliberately: the level cue already
+    /// owns height and brightness-up, so damage cannot use silhouette without
+    /// contradicting it. Darkening is the channel that survives greyscale, and
+    /// the red is a redundant second signal rather than the only one.
+    /// </summary>
+    public void SetHealthFraction(float fraction)
+    {
+        fraction = Mathf.Clamp(fraction, 0f, 1f);
+        if (Mathf.IsEqualApprox(fraction, _healthFraction)) return;
+        _healthFraction = fraction;
+        _material.AlbedoColor = CurrentTint;
+    }
+
+    private Color CurrentTint
+    {
+        get
+        {
+            Color tint = _level > 1 ? _levelTint : _baseColour;
+            if (_healthFraction >= 1f) return tint;
+
+            float hurt = 1f - _healthFraction;
+            return tint.Lerp(Palette.Damaged, hurt * 0.9f).Darkened(hurt * 0.45f);
+        }
+    }
 
     public void Dispose()
     {

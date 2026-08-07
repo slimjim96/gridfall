@@ -28,6 +28,8 @@ public sealed class SimState
     public readonly Fix32[] CreepProgress = new Fix32[MaxCreeps];
     public readonly byte[] CreepHeading = new byte[MaxCreeps];
     public readonly int[] CreepHp = new int[MaxCreeps];
+    /// <summary>Ticks until this creep may attack a tower again.</summary>
+    public readonly int[] CreepAttackCooldown = new int[MaxCreeps];
 
     /// <summary>Live creep ids, ascending. Iterate this, never raw slot order.</summary>
     private readonly int[] _creepIdOrder = new int[MaxCreeps];
@@ -41,6 +43,8 @@ public sealed class SimState
     public readonly int[] TowerCooldown = new int[MaxTowers];
     /// <summary>1-based. Hashed and snapshotted like every other piece of state.</summary>
     public readonly byte[] TowerLevel = new byte[MaxTowers];
+    /// <summary>Structure health. Towers are destructible (ADR-0006).</summary>
+    public readonly int[] TowerHp = new int[MaxTowers];
     private readonly int[] _towerIdOrder = new int[MaxTowers];
     private int[] _slotOfTowerId = new int[1024];
 
@@ -87,6 +91,7 @@ public sealed class SimState
         CreepProgress[slot] = Fix32.Zero;
         CreepHeading[slot] = heading;
         CreepHp[slot] = hp;
+        CreepAttackCooldown[slot] = 0;
 
         EnsureSlotMap(ref _slotOfCreepId, id);
         _slotOfCreepId[id] = slot;
@@ -107,6 +112,7 @@ public sealed class SimState
             CreepProgress[slot] = CreepProgress[last];
             CreepHeading[slot] = CreepHeading[last];
             CreepHp[slot] = CreepHp[last];
+            CreepAttackCooldown[slot] = CreepAttackCooldown[last];
             _slotOfCreepId[CreepId[slot]] = slot;
         }
         CreepCount--;
@@ -114,7 +120,7 @@ public sealed class SimState
         RemoveFromIdOrder(_creepIdOrder, CreepCount + 1, id);
     }
 
-    public int AddTower(ushort defIndex, int cellIndex)
+    public int AddTower(ushort defIndex, int cellIndex, int hp)
     {
         if (TowerCount >= MaxTowers) return -1;
         int slot = TowerCount++;
@@ -125,6 +131,7 @@ public sealed class SimState
         TowerCellIndex[slot] = cellIndex;
         TowerCooldown[slot] = 0;
         TowerLevel[slot] = 1;
+        TowerHp[slot] = hp;
 
         EnsureSlotMap(ref _slotOfTowerId, id);
         _slotOfTowerId[id] = slot;
@@ -144,6 +151,7 @@ public sealed class SimState
             TowerCellIndex[slot] = TowerCellIndex[last];
             TowerCooldown[slot] = TowerCooldown[last];
             TowerLevel[slot] = TowerLevel[last];
+            TowerHp[slot] = TowerHp[last];
             _slotOfTowerId[TowerId[slot]] = slot;
         }
         TowerCount--;
@@ -226,6 +234,7 @@ public sealed class SimState
             int s = CreepSlotByOrder(k);
             h = FnvHash.Combine(h, CreepId[s], CreepCellIndex[s], CreepHp[s]);
             h = FnvHash.Combine(h, CreepProgress[s].Raw, CreepHeading[s], CreepDefIndex[s]);
+            h = FnvHash.Combine(h, CreepAttackCooldown[s]);
         }
 
         h = FnvHash.Combine(h, TowerCount);
@@ -234,6 +243,7 @@ public sealed class SimState
             int s = TowerSlotByOrder(k);
             h = FnvHash.Combine(h, TowerId[s], TowerCellIndex[s], TowerCooldown[s]);
             h = FnvHash.Combine(h, TowerDefIndex[s], TowerLevel[s]);
+            h = FnvHash.Combine(h, TowerHp[s]);
         }
 
         // Projectiles are short-lived and never referenced across a removal, so
@@ -281,6 +291,7 @@ public sealed class SimState
         Array.Copy(CreepProgress, other.CreepProgress, MaxCreeps);
         Array.Copy(CreepHeading, other.CreepHeading, MaxCreeps);
         Array.Copy(CreepHp, other.CreepHp, MaxCreeps);
+        Array.Copy(CreepAttackCooldown, other.CreepAttackCooldown, MaxCreeps);
         Array.Copy(_creepIdOrder, other._creepIdOrder, MaxCreeps);
 
         other.TowerCount = TowerCount;
@@ -289,6 +300,7 @@ public sealed class SimState
         Array.Copy(TowerCellIndex, other.TowerCellIndex, MaxTowers);
         Array.Copy(TowerCooldown, other.TowerCooldown, MaxTowers);
         Array.Copy(TowerLevel, other.TowerLevel, MaxTowers);
+        Array.Copy(TowerHp, other.TowerHp, MaxTowers);
         Array.Copy(_towerIdOrder, other._towerIdOrder, MaxTowers);
 
         other.ProjectileCount = ProjectileCount;

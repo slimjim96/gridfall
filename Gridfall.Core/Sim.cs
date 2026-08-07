@@ -27,6 +27,7 @@ public sealed class Sim
     private readonly CommandQueue _queue = new();
     private readonly EventLog _events = new();
     private readonly DamageBuffer _pending = new();
+    private readonly DamageBuffer _pendingTowerDamage = new();
 
     // Reused across ticks so the steady-state loop allocates nothing.
     private readonly List<int> _leakedCreepIds = new(64);
@@ -87,9 +88,14 @@ public sealed class Sim
         SpawnSystem.Run(_state, _map, _content, _path, _events, TickCount);             // 3
         MovementSystem.Run(_state, _map, _content, _path, _events, TickCount,
             _leakedCreepIds);                                                           // 4
-        TargetingSystem.Run(_state, _map, _content, _path, _events, TickCount);         // 5
+        // Phase 5 has two participants. Towers fire FIRST, so a tower destroyed
+        // this tick still gets its shot off -- fairer, and easier to reason
+        // about than the reverse. Order is fixed and load-bearing (ADR-0006).
+        TargetingSystem.Run(_state, _map, _content, _path, _events, TickCount);         // 5a
+        EnemyAttackSystem.Run(_state, _map, _content, _pendingTowerDamage);             // 5b
         ProjectileSystem.Run(_state, _map, _pending);                                   // 6
-        DamageSystem.Run(_state, _content, _pending, _events, TickCount, _leakedCreepIds,
+        DamageSystem.Run(_state, _content, _pending, _pendingTowerDamage, _path,
+            _events, TickCount, _leakedCreepIds,
             _scratchDeadIds, _deadDefIndices, _leakedDefIndices);                       // 7
         EconomySystem.Run(_state, _content, _events, TickCount,
             _deadDefIndices, _leakedDefIndices);                                        // 8

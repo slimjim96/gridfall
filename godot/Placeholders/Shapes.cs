@@ -62,6 +62,25 @@ public static class Shapes
             RadialSegments = 5,
         };
 
+    /// <summary>
+    /// Inverted four-sided wedge, point down -- a drill. Reads as the thing that
+    /// chews on your buildings.
+    ///
+    /// Every other creep is rounded or points up, so "point down" is the whole
+    /// signal: the one enemy that destroys towers must be identifiable at a
+    /// glance, or a lost tower has no visible cause (pillar 4).
+    /// </summary>
+    /// Tall and narrow rather than squat: the iso camera looks down, so a wide
+    /// low cone shows almost nothing but its top face and reads as a flat plate.
+    public static Mesh DrillWedge(float radius = 0.17f, float height = 0.58f)
+        => new CylinderMesh
+        {
+            TopRadius = radius,
+            BottomRadius = 0.0f,
+            Height = height,
+            RadialSegments = 4,
+        };
+
     /// <summary>Small unshaded quad for projectiles.</summary>
     public static Mesh Pip(float size = 0.12f)
         => new SphereMesh { Radius = size, Height = size * 2f, RadialSegments = 6, Rings = 3 };

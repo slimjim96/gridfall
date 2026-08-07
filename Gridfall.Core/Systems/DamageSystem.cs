@@ -1,5 +1,6 @@
 using Gridfall.Core.Content;
 using Gridfall.Core.Events;
+using Gridfall.Core.Path;
 
 namespace Gridfall.Core.Systems;
 
@@ -14,6 +15,52 @@ namespace Gridfall.Core.Systems;
 /// </summary>
 internal static class DamageSystem
 {
+    /// <summary>
+    /// Tower damage, buffered by EnemyAttackSystem in phase 5. Applied in
+    /// ascending tower id, then destructions resolved -- so two creeps that both
+    /// land a killing blow on the same tick destroy it once, for the same reason
+    /// simultaneous creep kills yield one death.
+    /// </summary>
+    private static void ResolveTowerDamage(
+        SimState state, ContentSet content, DamageBuffer pending,
+        PathSystem path, EventLog events, int tick)
+    {
+        if (pending.Count == 0) return;
+
+        pending.SortByCreepId();   // sorts by the target id field, towers here
+        var destroyed = new List<int>();
+
+        for (int i = 0; i < pending.Count; i++)
+        {
+            ref DamageBuffer.Record r = ref pending[i];
+            int slot = state.SlotOfTower(r.CreepId);
+            if (slot < 0) continue;
+            if (state.TowerHp[slot] <= 0) continue;   // already lethal this tick
+
+            state.TowerHp[slot] -= r.Amount;
+            events.Add(new SimEvent(tick, EventKind.TowerDamaged, r.CreepId, r.Amount));
+
+            if (state.TowerHp[slot] <= 0) destroyed.Add(r.CreepId);
+        }
+        pending.Clear();
+
+        foreach (int towerId in destroyed)
+        {
+            int slot = state.SlotOfTower(towerId);
+            if (slot < 0) continue;
+
+            int cellIndex = state.TowerCellIndex[slot];
+            events.Add(new SimEvent(tick, EventKind.TowerDestroyed, towerId, state.TowerLevel[slot]));
+
+            state.RemoveTowerBySlot(slot);
+
+            // Frees the cell, so the route may shorten. Destruction can only ever
+            // OPEN a path, never close one, so no block check is needed. Phase 2
+            // has already run, so this lands on the next tick (ADR-0006).
+            path.SetBlocked(cellIndex, false);
+        }
+    }
+
     /// <param name="leakedCreepIds">Recorded by MovementSystem in phase 4.</param>
     /// <param name="deadDefIndices">Filled for phase 8: one entry per death.</param>
     /// <param name="leakedDefIndices">Filled for phase 8: one entry per leak.</param>
@@ -21,6 +68,8 @@ internal static class DamageSystem
         SimState state,
         ContentSet content,
         DamageBuffer pending,
+        DamageBuffer pendingTowerDamage,
+        PathSystem path,
         EventLog events,
         int tick,
         List<int> leakedCreepIds,
@@ -31,6 +80,8 @@ internal static class DamageSystem
         scratchDeadIds.Clear();
         deadDefIndices.Clear();
         leakedDefIndices.Clear();
+
+        ResolveTowerDamage(state, content, pendingTowerDamage, path, events, tick);
 
         pending.SortByCreepId();
         for (int i = 0; i < pending.Count; i++)

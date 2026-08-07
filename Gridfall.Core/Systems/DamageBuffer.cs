@@ -4,6 +4,7 @@ public enum DamageSource : byte
 {
     Projectile = 0,
     Burn = 1,
+    EnemyAttack = 2,
 }
 
 /// <summary>
