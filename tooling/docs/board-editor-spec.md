@@ -103,6 +103,16 @@ A theme may now be **a folder of PNGs** rather than three colours:
 The full folder contract — connection masks, variants, what connects to what — is
 [`presentation/tiles/README.md`](../../presentation/tiles/README.md). It is not restated here.
 
+**Themes are unrelated folders and need not hold the same files**, so `F4` routinely lands on a
+theme missing tiles the last one had. That must never error, and it must never be silent:
+
+- a missing tile is **substituted** with the nearest mask the theme does have, so a road keeps
+  reading as a road rather than gaining a hole at every turn;
+- the brush bar turns amber and **counts the substitutions**, and `F4` names them on the status line.
+
+Both halves are load-bearing. Substituting without saying so trades a visible bug for an invisible
+one, and the invisible one gets reported months later as "the tiles look weird sometimes".
+
 **Why this is inside the scope above and not creep past it.** The theme is already an opaque string
 that Core carries and never reads, so nothing new crosses the boundary; the editor gained no rule of
 its own; and it removes a real hand-edit, which is the bar every feature here has to clear. What is

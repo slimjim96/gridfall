@@ -48,7 +48,12 @@ public class MapThemeTests
         string tiles = Path.Combine(RepoRoot().FullName, "presentation", "tiles");
         if (Directory.Exists(tiles))
             foreach (string dir in Directory.GetDirectories(tiles))
-                ids.Add(Path.GetFileName(dir));
+                // A folder with no PNGs is NOT a theme: TileLibrary drops it, so
+                // a map naming it would fall back to slate. Counting bare
+                // directories here would have let that pass the test and
+                // surprise somebody at runtime.
+                if (Directory.GetFiles(dir, "*.png", SearchOption.AllDirectories).Length > 0)
+                    ids.Add(Path.GetFileName(dir));
 
         return ids;
     }

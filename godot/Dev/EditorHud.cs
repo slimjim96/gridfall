@@ -257,11 +257,29 @@ public sealed partial class EditorHud : CanvasLayer
         _brushName.Text = name;
         _brushSize.Text = $"{size}x{size}";
 
-        // Say where a tile theme comes from. "theme: roadway" alone leaves you
-        // guessing whether the editor found your folder at all.
-        _themeName.Text = tiles is not null
-            ? $"theme: {theme} ({tiles.TileCount} tiles, F4)"
-            : $"theme: {theme} (colours, F4)";
+        // Say where a tile theme comes from, and say when it is incomplete.
+        // "theme: roadway" alone leaves you guessing whether the editor found
+        // your folder at all; "(3 tiles)" on a theme missing every corner reads
+        // as success while the board says otherwise.
+        if (tiles is null)
+        {
+            _themeName.Text = $"theme: {theme} (colours, F4)";
+            _themeName.AddThemeColorOverride("font_color", Dim);
+        }
+        else
+        {
+            _themeName.Text = tiles.IsComplete
+                ? $"theme: {theme} ({tiles.TileCount} tiles, F4)"
+                : $"theme: {theme} ({tiles.TileCount} tiles, {tiles.GapCount} gaps, F4)";
+            _themeName.AddThemeColorOverride("font_color", tiles.IsComplete ? Dim : Palette.Hint);
+        }
+    }
+
+    /// <summary>What a theme is missing, as one line, or empty when it is complete.</summary>
+    public static string GapSummary(string theme)
+    {
+        ThemeTiles? tiles = TileLibrary.For(theme);
+        return tiles is null || tiles.IsComplete ? "" : string.Join("; ", tiles.Gaps);
     }
 
     public void SetStatus(string text, bool error = false)

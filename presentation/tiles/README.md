@@ -81,8 +81,8 @@ thing. Canonical order is NESW, but any order parses.
 | `n.png` | only north connects | a dead end |
 | `none.png` | nothing connects | an orphan |
 
-Sixteen masks exist. You do not need all sixteen — an absent mask falls through to the unmasked
-tiles below, and then to the theme colour.
+Sixteen masks exist. You do not need all sixteen — an absent mask is substituted, and the editor
+tells you how many are being substituted. See *Themes do not have to hold the same files*, below.
 
 **What counts as connected:**
 
@@ -108,10 +108,37 @@ machine.
 
 ### Resolution order
 
-For each cell: **exact mask** → **unmasked variants** → **the theme's flat colour**.
+For each cell: **exact mask** → **the theme's unmasked variants** → **the nearest mask it does
+have** → the theme's flat colour.
 
 Which is why dropping a single `dirt.png` into `path/` works: it matches no mask, so every path cell
 uses it.
+
+## Themes do not have to hold the same files — and that is handled
+
+Two themes are unrelated folders. One may have all sixteen path masks, three grass variants and a
+goal pad; the next may have two masks and nothing else. Cycling between them with `F4` is normal and
+does not error.
+
+**A missing mask is substituted, never dropped.** The nearest mask the theme *does* have is used —
+fewest differing edges, ties broken toward the lower mask so the choice is identical on every
+machine. A corner drawn as a straight is wrong, but it still reads as a road; the first version fell
+through to the flat theme colour and punched a hole in the road at every turn, which reads as a
+rendering bug.
+
+**And you are told.** A theme is *incomplete* when a kind uses connection masks, lacks some, and has
+no unmasked variant to fall back on. Then:
+
+- the console prints `tiles: patchy -- PathOnly: 14 of 16 connection masks missing, substituted`
+- the editor's brush bar turns amber: `theme: patchy (3 tiles, 14 gaps, F4)`
+- `F4` onto that theme says what is missing on the status line
+
+Two cases that are **not** gaps, because neither is an accident:
+
+- A kind with no masked tiles at all — a pile of variants never asked to auto-tile.
+- A kind with masks *and* an unmasked variant — you supplied your own fallback deliberately.
+
+So the smallest complete `path/` folder is one file with a non-compass name.
 
 ## Drawing the images
 

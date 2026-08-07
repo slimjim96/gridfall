@@ -112,6 +112,12 @@ presentation/tiles/mytheme/
 Every folder is optional — a kind with no folder falls back to the theme's flat colour, so you can
 start with just `blocked/` and still have a usable board.
 
+**Themes need not hold the same files.** Cycling from a complete theme onto a sparse one is normal
+and never errors: a missing tile is substituted with the nearest one that theme does have. When that
+is happening the brush bar goes amber and counts it — `theme: patchy (3 tiles, 14 gaps, F4)` — and
+`F4` says what is missing. Amber means "your road's corners are being drawn with straights", not
+"something broke".
+
 **`F7` re-reads the folder without relaunching.** That is the whole point of tiles living outside
 `res://`: no Godot import step, no restart. Drop a PNG in, press `F7`, look at the board.
 
@@ -249,6 +255,7 @@ dotnet run --project Gridfall.Verify -- maps
 | `mkdir: cannot create directory '/run/user/0'` | You used `sudo`. Don't — it also risks root-owned files in the project. |
 | Your tile folder is not in the `F4` rotation | It has no usable PNGs, or every subfolder is misnamed. The terminal names what it ignored. Kind folders must be `buildable` `path` `blocked` `spawn` `goal`. |
 | A road draws as disconnected patches | Those cells are **buildable**, not path-only. A road only connects to path-only, spawn and goal — press `2` to paint the corridor itself. |
+| A road's corners look like straights, bar is amber | That theme has no corner tiles and is substituting. The gap count says how many. Not an error. |
 | A tile looks rotated 45° | It is not. The camera is. North in the image points up-**right** on screen; see `presentation/tiles/README.md`. |
 
 ## Not built yet

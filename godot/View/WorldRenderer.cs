@@ -21,6 +21,7 @@ public sealed partial class WorldRenderer : Node3D
     private TerrainTheme _theme = TerrainTheme.For(null);
     /// <summary>One mesh per tile image, kept between rebuilds. See CommitTileLayers.</summary>
     private readonly Dictionary<Texture2D, MeshInstance3D> _tileLayers = new();
+    private int _tileGeneration = -1;
 
     private readonly MeshInstance3D _hover = new();
     private readonly MeshInstance3D _errors = new();
@@ -195,6 +196,20 @@ public sealed partial class WorldRenderer : Node3D
     /// </summary>
     private void CommitTileLayers(Dictionary<Texture2D, SurfaceTool> textured)
     {
+        // A rescan (the editor's F7) builds all-new ImageTextures, so every cached
+        // layer is keyed on a texture nothing will ask for again. Hiding them
+        // leaked a node per tile per reload; drop them instead.
+        if (_tileGeneration != TileLibrary.Generation)
+        {
+            _tileGeneration = TileLibrary.Generation;
+            foreach (MeshInstance3D stale in _tileLayers.Values)
+            {
+                RemoveChild(stale);
+                stale.QueueFree();
+            }
+            _tileLayers.Clear();
+        }
+
         foreach (KeyValuePair<Texture2D, SurfaceTool> entry in textured)
         {
             entry.Value.GenerateNormals();

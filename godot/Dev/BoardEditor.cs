@@ -281,7 +281,12 @@ public sealed partial class BoardEditor : Node3D
         _dirty = true;
         RebuildEverything();
         _hud.SetBrush(_brush, _brushSize, _draft.Theme);
-        _hud.SetStatus($"theme: {_draft.Theme}");
+
+        // Themes are not required to hold the same files, so rotating onto one
+        // that is missing masks silently substitutes near-misses. Say so on the
+        // keypress that caused it -- the board alone reads as a rendering bug.
+        string gaps = EditorHud.GapSummary(_draft.Theme);
+        _hud.SetStatus(gaps.Length == 0 ? $"theme: {_draft.Theme}" : $"theme: {_draft.Theme} -- {gaps}");
     }
 
     /// <summary>

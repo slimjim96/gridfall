@@ -19,8 +19,12 @@ change, no registration, no Godot import step. Contract in
 - **Variants per kind.** `stone.png`, `stone-2.png`, `bush.png` are three ways a wall can look.
   Distribution is a **fixed hash of cell coordinates**, never an RNG: the board rebuilds on every
   brush stroke, and a random pick would reshuffle the whole map each time you painted one cell.
-- **Everything optional.** Missing mask → unmasked variant → the theme's flat colour. A theme can be
-  built one folder at a time, and the seven existing colour ramps keep working untouched.
+- **Everything optional, and themes need not match each other.** Missing mask → the theme's unmasked
+  variant → **the nearest mask it does have**. Cycling `F4` between a complete theme and a sparse one
+  never errors, and never leaves holes. A theme can be built one folder at a time, and the seven
+  existing colour ramps keep working untouched.
+- **An incomplete theme says so** — console line, amber brush bar with a gap count, and `F4` naming
+  what is missing.
 - **`F7` reloads from disk** without relaunching. That is why tiles live outside `res://` at all.
 - Side walls of raised cells are painted the tile's own **average colour**, computed at load, so a
   wall's sides match its top with no second image.
@@ -84,6 +88,30 @@ Three defects invisible to the compiler and to all 176 tests:
 - **The placeholder bush was one flat green square**, authored within ~14 levels of its own ground.
   The same failure, and the same fix, as the original slate terrain ramp. Now written into the tile
   README as a rule rather than left as an anecdote.
+
+## The review question that changed the design
+
+*"Each theme's folder options could be variable and not the same — rotating a board to pull files
+from another one could throw errors."*
+
+It could not throw; resolution already had a fallback at every step. But testing it found something
+worse than an error. A theme with `ns` and `ew` and no corners drew a road with a **flat hole punched
+in it at every turn**, while the console said `loaded patchy (3)` and the bar said `3 tiles` — both
+reading as success.
+
+> **A silent wrong render is harder to diagnose than an exception.** An exception names its line. A
+> hole in a road gets reported months later as "the tiles look weird sometimes".
+
+So: substitute the nearest mask rather than dropping to flat colour — a corner drawn as a straight is
+wrong, but it still reads as a road — **and say so**, in the console, on an amber brush bar with a
+count, and on the `F4` keypress that caused it. Both halves matter; substituting quietly would trade
+a visible bug for an invisible one.
+
+Not surfaced in the validation panel, deliberately. That panel is the map validator's verdict and
+`MapTargets`, and the editor putting its own opinions there is precisely what the spec forbids.
+
+Testing that also caught a leak: `F7` builds all-new `ImageTexture`s, so the renderer's per-texture
+layer cache was hiding rather than freeing 24 nodes per reload. A generation counter now drops it.
 
 ## Scope, and what stayed out
 

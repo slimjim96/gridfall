@@ -72,6 +72,14 @@ public static class TileLibrary
 
     public static IEnumerable<string> ThemeIds => Themes.Keys;
 
+    /// <summary>
+    /// Bumped by every <see cref="Scan"/>. A rescan builds brand-new ImageTextures,
+    /// so anything caching meshes per texture must notice and drop them -- see
+    /// WorldRenderer.CommitTileLayers, which otherwise accumulated a dead layer
+    /// node per tile per F7.
+    /// </summary>
+    public static int Generation { get; private set; }
+
     public static bool Has(string? id) => id is not null && Themes.ContainsKey(id);
 
     public static ThemeTiles? For(string? id)
@@ -86,6 +94,7 @@ public static class TileLibrary
     {
         _root = Path.Combine(repoRoot, Folder);
         Themes.Clear();
+        Generation++;
 
         if (!Directory.Exists(_root))
         {
@@ -102,9 +111,19 @@ public static class TileLibrary
             if (theme is not null) Themes[theme.Id] = theme;
         }
 
-        GD.Print(Themes.Count == 0
-            ? $"tiles: {Folder}/ has no usable theme folders"
-            : $"tiles: loaded {string.Join(", ", Themes.Select(t => $"{t.Key} ({t.Value.TileCount})"))}");
+        if (Themes.Count == 0)
+        {
+            GD.Print($"tiles: {Folder}/ has no usable theme folders");
+            return;
+        }
+
+        GD.Print($"tiles: loaded {string.Join(", ", Themes.Select(t => $"{t.Key} ({t.Value.TileCount})"))}");
+
+        // Named individually, not just counted. "loaded patchy (3)" reads as
+        // success, and the board it produces does not look like one.
+        foreach (KeyValuePair<string, ThemeTiles> theme in Themes)
+        foreach (string gap in theme.Value.Gaps)
+            GD.Print($"tiles: {theme.Key} -- {gap}");
     }
 
     // ---- connection masks -------------------------------------------------
@@ -172,12 +191,50 @@ public sealed class ThemeTiles
     {
         public readonly Dictionary<int, List<TerrainTile>> ByMask = new();
         public readonly List<TerrainTile> Unmasked = new();
+
+        /// <summary>
+        /// For each of the 16 masks, the mask actually drawn: itself when the
+        /// tile exists, otherwise the nearest one that does, or -1 for none.
+        ///
+        /// Precomputed at load so resolving a cell is an array read, and so the
+        /// substitution is decided once rather than per cell per rebuild.
+        /// </summary>
+        public readonly int[] Resolution = new int[16];
+
+        /// <summary>How many masks are being substituted. 0 means the set is complete.</summary>
+        public int Gaps;
     }
 
     private readonly Dictionary<CellKind, KindTiles> _kinds = new();
 
     public string Id { get; private init; } = "";
     public int TileCount { get; private set; }
+
+    /// <summary>
+    /// Human-readable notes about what this theme is missing, empty when it is
+    /// complete.
+    ///
+    /// A partial tileset does not fail -- it substitutes -- and a substitution
+    /// nobody is told about is the worst of both worlds. The first version fell
+    /// straight through to the flat theme colour, so a theme with `ns` and `ew`
+    /// but no corners drew a road with holes punched in it at every turn, and
+    /// said "loaded patchy (3)" as though that were a success.
+    /// </summary>
+    public IReadOnlyList<string> Gaps => _gaps;
+
+    private readonly List<string> _gaps = new();
+
+    public bool IsComplete => _gaps.Count == 0;
+
+    public int GapCount
+    {
+        get
+        {
+            int total = 0;
+            foreach (KindTiles kind in _kinds.Values) total += kind.Gaps;
+            return total;
+        }
+    }
 
     private static readonly Dictionary<string, CellKind> KindFolders = new()
     {
@@ -206,7 +263,65 @@ public sealed class ThemeTiles
                 theme.Add(kind, file);
         }
 
-        return theme.TileCount > 0 ? theme : null;
+        if (theme.TileCount == 0) return null;
+
+        theme.ResolveMasks();
+        return theme;
+    }
+
+    /// <summary>
+    /// Decide, once, which tile stands in for every mask this theme does not have.
+    ///
+    /// A kind with no masked tiles at all has not asked to auto-tile -- it is a
+    /// pile of variants and that is a complete, deliberate tileset. Only a kind
+    /// that uses SOME masks can have gaps.
+    /// </summary>
+    private void ResolveMasks()
+    {
+        foreach (KeyValuePair<CellKind, KindTiles> entry in _kinds)
+        {
+            KindTiles kind = entry.Value;
+
+            for (int mask = 0; mask < 16; mask++)
+                kind.Resolution[mask] = NearestMask(kind, mask);
+
+            // Unmasked-only is a complete tileset -- it never asked to auto-tile.
+            // And a kind with an unmasked variant alongside its masks has supplied
+            // its own fallback deliberately, so it has no gaps either.
+            if (kind.ByMask.Count == 0 || kind.Unmasked.Count > 0) continue;
+
+            for (int mask = 0; mask < 16; mask++)
+                if (kind.Resolution[mask] != mask) kind.Gaps++;
+
+            if (kind.Gaps > 0)
+                _gaps.Add($"{entry.Key}: {kind.Gaps} of 16 connection masks missing, substituted");
+        }
+    }
+
+    /// <summary>
+    /// The closest mask this theme actually has: fewest differing edges, ties
+    /// broken by the lower mask so the choice is identical on every machine
+    /// regardless of dictionary iteration order.
+    ///
+    /// Substituting a near-miss beats falling through to the flat theme colour.
+    /// A corner drawn as a straight still reads as a road; a corner drawn as a
+    /// hole reads as a rendering bug, and that is what the first version did.
+    /// </summary>
+    private static int NearestMask(KindTiles kind, int wanted)
+    {
+        if (kind.ByMask.TryGetValue(wanted, out List<TerrainTile>? exact) && exact.Count > 0)
+            return wanted;
+
+        int best = -1, bestScore = int.MaxValue;
+        foreach (KeyValuePair<int, List<TerrainTile>> candidate in kind.ByMask)
+        {
+            if (candidate.Value.Count == 0) continue;
+
+            int differing = System.Numerics.BitOperations.PopCount((uint)(candidate.Key ^ wanted));
+            int score = differing * 16 + candidate.Key;
+            if (score < bestScore) { bestScore = score; best = candidate.Key; }
+        }
+        return best;
     }
 
     private void Add(CellKind kind, string file)
@@ -269,7 +384,13 @@ public sealed class ThemeTiles
 
     public bool Has(CellKind kind) => _kinds.ContainsKey(kind);
 
-    /// <summary>The tile for one cell, or false to fall back to the theme colour.</summary>
+    /// <summary>
+    /// The tile for one cell, or false to fall back to the theme colour.
+    ///
+    /// Order: the exact mask, then the theme's own unmasked fallback, then the
+    /// nearest mask it does have. Only a kind with no tiles at all returns false,
+    /// so a theme can never draw part of a road and leave the rest as holes.
+    /// </summary>
     public bool TryTile(CellKind kind, int mask, int x, int y, out TerrainTile tile)
     {
         tile = default;
@@ -284,6 +405,14 @@ public sealed class ThemeTiles
         if (kindTiles.Unmasked.Count > 0)
         {
             tile = kindTiles.Unmasked[TileLibrary.VariantIndex(x, y, kindTiles.Unmasked.Count)];
+            return true;
+        }
+
+        int substitute = kindTiles.Resolution[mask & 15];
+        if (substitute >= 0)
+        {
+            List<TerrainTile> list = kindTiles.ByMask[substitute];
+            tile = list[TileLibrary.VariantIndex(x, y, list.Count)];
             return true;
         }
 

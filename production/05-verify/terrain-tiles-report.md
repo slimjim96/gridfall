@@ -30,7 +30,9 @@ before any of it. The refactor is provably invisible where it should be.
 | 4 | Variant choice is stable, not random | PASS by construction | `TileLibrary.VariantIndex` is a coordinate hash, no RNG, no state; repeated captures identical |
 | 5 | Tiles cannot reach the simulation | PASS | Pre-existing `TheThemeIsNotSimulationState`; capture hash unchanged across render edits |
 | 6 | The editor and the game draw the same board | PASS | `TileLibrary.Scan` in both `BoardEditor` and `GameplayScene`; game capture shows the same tileset |
-| 7 | A partial theme degrades rather than breaks | PASS by construction | Resolution is exact mask → unmasked → theme colour, per kind |
+| 7 | A partial theme degrades rather than breaks | PASS — **fixed after review, see below** | `patchy.png` → `patchy2.png` |
+| 7b | An incomplete theme says so | PASS | Console, amber brush bar, and `F4` status line |
+| 7c | A complete theme is unaffected by the fallback | PASS | `editor-tiles-baseline.png` md5 `7ce93611…` unchanged after the change |
 | 8 | New PNGs appear without relaunching | PASS by construction | `F7` re-runs `Scan`; tiles load via `Image.LoadFromFile`, outside `res://`, so no import step exists to skip |
 | 9 | Overlay laid out by containers, not offsets | PASS | `EditorHud` is `VBoxContainer`/`PanelContainer` throughout; no y arithmetic remains |
 | 10 | Severity is per row | PASS | `errors.png` — red error row above plain info rows, in one card |
@@ -73,6 +75,63 @@ Both were invisible to the compiler and to every test:
 A third was fixed in the placeholder art rather than the code: the bush was authored within ~14
 levels of its own ground and rendered as one flat green square. Same failure mode, and the same fix,
 as the original slate terrain ramp — which is now noted in the tile README as a rule, not an anecdote.
+
+## Raised in review: themes need not hold the same files
+
+> "each theme's folder options could be variable and not the same, so really rotating an existing
+> board to pull files from another one, even if they are named the same, could throw errors."
+
+Tested rather than assumed. Three deliberately broken folders — `patchy` (only `ns` and `ew`, no
+buildable, no markers), `empty` (no files), `typo` (a subfolder named `pathz`) — then `F4` through
+all of them.
+
+**No errors.** `empty` and `typo` were correctly not registered, and the misnamed subfolder was named
+in the console. Resolution was already per kind, per mask, with a fallback at each step.
+
+**But the real failure was worse than an error: it was silent.** `patchy.png` shows a road with a
+flat dark hole punched in it at every turn — straights tiled, corners fell through to the theme
+colour — while the console said `loaded patchy (3)` and the bar said `3 tiles`, both reading as
+success. A confusing wrong render that claims to be fine is harder to diagnose than an exception.
+
+Three changes:
+
+1. **Substitute, don't drop.** A missing mask resolves to the nearest mask the theme *does* have —
+   fewest differing edges, ties toward the lower mask so the pick is machine-independent.
+   Precomputed once per theme into a 16-entry table, not per cell per rebuild. `patchy2.png`: the
+   road is continuous, corners drawn as straights. Wrong geometry, but it reads as a road.
+2. **Report it.** A theme is incomplete when a kind uses masks, lacks some, and has no unmasked
+   fallback. Console line per gap; amber brush bar with a count; `F4` names them. Deliberately *not*
+   a row in the validation panel — that panel is the map validator's verdict and MapTargets only, and
+   the editor adding opinions to it is exactly what the spec forbids.
+3. **Two cases that are not gaps**, because neither is an accident: a kind with no masks at all
+   (never asked to auto-tile), and a kind with masks plus an unmasked variant (fallback supplied
+   deliberately).
+
+### A leak found while testing the same thing
+
+`F7` rescans and builds **all-new** `ImageTexture` objects, so `WorldRenderer`'s per-texture layer
+cache was keyed on textures nothing would ask for again. It hid them rather than freeing them, so
+every reload leaked one `MeshInstance3D` per tile — 24 per press with `roadway`. `TileLibrary` now
+carries a `Generation` counter and the renderer drops the whole cache when it moves.
+
+### A latent test hole, closed
+
+`MapThemeTests` counted every *directory* under `presentation/tiles/` as a valid theme, but
+`TileLibrary` drops a folder with no usable PNGs. A map naming an empty folder would have passed CI
+and silently fallen back to slate at runtime. The test now requires at least one PNG.
+
+### Reproducing
+
+```bash
+cd presentation/tiles
+mkdir -p patchy/path patchy/blocked empty typo/pathz
+cp roadway/path/ns.png roadway/path/ew.png patchy/path/
+cp roadway/blocked/stone.png patchy/blocked/
+cp roadway/path/ns.png typo/pathz/
+cd ../.. && ./run-editor.sh --theme patchy
+```
+
+The fixtures are not committed — they would pollute the `F4` rotation for no ongoing benefit.
 
 ## Scope
 
