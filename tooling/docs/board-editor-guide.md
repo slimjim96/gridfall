@@ -230,7 +230,9 @@ dotnet run --project Gridfall.Verify -- maps
 | `1` `2` `3` `4` `5` | Brush: buildable / path-only / blocked / spawn / goal |
 | Left drag | Paint · Right drag | Erase to buildable |
 | `[` `]` | Brush size 1×1 / 3×3 |
-| Wheel | Zoom |
+| Wheel | Zoom (fine, multiplicative) |
+| Middle drag | Pan · arrows / WASD pan too |
+| `Home` | Recentre on the board |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | Undo / redo (50) |
 | `Ctrl+S` | Save · `Ctrl+N` New |
 | `F1` | Toggle this key list on screen |
@@ -268,8 +270,6 @@ Named honestly so you do not go looking:
 - **No open dialog.** Use `--map <id>` at launch.
 - **No rename.** Save, then rename the file.
 - **No wave editing.** Out of scope by decision — wave tables stay hand-authored JSON.
-- **No camera pan.** The spec's `Middle drag | Pan` row is aspirational. A board wider than
-  ~59 cells of width+height cannot be fully seen. Slug `camera-pan-zoom`.
 - **No per-cell tile choice.** You pick a theme; variants are distributed by coordinate hash. Placing
   *this* bush on *that* cell would need a new layer in the map format.
 - **No tile drawing.** The editor selects tiles. Draw them elsewhere.

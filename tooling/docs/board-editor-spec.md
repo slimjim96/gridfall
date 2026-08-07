@@ -64,7 +64,7 @@ is not a possible state.
 | Left drag | Paint with the current brush |
 | Right drag | Paint buildable (the eraser) |
 | `[` / `]` | Brush size 1×1 / 3×3 |
-| Middle drag | Pan |
+| Middle drag | Pan (also arrows / WASD; `Home` recentres). Edge-scroll is **off** in the editor — painting a border wall means holding the cursor at the edge |
 | Wheel | Zoom, clamped to the `IsoGrid` limits |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | Undo / redo, 50 steps |
 | `Ctrl+S` | Save |

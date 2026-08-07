@@ -72,9 +72,13 @@ ties broken by entity id. Do not use world Y.
 
 ## Camera behavior
 
-- Pan is clamped to the map bounds plus a two-cell margin. **Not built yet** — `PanMarginCells`
-  is declared and read by nothing; see `production/01-requirements/camera-pan-zoom-requirements.md`.
-  Until it is, any board where width + height exceeds ~59 is cropped with no way to reach the rest.
+- Pan is clamped to the map bounds plus a two-cell margin (`IsoGrid.ClampFocus`). Built by
+  `camera-pan-zoom`; `CameraRig` owns the focus point and is driven by both the game and the editor.
+- **Zoom is multiplicative**, a 1.06 ratio per notch rather than a flat step, so a notch feels the
+  same at both ends of the 10–30 range. A flat step is 5% of the range zoomed out and 15% zoomed in.
+- Screen-relative panning uses `IsoGrid.ScreenRight` / `ScreenUp`, derived from the yaw, and divides
+  vertical motion by `GroundCompression` = sin(pitch) — without which a drag lags the cursor at half
+  speed vertically.
 - Zoom changes `Camera3D.Size` between `10.0` and `30.0`. It never changes the pitch or yaw — rotating
   the camera off the contract angles breaks every art asset's implied lighting direction.
 - Rotation, if it is ever added, snaps to the four 90° yaws. No free rotation.

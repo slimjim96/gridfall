@@ -35,6 +35,7 @@ public sealed partial class GameplayScene : Node3D
     private RouteOverlay _routes = null!;
     private Hud _hud = null!;
     private Camera3D _camera = null!;
+    private CameraRig _rig = null!;
 
     private ushort _selectedTower;
     private string _selectedTowerName = "";
@@ -97,7 +98,13 @@ public sealed partial class GameplayScene : Node3D
 
         _camera = new Camera3D();
         AddChild(_camera);
-        IsoGrid.ConfigureCamera(_camera, map);
+
+        _rig = new CameraRig();
+        AddChild(_rig);
+        _rig.Initialise(_camera, map);
+        // Shot mode must not move the camera: every committed baseline depends
+        // on the board being framed identically each run.
+        _rig.Locked = _shotPath is not null;
 
         var backdrop = new Backdrop();
         AddChild(backdrop);
@@ -144,6 +151,7 @@ public sealed partial class GameplayScene : Node3D
             if (e.Kind is EventKind.BuildRejected or EventKind.RepairRejected)
                 _hud.ShowRefusal((RejectReason)e.A);
 
+        _rig.Update(dt);
         _hud.Refresh(_driver.State, _selectedTowerName, dt);
         UpdateHover();
 
@@ -152,6 +160,10 @@ public sealed partial class GameplayScene : Node3D
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        // The rig first: it owns the wheel, middle-drag and the pan keys, and
+        // returns false for everything it does not claim.
+        if (_rig.HandleInput(@event)) return;
+
         if (@event is InputEventKey { Pressed: true } key)
         {
             switch (key.Keycode)

@@ -30,6 +30,7 @@ public sealed partial class BoardEditor : Node3D
     private RouteOverlay _routes = null!;
     private EditorHud _hud = null!;
     private Camera3D _camera = null!;
+    private CameraRig _rig = null!;
 
     private CellKind _brush = CellKind.Buildable;
     private int _brushSize = 1;
@@ -72,6 +73,16 @@ public sealed partial class BoardEditor : Node3D
         _camera = new Camera3D();
         AddChild(_camera);
 
+        _rig = new CameraRig();
+        AddChild(_rig);
+        // Initialise before the first RebuildEverything: Reframe only re-clamps
+        // an existing focus, so the rig has to have a camera and a map already.
+        _rig.Initialise(_camera, _draft.ToMapDef());
+        // Edge-scroll off here on purpose: painting a border wall means holding
+        // the cursor at the edge, and a camera that slides away while you do it
+        // is worse than no panning at all.
+        _rig.EdgeScroll = false;
+
         _backdrop = new Backdrop();
         AddChild(_backdrop);
 
@@ -88,11 +99,13 @@ public sealed partial class BoardEditor : Node3D
         RebuildEverything();
 
         ParseShotArgs();
+        _rig.Locked = _shotPath is not null;
         if (_shotPath is not null) SeedForScreenshot();
     }
 
     public override void _Process(double delta)
     {
+        _rig.Update((float)delta);
         if (_shotPath is not null && ++_framesRendered >= _shotAfterFrames) CaptureAndQuit();
     }
 
@@ -154,6 +167,9 @@ public sealed partial class BoardEditor : Node3D
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        // The rig first: it owns the wheel, middle-drag pan and Home.
+        if (_rig.HandleInput(@event)) return;
+
         if (@event is InputEventKey { Pressed: true, Echo: false } key) HandleKey(key);
         else if (@event is InputEventMouseButton mb) HandleMouseButton(mb);
         else if (@event is InputEventMouseMotion && (_painting || _erasing)) PaintUnderCursor();
@@ -199,9 +215,6 @@ public sealed partial class BoardEditor : Node3D
 
     private void HandleMouseButton(InputEventMouseButton mb)
     {
-        if (mb.ButtonIndex == MouseButton.WheelUp) { Zoom(-1.5f); return; }
-        if (mb.ButtonIndex == MouseButton.WheelDown) { Zoom(1.5f); return; }
-
         bool left = mb.ButtonIndex == MouseButton.Left;
         bool right = mb.ButtonIndex == MouseButton.Right;
         if (!left && !right) return;
@@ -422,7 +435,10 @@ public sealed partial class BoardEditor : Node3D
     {
         MapDef map = _draft.ToMapDef();
 
-        IsoGrid.ConfigureCamera(_camera, map);
+        // Reframe, not Initialise: a rebuild runs on every brush stroke, and
+        // re-centring the camera each time you painted a cell would make a board
+        // larger than the screen impossible to edit.
+        _rig.Reframe(map);
 
         // Before the goal check: the surround is scenery and does not care
         // whether the draft is legal. It is also self-throttling -- it only
@@ -472,8 +488,6 @@ public sealed partial class BoardEditor : Node3D
         _routes.Initialise(map, _path);
     }
 
-    private void Zoom(float delta)
-        => _camera.Size = Mathf.Clamp(_camera.Size + delta, IsoGrid.MinOrthoSize, IsoGrid.MaxOrthoSize);
 
     private void BuildEnvironment()
     {

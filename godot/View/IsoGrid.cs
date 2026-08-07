@@ -36,6 +36,29 @@ public static class IsoGrid
     /// <summary>Cells of slack beyond the board that the camera may pan to.</summary>
     public const float PanMarginCells = 2.0f;
 
+    // ---- screen-space directions -------------------------------------------
+    // Panning needs to turn a mouse delta in pixels into a move across the
+    // ground, which means knowing which way the world goes when the screen goes
+    // right or up. Derived from the yaw rather than typed in, so they follow the
+    // contract if it ever changes.
+
+    private static float YawRadians => Mathf.DegToRad(CameraYaw);
+
+    /// <summary>The ground direction that appears to point RIGHT on screen.</summary>
+    public static Vector3 ScreenRight => new(Mathf.Cos(YawRadians), 0f, -Mathf.Sin(YawRadians));
+
+    /// <summary>The ground direction that appears to point UP on screen.</summary>
+    public static Vector3 ScreenUp => new(-Mathf.Sin(YawRadians), 0f, -Mathf.Cos(YawRadians));
+
+    /// <summary>
+    /// How much the ground plane is squashed vertically on screen: sin(pitch).
+    ///
+    /// A drag has to divide by this or vertical panning runs at half speed and
+    /// the board visibly lags the cursor — the same 0.5 that FitOrthoSize uses
+    /// to work out how tall a board renders.
+    /// </summary>
+    public static float GroundCompression => Mathf.Sin(Mathf.DegToRad(-CameraPitch));
+
     // ---- grid <-> world ---------------------------------------------------
     // The ground plane is XZ. Y is height.
 
@@ -66,14 +89,39 @@ public static class IsoGrid
         camera.Near = 0.1f;
         camera.Far = 200.0f;
 
-        Vector3 centre = BoardCentre(map);
+        PointAt(camera, BoardCentre(map));
+    }
+
+    /// <summary>
+    /// Aim the camera at a point on the ground, on the contract angles.
+    ///
+    /// Split out of ConfigureCamera so panning can move the focus without
+    /// re-deriving the framing — and so the rotation is still written down once.
+    /// </summary>
+    public static void PointAt(Camera3D camera, Vector3 focus)
+    {
         // Pull back along the view direction far enough that nothing clips.
         var basisRotation = Basis.FromEuler(new Vector3(
             Mathf.DegToRad(CameraPitch), Mathf.DegToRad(CameraYaw), 0f));
         Vector3 back = basisRotation * Vector3.Back;
 
-        camera.Position = centre + back * 60.0f;
+        camera.Position = focus + back * 60.0f;
         camera.Basis = basisRotation;
+    }
+
+    /// <summary>
+    /// Clamp a focus point to the board plus <see cref="PanMarginCells"/>.
+    ///
+    /// This is the rule docs/iso-grid.md has stated since it was written and
+    /// nothing implemented: the board can be moved around, but never lost.
+    /// </summary>
+    public static Vector3 ClampFocus(Vector3 focus, MapDef map)
+    {
+        float margin = PanMarginCells * CellSize;
+        return new Vector3(
+            Mathf.Clamp(focus.X, -margin, map.Width * CellSize + margin),
+            0f,
+            Mathf.Clamp(focus.Z, -margin, map.Height * CellSize + margin));
     }
 
     public static Vector3 BoardCentre(MapDef map)
