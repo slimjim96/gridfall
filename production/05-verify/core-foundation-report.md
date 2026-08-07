@@ -67,7 +67,7 @@ not part of the round trip. It was invisible to every other test.
 | # | What, and why |
 |---|---|
 | Perf | The 8 ms budget in tech-standards is written for 64×64 with 300 creeps and 60 towers. What was measured is 20×9 with 62 towers and far fewer creeps — 215× inside budget, but **not the documented case**. There is no 64×64 map yet to run it on. The harness prints this caveat itself. |
-| Balance | `Verify balance` runs, but its policy places no towers, so its output describes an undefended board (100% leak, all runs lost) and is not a balance report. It says so on every run. A competent-play policy is required before any number from it is quoted. |
+| Balance | ~~Its policy places no towers.~~ **Closed 2026-08-06** by `balance-play-policy`. |
 | Randomness | `SimRandom` is seeded, hashed, and correct, but **no system draws from it**, so every seed produces an identical run. Correct today; a trap the first time something does draw and the balance sim's "50 runs" stop being 50 different runs. |
 | Cross-platform determinism | Every determinism claim was verified on **one machine**, one runtime (net10.0.10, ubuntu-x64). The whole point of `Fix32` is that this generalises — but generalising it is a claim, not yet an observation. |
 

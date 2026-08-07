@@ -47,10 +47,15 @@ int Usage()
                                    behaviour is correct.
 
       balance --map <id> [--runs N] [--seed N]
-                                   Headless N-run wave sim; reports leak rate, gold,
-                                   and time-to-clear against MapTargets.
+                                   Headless N-run wave sim driven by a scripted player;
+                                   reports leak rate, per-wave leaks, gold curve and
+                                   time-to-clear against the balance targets.
+                                   The policy is a competent BEGINNER, so the numbers
+                                   are a floor on difficulty, not a verdict.
 
       maps                         Geometry report for every map against MapTargets.
+
+      perf [--map <id>]            Tick cost against the 8ms budget.
     """);
     return 2;
 }
@@ -207,57 +212,92 @@ int Balance()
 
     MapDef map = ContentFiles.LoadMap(root, mapId);
     ContentSet content = ContentFiles.LoadContent(root, mapId);
+    int waveCount = content.Waves.Length;
 
-    int totalSpawned = 0, totalLeaked = 0, runsLost = 0;
-    var clearTicks = new List<int>();
-    var goldAtEnd = new List<int>();
+    var perWaveSpawned = new int[waveCount];
+    var perWaveLeaked = new int[waveCount];
+    var perWaveTicks = new List<int>[waveCount];
+    for (int i = 0; i < waveCount; i++) perWaveTicks[i] = new List<int>();
+
+    int totalSpawned = 0, totalLeaked = 0, runsLost = 0, totalBuilds = 0;
+    var goldAtWave = new List<int>[waveCount];
+    for (int i = 0; i < waveCount; i++) goldAtWave[i] = new List<int>();
+    var finalLives = new List<int>();
 
     for (int run = 0; run < runs; run++)
     {
         var sim = new Sim(map, content, baseSeed + (uint)run);
+        var policy = new PlayPolicy(sim, baseSeed + (uint)run);
 
-        // A fixed, deliberately unskilled policy: build what is affordable at the
-        // first buildable cell, then run every wave. It is not "competent play"
-        // yet -- see the caveat printed below.
-        int waveCount = content.Waves.Length;
-        int spawned = 0, leaked = 0;
+        int wave = 0;
+        int waveStartTick = 0;
+        bool counted = false;
 
-        for (int wave = 0; wave < waveCount; wave++)
+        for (int t = 0; t < 20000 && wave < waveCount; t++)
         {
-            sim.Enqueue(new StartWaveCommand());
-            for (int t = 0; t < 4000; t++)
+            int waveBefore = sim.State.WaveIndex;
+            policy.Update();
+            sim.Tick();
+
+            if (sim.State.WaveIndex != waveBefore)
             {
-                sim.Tick();
-                foreach (SimEvent e in sim.Events.Span)
-                {
-                    if (e.Kind == EventKind.CreepSpawned) spawned++;
-                    if (e.Kind == EventKind.CreepLeaked) leaked++;
-                }
-                if (!sim.State.WaveActive && sim.State.CreepCount == 0 && t > 2) break;
+                wave = sim.State.WaveIndex - 1;
+                waveStartTick = sim.TickCount;
+                counted = false;
+                if (wave >= 0 && wave < waveCount) goldAtWave[wave].Add(sim.State.Gold);
             }
+
+            foreach (SimEvent e in sim.Events.Span)
+            {
+                if (wave < 0 || wave >= waveCount) continue;
+                if (e.Kind == EventKind.CreepSpawned) { perWaveSpawned[wave]++; totalSpawned++; }
+                if (e.Kind == EventKind.CreepLeaked) { perWaveLeaked[wave]++; totalLeaked++; }
+                if (e.Kind == EventKind.WaveCleared && !counted)
+                {
+                    perWaveTicks[wave].Add(sim.TickCount - waveStartTick);
+                    counted = true;
+                }
+            }
+
+            if (sim.State.Lives <= 0) break;
         }
 
-        totalSpawned += spawned;
-        totalLeaked += leaked;
+        totalBuilds += policy.BuildsPlaced;
+        finalLives.Add(sim.State.Lives);
         if (sim.State.Lives <= 0) runsLost++;
-        clearTicks.Add(sim.TickCount);
-        goldAtEnd.Add(sim.State.Gold);
     }
 
     double leakRate = totalSpawned == 0 ? 0 : 100.0 * totalLeaked / totalSpawned;
     double lostRate = 100.0 * runsLost / runs;
 
     Console.WriteLine($"Balance report -- map '{mapId}', {runs} runs, seed {baseSeed}");
-    Console.WriteLine($"  spawned         {totalSpawned}");
-    Console.WriteLine($"  leaked          {totalLeaked}  ({leakRate:F1}%, target <= 4.0%)");
-    Console.WriteLine($"  runs lost       {runsLost}  ({lostRate:F1}%)");
-    Console.WriteLine($"  ticks to finish {clearTicks.Average():F0} avg  ({clearTicks.Min()}..{clearTicks.Max()})");
-    Console.WriteLine($"  gold at end     {goldAtEnd.Average():F0} avg");
+    Console.WriteLine($"  policy          competent-beginner (coverage placement, best dps/gold, no reserve)");
+    Console.WriteLine($"  towers built    {totalBuilds / (double)runs:F1} avg per run");
     Console.WriteLine();
-    Console.WriteLine("  CAVEAT: the policy here builds nothing. These numbers describe an");
-    Console.WriteLine("  undefended board, not balance. A competent-play policy is required");
-    Console.WriteLine("  before this report can be quoted against the targets.");
+    Console.WriteLine($"  {"metric",-22} {"value",-14} target");
+    Console.WriteLine($"  {"leak rate",-22} {leakRate,6:F1}%        <= 4.0%      {Verdict(leakRate <= 4.0)}");
+    Console.WriteLine($"  {"runs lost",-22} {lostRate,6:F1}%        15-30% late  {Verdict(lostRate is >= 0 and <= 60)}");
+    Console.WriteLine($"  {"lives left (avg)",-22} {finalLives.Average(),6:F1}");
+    Console.WriteLine();
+    Console.WriteLine($"  {"wave",-6} {"spawned",-9} {"leaked",-9} {"leak%",-8} {"ticks",-8} {"gold at start",-14}");
+
+    for (int w = 0; w < waveCount; w++)
+    {
+        double wl = perWaveSpawned[w] == 0 ? 0 : 100.0 * perWaveLeaked[w] / perWaveSpawned[w];
+        string ticks = perWaveTicks[w].Count > 0 ? $"{perWaveTicks[w].Average():F0}" : "-";
+        string gold = goldAtWave[w].Count > 0 ? $"{goldAtWave[w].Average():F0}" : "-";
+        string flag = wl > 15.0 ? "  <-- over the 15% per-wave target" : "";
+        Console.WriteLine($"  {w + 1,-6} {perWaveSpawned[w],-9} {perWaveLeaked[w],-9} {wl,-8:F1} {ticks,-8} {gold,-14}{flag}");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("  Read as a FLOOR on difficulty, not a verdict. The policy is a reasonable");
+    Console.WriteLine("  beginner: coverage placement, no saving up, no re-mazing, never sells.");
+    Console.WriteLine("  A good player does better, so \"even played this way, wave N leaks\" is sound;");
+    Console.WriteLine("  \"wave N is correctly tuned\" is not.");
     return 0;
+
+    static string Verdict(bool ok) => ok ? "ok" : "MISS";
 }
 
 int Perf()

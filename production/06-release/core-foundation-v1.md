@@ -62,8 +62,9 @@ Carried forward verbatim from the verify report:
 
 - **Perf** was measured on a 20×9 map, not the 64×64 / 300-creep case the 8 ms budget is written for.
   215× inside budget on what was measured; the documented case remains unmeasured.
-- **Balance** numbers describe an undefended board. The sim's policy builds nothing, and it prints that
-  caveat on every run. Do not quote them.
+- ~~**Balance** numbers describe an undefended board.~~ **Closed 2026-08-06** by `balance-play-policy`:
+  the sim is now driven by a scripted player and the first real baseline is at
+  `content-data/docs/reports/2026-08-06-crossroads-baseline-balance.md`.
 - **Randomness** is seeded and hashed but unused — every seed currently produces an identical run.
 - **Cross-platform determinism** was verified on one machine and one runtime. The claim that `Fix32`
   generalises is well-founded but not yet observed.
