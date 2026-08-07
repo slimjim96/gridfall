@@ -61,6 +61,13 @@ public sealed partial class GameplayScene : Node3D
         ParseCommandLine();
 
         string root = ContentFiles.FindRepoRoot();
+
+        // The game reads the same tile folders the editor does. If it did not,
+        // a board would look one way while you painted it and another way when
+        // you played it -- exactly the editor/game divergence the tooling rules
+        // exist to prevent.
+        TileLibrary.Scan(root);
+
         MapDef map = PlaytestDraft ?? ContentFiles.LoadMap(root, MapId);
         if (_themeOverride is not null)
         {

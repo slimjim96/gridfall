@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 using Gridfall.Core;
 using Gridfall.Core.Content;
@@ -18,6 +19,9 @@ public sealed partial class WorldRenderer : Node3D
     // Resolved from the map on every Initialise, so the editor picks up a theme
     // change by rebuilding rather than by anyone remembering to set it.
     private TerrainTheme _theme = TerrainTheme.For(null);
+    /// <summary>One mesh per tile image, kept between rebuilds. See CommitTileLayers.</summary>
+    private readonly Dictionary<Texture2D, MeshInstance3D> _tileLayers = new();
+
     private readonly MeshInstance3D _hover = new();
     private readonly MeshInstance3D _errors = new();
     private MapDef _map = null!;
@@ -109,8 +113,16 @@ public sealed partial class WorldRenderer : Node3D
 
     private void Rebuild()
     {
-        var surface = new SurfaceTool();
-        surface.Begin(Mesh.PrimitiveType.Triangles);
+        ThemeTiles? tiles = TileLibrary.For(_map.Theme);
+
+        // Untextured cell tops AND every side wall, in one vertex-coloured mesh.
+        var flat = new SurfaceTool();
+        flat.Begin(Mesh.PrimitiveType.Triangles);
+
+        // One mesh per distinct tile image. A themed board uses a couple of dozen
+        // at most, so this is a couple of dozen draw calls for the whole grid --
+        // still nothing like the 4,096 nodes a node-per-cell board would cost.
+        var textured = new Dictionary<Texture2D, SurfaceTool>();
 
         for (int y = 0; y < _map.Height; y++)
         {
@@ -118,22 +130,45 @@ public sealed partial class WorldRenderer : Node3D
             {
                 int index = _map.Index(x, y);
                 CellKind kind = _map.Cells[index];
-                if (kind == CellKind.Blocked)
-                {
-                    AddCell(surface, x, y, 0.28f, _theme.Blocked);
-                    continue;
-                }
 
                 // A tower occupies the cell: raise it so the maze is legible as
-                // shape, not only as colour.
-                bool occupied = _path is not null && _path.IsBlocked(index);
+                // shape, not only as colour. Blocked terrain is raised further.
+                //
+                // The kind test is load-bearing: PathSystem.IsBlocked is true for
+                // blocked TERRAIN as well as for a tower, so without it every
+                // wall counted as occupied and lost its tile -- a stone theme
+                // rendered its walls in flat ramp colour and looked untextured.
+                bool occupied = kind != CellKind.Blocked && _path is not null && _path.IsBlocked(index);
+                float height = kind == CellKind.Blocked ? 0.28f : occupied ? 0.10f : 0.0f;
 
-                AddCell(surface, x, y, occupied ? 0.10f : 0.0f, _theme.ColourFor(kind));
+                Color colour = _theme.ColourFor(kind);
+
+                // An occupied cell keeps its tile. The raise and the tower on top
+                // of it are what say "occupied" -- swapping in the ramp colour
+                // instead just put a slate pad on a grass board.
+                if (tiles is not null &&
+                    tiles.TryTile(kind, TileLibrary.ConnectionMask(_map, x, y), x, y, out TerrainTile tile))
+                {
+                    if (!textured.TryGetValue(tile.Texture, out SurfaceTool? surface))
+                    {
+                        textured[tile.Texture] = surface = new SurfaceTool();
+                        surface.Begin(Mesh.PrimitiveType.Triangles);
+                    }
+
+                    AddTop(surface, x, y, height, colour: null);
+                    colour = tile.Average;   // so the sides match the tile, not the ramp
+                }
+                else
+                {
+                    AddTop(flat, x, y, height, colour);
+                }
+
+                if (height > 0f) AddSides(flat, x, y, height, colour);
             }
         }
 
-        surface.GenerateNormals();
-        _terrain.Mesh = surface.Commit();
+        flat.GenerateNormals();
+        _terrain.Mesh = flat.Commit();
 
         // Unshaded on purpose. With lighting applied, ACES tonemapping plus ambient
         // compressed every terrain tone toward white and the palette stopped
@@ -145,35 +180,79 @@ public sealed partial class WorldRenderer : Node3D
         material.VertexColorUseAsAlbedo = true;   // typed, not Set("...") by string
         _terrain.MaterialOverride = material;
 
+        CommitTileLayers(textured);
+
         _builtForVersion = _path?.Version ?? ushort.MaxValue;
     }
 
     /// <summary>
-    /// A cell: a coloured top quad, plus side walls when it is raised.
+    /// Hand each texture's mesh to a persistent layer node.
     ///
-    /// The sides are not decoration. Without them a raised cell is a floating
-    /// lid with the background showing through underneath, which reads as black
-    /// holes punched in the board -- clearly wrong the moment you look at a
-    /// frame, and completely invisible to the compiler.
+    /// Reused rather than recreated: the board rebuilds on every brush stroke,
+    /// and freeing and re-adding twenty MeshInstance3Ds per stroke is churn for
+    /// no gain. Layers whose texture is no longer on the board are hidden, so a
+    /// theme change leaves no stale geometry behind.
     /// </summary>
-    private static void AddCell(SurfaceTool surface, int x, int y, float height, Color colour)
+    private void CommitTileLayers(Dictionary<Texture2D, SurfaceTool> textured)
     {
-        const float s = IsoGrid.CellSize;
-        const float inset = 0.02f;   // a hairline gap so the grid reads as cells
+        foreach (KeyValuePair<Texture2D, SurfaceTool> entry in textured)
+        {
+            entry.Value.GenerateNormals();
 
-        float x0 = x * s + inset, x1 = (x + 1) * s - inset;
-        float z0 = y * s + inset, z1 = (y + 1) * s - inset;
+            if (!_tileLayers.TryGetValue(entry.Key, out MeshInstance3D? layer))
+            {
+                _tileLayers[entry.Key] = layer = new MeshInstance3D();
 
-        var a = new Vector3(x0, height, z0);
-        var b = new Vector3(x1, height, z0);
-        var c = new Vector3(x1, height, z1);
-        var d = new Vector3(x0, height, z1);
+                StandardMaterial3D material = Palette.Matte(Colors.White, unshaded: true);
+                material.AlbedoTexture = entry.Key;
+                // Nearest, because placeholder tiles are small and blocky and
+                // linear filtering turns a 64px road edge into mush at this zoom.
+                material.TextureFilter = BaseMaterial3D.TextureFilterEnum.NearestWithMipmaps;
+                layer.MaterialOverride = material;
 
-        Quad(surface, a, b, c, d, colour);
+                AddChild(layer);
+            }
 
-        if (height <= 0f) return;
+            layer.Mesh = entry.Value.Commit();
+            layer.Visible = true;
+        }
 
-        // Sides, darkened so the raise reads as depth rather than as a colour change.
+        foreach (KeyValuePair<Texture2D, MeshInstance3D> entry in _tileLayers)
+            if (!textured.ContainsKey(entry.Key)) entry.Value.Visible = false;
+    }
+
+    /// <summary>
+    /// The top face of a cell. Pass a colour to tint it, or null to leave the
+    /// vertices white so a texture shows through unmodified.
+    ///
+    /// UVs put (0,0) at the cell's north-west corner and V increasing south, so
+    /// a tile image is "the board seen from above with north at the top". The
+    /// camera's 45-degree yaw then turns the image's north edge into the
+    /// up-and-right screen edge -- which is what a road tile has to be drawn for.
+    /// </summary>
+    private static void AddTop(SurfaceTool surface, int x, int y, float height, Color? colour)
+    {
+        Bounds(x, y, height, out Vector3 a, out Vector3 b, out Vector3 c, out Vector3 d);
+
+        Quad(surface, a, b, c, d, colour,
+            new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1));
+    }
+
+    /// <summary>
+    /// The side walls of a raised cell.
+    ///
+    /// Not decoration. Without them a raised cell is a floating lid with the
+    /// background showing through underneath, which reads as black holes punched
+    /// in the board -- clearly wrong the moment you look at a frame, and
+    /// completely invisible to the compiler.
+    /// </summary>
+    private static void AddSides(SurfaceTool surface, int x, int y, float height, Color colour)
+    {
+        Bounds(x, y, height, out Vector3 a, out Vector3 b, out Vector3 c, out Vector3 d);
+
+        float x0 = a.X, x1 = b.X, z0 = a.Z, z1 = d.Z;
+
+        // Darkened so the raise reads as depth rather than as a colour change.
         Color side = colour.Darkened(0.35f);
         Quad(surface, new Vector3(x0, 0, z0), new Vector3(x1, 0, z0), b, a, side);   // north
         Quad(surface, new Vector3(x1, 0, z0), new Vector3(x1, 0, z1), c, b, side);   // east
@@ -181,20 +260,38 @@ public sealed partial class WorldRenderer : Node3D
         Quad(surface, new Vector3(x0, 0, z1), new Vector3(x0, 0, z0), a, d, side);   // west
     }
 
-    private static void Quad(SurfaceTool surface, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color colour)
+    /// <summary>The four top corners of a cell, north-west first, clockwise.</summary>
+    private static void Bounds(int x, int y, float height,
+        out Vector3 a, out Vector3 b, out Vector3 c, out Vector3 d)
+    {
+        const float s = IsoGrid.CellSize;
+        const float inset = 0.02f;   // a hairline gap so the grid reads as cells
+
+        float x0 = x * s + inset, x1 = (x + 1) * s - inset;
+        float z0 = y * s + inset, z1 = (y + 1) * s - inset;
+
+        a = new Vector3(x0, height, z0);
+        b = new Vector3(x1, height, z0);
+        c = new Vector3(x1, height, z1);
+        d = new Vector3(x0, height, z1);
+    }
+
+    private static void Quad(SurfaceTool surface, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color? colour,
+        Vector2 ua = default, Vector2 ub = default, Vector2 uc = default, Vector2 ud = default)
     {
         // Vertex colours are interpreted as LINEAR, but Color.FromHtml gives sRGB.
         // Without this conversion every terrain tone renders far lighter than the
         // hex it was authored as -- 55697d arriving on screen as a pale near-white.
         // That is why two rounds of palette edits changed almost nothing: the
         // values were fine, the colour space was wrong.
-        surface.SetColor(colour.SrgbToLinear());
-        surface.AddVertex(a);
-        surface.AddVertex(b);
-        surface.AddVertex(c);
+        if (colour is not null) surface.SetColor(colour.Value.SrgbToLinear());
 
-        surface.AddVertex(a);
-        surface.AddVertex(c);
-        surface.AddVertex(d);
+        surface.SetUV(ua); surface.AddVertex(a);
+        surface.SetUV(ub); surface.AddVertex(b);
+        surface.SetUV(uc); surface.AddVertex(c);
+
+        surface.SetUV(ua); surface.AddVertex(a);
+        surface.SetUV(uc); surface.AddVertex(c);
+        surface.SetUV(ud); surface.AddVertex(d);
     }
 }

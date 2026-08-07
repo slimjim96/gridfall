@@ -39,6 +39,25 @@ public class MapDraftTests
     }
 
     [Fact]
+    public void ADraftWithNoGoal_IsFlaggedAndCannotBuildAFlowField()
+    {
+        // Pins the precondition the board editor's rebuild has to guard on.
+        //
+        // Painting over the goal is a normal thing to do mid-edit, and the editor
+        // must keep drawing the board and report "map has no goal". It did not:
+        // RebuildEverything built a PathSystem unconditionally, so painting the
+        // goal away and then cycling the theme threw IndexOutOfRange instead of
+        // showing the error. If PathSystem ever tolerates a goal-less map this
+        // test fails, and the guard can go.
+        MapDraft draft = MapDraft.Blank(20, 12);
+        draft.Paint(draft.Goal, CellKind.Buildable);
+
+        Assert.False(draft.Goal.IsValid);
+        Assert.True(MapValidator.HasErrors(MapValidator.Validate(draft)));
+        Assert.Throws<IndexOutOfRangeException>(() => new Gridfall.Core.Path.PathSystem(draft.ToMapDef()));
+    }
+
+    [Fact]
     public void PaintingASecondGoal_MovesTheFirst()
     {
         MapDraft draft = MapDraft.Blank(20, 12);

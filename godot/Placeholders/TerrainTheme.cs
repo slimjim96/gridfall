@@ -119,7 +119,26 @@ public readonly struct TerrainTheme
         },
     };
 
+    /// <summary>The built-in colour ramps, above.</summary>
     public static IEnumerable<string> Ids => Themes.Keys;
+
+    /// <summary>
+    /// Every selectable theme: the colour ramps plus every folder discovered
+    /// under presentation/tiles/. A theme may be one, the other, or both --
+    /// a ramp with a matching tile folder uses the tiles and keeps the ramp as
+    /// the fallback for any cell kind the folder does not cover.
+    ///
+    /// Sorted so the editor's F4 rotation is the same order on every machine.
+    /// </summary>
+    public static IEnumerable<string> AllIds
+    {
+        get
+        {
+            var ids = new SortedSet<string>(Themes.Keys, System.StringComparer.Ordinal);
+            foreach (string id in TileLibrary.ThemeIds) ids.Add(id);
+            return ids;
+        }
+    }
 
     /// <summary>
     /// The named theme, or the default if it is not registered.
@@ -134,7 +153,9 @@ public readonly struct TerrainTheme
             ? theme
             : Themes[Default];
 
-    public static bool IsKnown(string? id) => id is not null && Themes.ContainsKey(id);
+    /// <summary>A theme exists if it has a colour ramp OR a tile folder.</summary>
+    public static bool IsKnown(string? id)
+        => id is not null && (Themes.ContainsKey(id) || TileLibrary.Has(id));
 
     public Color ColourFor(Gridfall.Core.CellKind kind) => kind switch
     {

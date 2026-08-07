@@ -55,9 +55,19 @@ public sealed partial class BoardEditor : Node3D
     {
         _repoRoot = ContentFiles.FindRepoRoot();
 
+        // Before the first draw: a theme named by a map may exist only as a tile
+        // folder, and WorldRenderer resolves it on Initialise.
+        TileLibrary.Scan(_repoRoot);
+
         string? requested = ParseMapArg();
         _draft = LoadOrBlank(requested);
         _mapId = _draft.Id;
+
+        // --theme is here for the same reason GameplayScene has one: a themed
+        // board is a visual claim, and a claim that can only be reached by
+        // pressing F4 four times cannot be captured in a reproducible frame.
+        string? theme = ParseArg("--theme");
+        if (theme is not null) _draft.Theme = theme;
 
         _camera = new Camera3D();
         AddChild(_camera);
@@ -96,8 +106,12 @@ public sealed partial class BoardEditor : Node3D
 
     /// <summary>
     /// Paint something worth looking at, deterministically: a wall that leaves a
-    /// single gap, so the capture exercises the validator, the error highlight,
-    /// and the route overlay at once.
+    /// single gap, plus a road that turns twice.
+    ///
+    /// The road is not decoration in the capture. A straight corridor exercises
+    /// exactly two connection masks, so a tileset could have every corner drawn
+    /// wrong and the frame would still look correct. Two turns and a junction
+    /// put a corner, a tee, and both straights on screen at once.
     /// </summary>
     private void SeedForScreenshot()
     {
@@ -105,11 +119,18 @@ public sealed partial class BoardEditor : Node3D
         for (int y = 1; y < _draft.Height - 1; y++)
             if (y != mid) _draft.Paint(new GridCell(10, y), CellKind.Blocked);
 
-        _brush = CellKind.Blocked;
+        // West arm, up and over, then east to the goal row.
+        for (int x = 1; x <= 5; x++) _draft.Paint(new GridCell(x, mid), CellKind.PathOnly);
+        for (int y = 2; y <= mid; y++) _draft.Paint(new GridCell(5, y), CellKind.PathOnly);
+        for (int x = 5; x <= 14; x++) _draft.Paint(new GridCell(x, 2), CellKind.PathOnly);
+        for (int y = 2; y <= mid; y++) _draft.Paint(new GridCell(14, y), CellKind.PathOnly);
+        for (int x = 14; x < _draft.Width - 1; x++) _draft.Paint(new GridCell(x, mid), CellKind.PathOnly);
+
+        _brush = CellKind.PathOnly;
         _dirty = true;
         RebuildEverything();
         RunMazeEstimate();
-        _hud.SetStatus("seeded for capture: a wall with one gap");
+        _hud.SetStatus("seeded for capture: a wall with one gap, and a road that turns");
     }
 
     private async void CaptureAndQuit()
@@ -167,6 +188,7 @@ public sealed partial class BoardEditor : Node3D
             case Key.F3: _hud.TogglePanel(); break;
             case Key.F5: Playtest(); break;
             case Key.F6: RunMazeEstimate(); break;
+            case Key.F7: ReloadTiles(); break;
             case Key.Escape: GetTree().Quit(); break;
         }
         _hud.SetBrush(_brush, _brushSize, _draft.Theme);
@@ -250,7 +272,9 @@ public sealed partial class BoardEditor : Node3D
     /// </summary>
     private void CycleTheme()
     {
-        var ids = new List<string>(TerrainTheme.Ids);
+        // AllIds, not Ids: a theme may exist only as a folder of tiles under
+        // presentation/tiles/, with no colour ramp registered in code at all.
+        var ids = new List<string>(TerrainTheme.AllIds);
         int next = (ids.IndexOf(_draft.Theme) + 1) % ids.Count;
         _draft.Theme = ids[next];
 
@@ -258,6 +282,23 @@ public sealed partial class BoardEditor : Node3D
         RebuildEverything();
         _hud.SetBrush(_brush, _brushSize, _draft.Theme);
         _hud.SetStatus($"theme: {_draft.Theme}");
+    }
+
+    /// <summary>
+    /// Re-read presentation/tiles/ and redraw.
+    ///
+    /// The point of tiles living outside res:// is that adding one needs no
+    /// import step; this is the other half of that -- it needs no relaunch
+    /// either. Drop a PNG in, press F7, look at the board.
+    ///
+    /// Does NOT mark the draft dirty: reloading changes what the tiles look
+    /// like, never what the map says.
+    /// </summary>
+    private void ReloadTiles()
+    {
+        TileLibrary.Scan(_repoRoot);
+        RebuildEverything();
+        _hud.SetStatus($"reloaded tiles: {string.Join(", ", TileLibrary.ThemeIds)}");
     }
 
     private void RunMazeEstimate()
@@ -372,9 +413,28 @@ public sealed partial class BoardEditor : Node3D
     private void RebuildEverything()
     {
         MapDef map = _draft.ToMapDef();
-        _path = new PathSystem(map);
 
         IsoGrid.ConfigureCamera(_camera, map);
+
+        // A draft with no goal has no flow field: PathSystem seeds its queue from
+        // the goal index unconditionally and throws IndexOutOfRange.
+        //
+        // RebuildGeometry has always guarded this, because painting mid-stroke is
+        // obviously allowed to be illegal. RebuildEverything did not -- so paint
+        // over the goal, then press F4, undo, or reload tiles, and the editor
+        // threw instead of showing the "map has no goal" error it was one line
+        // away from reporting. Anything that rebuilds has to survive an illegal
+        // draft, not just the stroke handler.
+        if (!map.Goal.IsValid)
+        {
+            _world.InitialiseGeometryOnly(map);
+            _routes.Clear();
+            _hud.SetBrush(_brush, _brushSize, _draft.Theme);
+            Revalidate();
+            return;
+        }
+
+        _path = new PathSystem(map);
         _world.Initialise(map, _path);
         _routes.Initialise(map, _path);
         // Here rather than only in HandleKey: the label was initialised with a
@@ -392,7 +452,7 @@ public sealed partial class BoardEditor : Node3D
     private void RebuildGeometry()
     {
         MapDef map = _draft.ToMapDef();
-        if (!map.Goal.IsValid) { _world.InitialiseGeometryOnly(map); return; }
+        if (!map.Goal.IsValid) { _world.InitialiseGeometryOnly(map); _routes.Clear(); return; }
 
         _path = new PathSystem(map);
         _world.Initialise(map, _path);
@@ -424,11 +484,13 @@ public sealed partial class BoardEditor : Node3D
         });
     }
 
-    private static string? ParseMapArg()
+    private static string? ParseMapArg() => ParseArg("--map");
+
+    private static string? ParseArg(string flag)
     {
         string[] args = OS.GetCmdlineUserArgs();
         for (int i = 0; i < args.Length - 1; i++)
-            if (args[i] == "--map") return args[i + 1];
+            if (args[i] == flag) return args[i + 1];
         return null;
     }
 }

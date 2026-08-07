@@ -40,6 +40,16 @@ public class MapThemeTests
             ids.Add(m.Groups["id"].Value);
 
         Assert.True(ids.Count >= 2, "parsed suspiciously few themes -- has the registry's shape changed?");
+
+        // A theme may exist as a folder of tiles with no colour ramp in code at
+        // all -- that is the point of presentation/tiles/, and TerrainTheme.IsKnown
+        // accepts both. A test that only read the C# would reject a map naming a
+        // perfectly valid tile theme.
+        string tiles = Path.Combine(RepoRoot().FullName, "presentation", "tiles");
+        if (Directory.Exists(tiles))
+            foreach (string dir in Directory.GetDirectories(tiles))
+                ids.Add(Path.GetFileName(dir));
+
         return ids;
     }
 

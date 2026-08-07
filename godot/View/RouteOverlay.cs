@@ -138,6 +138,20 @@ public sealed partial class RouteOverlay : Node3D
         _preview.Visible = false;
     }
 
+    /// <summary>
+    /// Drop the drawn route entirely.
+    ///
+    /// For the editor: a draft with no goal has no flow field, so there is no
+    /// route to draw and leaving the last one up would show creeps walking to a
+    /// goal that is not there any more.
+    /// </summary>
+    public void Clear()
+    {
+        _live.Mesh = null;
+        _liveBuiltForVersion = ushort.MaxValue;   // force a rebuild once a goal returns
+        ClearPreview();
+    }
+
     // -----------------------------------------------------------------------
 
     private void AddPip(SurfaceTool surface, int cellIndex, float height, Color colour, float size)

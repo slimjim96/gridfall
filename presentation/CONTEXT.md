@@ -20,6 +20,7 @@ today. Finals come from Ludo.ai, run by the human. Both live behind `IUnitView`
 | HUD or input work | the UI spec, `../docs/iso-grid.md` §Picking | art direction, sim internals |
 | Game feel pass | `docs/art-direction.md`, the sim event list it hooks | balance data, architecture notes |
 | Build a placeholder | `docs/placeholder-standard.md`, `docs/art-direction.md` §Palette | `prompts/**`, `../docs/engine-guide/**` |
+| Add or change terrain tiles | `tiles/README.md` alone — it is the whole contract | `../engine-systems/**`, `../content-data/**`, sim internals |
 | Write asset prompts | `docs/ludo-prompt-guide.md`, `prompts/README.md`, the two nearest prompt files | the full prompt catalogue, `../engine-systems/**` |
 | Readability check | `../docs/iso-grid.md`, the wave table's peak density | everything else |
 

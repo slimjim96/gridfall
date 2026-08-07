@@ -50,8 +50,9 @@ Three ways this goes wrong:
 
 ### What you should see
 
-A board, a status line top-left reading `board editor`, a brush line under it, and a validation panel
-below that. If the window is black, the scene did not load — check the terminal for a C# exception.
+A board; a status card top-left reading `board editor`; a validation card under it; and a brush bar
+along the bottom showing the five brushes as the tiles they paint. If the window is black, the scene
+did not load — check the terminal for a C# exception.
 
 ---
 
@@ -86,7 +87,42 @@ than per cell.
 
 ---
 
-## 3. Read the validation panel
+## 3. Change how the board looks — `F4`, `F7`
+
+`F4` cycles the theme. The brush bar says which one you are on and where it came from:
+
+- `theme: slate (colours, F4)` — a colour ramp defined in `godot/Placeholders/TerrainTheme.cs`
+- `theme: roadway (24 tiles, F4)` — a folder of PNGs under `presentation/tiles/roadway/`
+
+The theme is **saved in the map file**, so cycling it marks the draft dirty.
+
+### Adding your own tiles
+
+Make a folder, put PNGs in it, press `F7`:
+
+```
+presentation/tiles/mytheme/
+├── buildable/grass.png          one or more; pick per cell by coordinate hash
+├── path/ns.png  es.png  …       named by which edges the road leaves through
+├── blocked/stone.png  bush.png
+├── spawn/pad.png
+└── goal/pad.png
+```
+
+Every folder is optional — a kind with no folder falls back to the theme's flat colour, so you can
+start with just `blocked/` and still have a usable board.
+
+**`F7` re-reads the folder without relaunching.** That is the whole point of tiles living outside
+`res://`: no Godot import step, no restart. Drop a PNG in, press `F7`, look at the board.
+
+The naming rules — which file is a corner, how variants work, which way is north — are in
+[`presentation/tiles/README.md`](../../presentation/tiles/README.md). Read that once before you draw
+anything; the "north is up in the image but points up-**right** on screen" part catches everyone.
+
+If your folder does not appear, the terminal says why. It prints `tiles: loaded mytheme (7)` on
+success, and names any subfolder it ignored.
+
+## 4. Read the validation panel
 
 The panel updates on **mouse-up**, not while you drag. Three severities:
 
@@ -114,7 +150,7 @@ the editor can never save a map the game would reject.
 
 ---
 
-## 4. Check the mazing — `F6`
+## 5. Check the mazing — `F6`
 
 `F6` estimates how much a player could lengthen the route by building. It prints something like:
 
@@ -132,7 +168,7 @@ It takes a second or two on a large map, which is why it is a keypress and not a
 
 ---
 
-## 5. Playtest — `F5`
+## 6. Playtest — `F5`
 
 `F5` runs your map **right now**, unsaved, with a built-in test wave. `Esc` returns you to the editor
 with the draft exactly as you left it.
@@ -146,7 +182,7 @@ Refused if the map has errors, because the game could not load it either.
 
 ---
 
-## 6. Save — `Ctrl+S`
+## 7. Save — `Ctrl+S`
 
 Writes to `content-data/maps/<id>.json`.
 
@@ -162,7 +198,7 @@ git.
 
 ---
 
-## 7. Use your map in the game
+## 8. Use your map in the game
 
 Two things are needed before a new map is playable:
 
@@ -192,8 +228,10 @@ dotnet run --project Gridfall.Verify -- maps
 | `F1` | Toggle this key list on screen |
 | `F2` | Toggle the route overlay |
 | `F3` | Toggle the validation panel |
+| `F4` | Cycle the theme (colour ramps and tile folders alike) |
 | `F5` | Playtest · `Esc` back |
 | `F6` | Maze estimate |
+| `F7` | Re-read `presentation/tiles/` without relaunching |
 | `Esc` | Quit (from the editor) |
 
 ---
@@ -209,6 +247,9 @@ dotnet run --project Gridfall.Verify -- maps
 | `--map` seems ignored | Missing the `--` separator, or you launched from inside the Godot editor. |
 | Scripts do nothing at all | You used a **non-mono** Godot. Use `godot-mono`. |
 | `mkdir: cannot create directory '/run/user/0'` | You used `sudo`. Don't — it also risks root-owned files in the project. |
+| Your tile folder is not in the `F4` rotation | It has no usable PNGs, or every subfolder is misnamed. The terminal names what it ignored. Kind folders must be `buildable` `path` `blocked` `spawn` `goal`. |
+| A road draws as disconnected patches | Those cells are **buildable**, not path-only. A road only connects to path-only, spawn and goal — press `2` to paint the corridor itself. |
+| A tile looks rotated 45° | It is not. The camera is. North in the image points up-**right** on screen; see `presentation/tiles/README.md`. |
 
 ## Not built yet
 
@@ -218,3 +259,6 @@ Named honestly so you do not go looking:
 - **No open dialog.** Use `--map <id>` at launch.
 - **No rename.** Save, then rename the file.
 - **No wave editing.** Out of scope by decision — wave tables stay hand-authored JSON.
+- **No per-cell tile choice.** You pick a theme; variants are distributed by coordinate hash. Placing
+  *this* bush on *that* cell would need a new layer in the map format.
+- **No tile drawing.** The editor selects tiles. Draw them elsewhere.

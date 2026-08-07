@@ -31,7 +31,7 @@ gridfall/
 ├── game-design/             ← requirements, pillars, feature design
 ├── engine-systems/          ← simulation architecture + ADRs 0001–0007
 ├── content-data/            ← tower/enemy/wave/map data, balance targets, balance reports
-├── presentation/            ← iso view, HUD, placeholders, prompts/ for Ludo.ai
+├── presentation/            ← iso view, HUD, placeholders, tiles/, prompts/ for Ludo.ai
 ├── tooling/                 ← board editor spec + headless CLIs
 └── production/              ← the pipeline: 01-requirements/ … 06-release/
 ```
@@ -53,6 +53,7 @@ gridfall/
 | Move a slice through build → verify → release | `production/CONTEXT.md` |
 | Know what a term means | `docs/glossary.md` |
 | Know how grid coords become screen coords | `docs/iso-grid.md` |
+| Add board tiles, or change how one looks | `presentation/tiles/README.md` |
 | Know where the product is heading | `game-design/docs/board-themes-direction.md` |
 | Know how a map got balanced, or why one could not be | `content-data/docs/reports/` (newest first) |
 | Build, test, replay, or run the game | `docs/tech-standards.md` §Commands |

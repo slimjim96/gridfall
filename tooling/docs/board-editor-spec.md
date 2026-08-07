@@ -12,6 +12,9 @@ A dev-only scene inside the game project for painting maps and immediately playi
 > `Ctrl+O` open (use `--map <id>`), and the release-export exclusion — there is no
 > `export_presets.cfg`, so "Dev/ is absent from a release build" is **unverified**, not passing.
 > Follow-up slug `release-export`.
+>
+> **Extended 2026-08-07** (`terrain-tiles`): tile themes read from `presentation/tiles/`, and the
+> overlay rebuilt as a left rail plus a brush bar. See Tile themes and The overlay, below.
 
 **Deliberately small.** It is a development accelerator, not a product. Every feature below earns its
 place by removing a hand-edit of JSON or a restart of the game; anything that does not do one of those
@@ -71,6 +74,7 @@ is not a possible state.
 | `F4` | Cycle the terrain theme (saved in the map file) |
 | `F5` | **Playtest** |
 | `F6` | Run the maze estimate (on demand — see below) |
+| `F7` | Re-read `presentation/tiles/` — see Tile themes, below |
 | `Esc` | Return to editing from playtest |
 
 Picking is the same ray-to-ground-plane intersection the game uses
@@ -83,12 +87,77 @@ and truncated rather than scaled.
 
 `F4` steps through the registered terrain palettes and marks the draft dirty, because the theme is
 saved in the map file and a change you cannot tell you have made is worse than no feature. The current
-theme is shown on the brush line.
+theme is shown on the brush bar.
 
 v1 excluded theming on the grounds that "the grid is flat and the art is procedural". The second half
 of that stopped being true when maps started declaring a ground palette. **The exclusion is lifted only
 this far**: picking one of the shipped ramps is choosing what the map *declares*, not authoring art.
 Terrain height and per-cell decoration are still out.
+
+### Tile themes (added after v1)
+
+A theme may now be **a folder of PNGs** rather than three colours:
+`presentation/tiles/[theme]/[kind]/[name].png`. `F4` cycles colour ramps and tile folders alike;
+`F7` re-reads the folder without relaunching.
+
+The full folder contract — connection masks, variants, what connects to what — is
+[`presentation/tiles/README.md`](../../presentation/tiles/README.md). It is not restated here.
+
+**Why this is inside the scope above and not creep past it.** The theme is already an opaque string
+that Core carries and never reads, so nothing new crosses the boundary; the editor gained no rule of
+its own; and it removes a real hand-edit, which is the bar every feature here has to clear. What is
+still out:
+
+| Not in | Why |
+|---|---|
+| Per-cell tile placement | Choosing *this* bush for *that* cell needs a new per-cell layer in the map format. That is a format change, not an extension. Variants are distributed by coordinate hash instead. |
+| Tile authoring or editing in-editor | The editor selects tiles. It does not draw them. |
+| Terrain height, decoration | Unchanged from v1. Still out. |
+
+The renderer reads the same folders in the game as in the editor (`TileLibrary.Scan` runs in both
+`BoardEditor` and `GameplayScene`), which is what keeps "the editor cannot draw the board differently
+from the game" true rather than hoped for.
+
+## The overlay
+
+Three regions, and a card that appears over them:
+
+```
+┌─ untitled *                    ! 1 warning ─┐
+│ seeded for capture: a wall with one gap     │      status: which map, is it
+└─────────────────────────────────────────────┘      dirty, does it save
+┌─ VALIDATION ────────────────────────────────┐
+│ ! buildable 60% is outside 35-55%           │      one row per finding,
+│ · 20x12, 60% buildable                      │      coloured per severity
+│ · path 19, spawns 1                         │
+│ ─────────────────────────────────────────── │
+│ maze estimate: 1.4x (lower bound, <= 3x)    │      F6, in the same card
+└─────────────────────────────────────────────┘
+
+                  ( board )
+
+              ┌───────────────────┐
+              │ ▣  ▤  ▩  ◆  ★     │              the five brushes, as the
+              │ 1  2  3  4  5     │              tiles they actually paint
+              │ path-only  1x1    │
+              │ theme: roadway    │
+              └───────────────────┘
+```
+
+`F1` opens a key list centred over the board. `F3` hides the validation card.
+
+**Everything sizes itself; nothing is positioned by a typed-in number.** The first version was five
+labels at hand-computed y offsets, and the offsets were wrong — the maze estimate drew straight
+through the last finding, because the guessed line height was 18px and the real one was 26. A panel
+whose contents change length cannot have its layout written as constants.
+
+Two rules that are easy to break here:
+
+- **Every control ignores the mouse.** Picking happens in `_UnhandledInput`, and a `Control` with the
+  default `MouseFilter.Stop` swallows the click first — so the board under the brush bar would
+  quietly stop being paintable. Anything added to the overlay must go through `IgnoreMouse`.
+- **Severity is per row, not per panel.** The old single-label panel turned every row red as soon as
+  one row was an error, which made the error harder to find rather than easier.
 
 ## Playtest
 
@@ -227,3 +296,7 @@ copy too many, and the doc is the one people read before they trust the panel.
 - [ ] The editor's rendering and the game's rendering come from the same code path
 - [ ] `Dev/` is absent from a release export — verified, not assumed
 - [ ] Every keybind above works and is listed on an in-editor help overlay (`F1`)
+- [ ] A theme dropped into `presentation/tiles/` appears in `F4` with no code change
+- [ ] A map with no tile folder renders **byte-identically** to before tiles existed
+- [ ] The overlay never swallows a click meant for the board
+- [ ] Nothing in the overlay is positioned by a hand-computed pixel offset
