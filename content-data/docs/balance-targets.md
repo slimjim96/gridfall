@@ -53,8 +53,14 @@ to react to. That fails pillar 4.
 >
 > The number has deliberately **not** been edited to match. Either the band is wrong for this game, or
 > the early economy is (wave 3 leaks 21.5% with 12 gold in hand) — and a target rewritten to match its
-> first measurement stops being a target. Resolve it as `hp-growth-target`; until then, treat the band
-> as unverified and the shipped 1.03 as the empirical answer.
+> first measurement stops being a target.
+>
+> **Vindicated, largely (2026-08-07.)** That measurement was taken before tower upgrades existed and
+> before `startingGold` was fixed. With the economy working, the playable band moved and the shipped
+> value is now **1.09** — just below the disputed 1.10 rather than a tenth of it. **Not editing the
+> target to match the first measurement was the right call**, and this is the evidence. Resolve the
+> remaining 0.01 as `hp-growth-target`. See
+> [income vs difficulty](reports/2026-08-07-income-vs-difficulty.md).
 
 ## Map targets
 
@@ -92,6 +98,15 @@ demand with a greedy search. That estimate is a **lower bound**: over 3× proves
 proves nothing.
 
 Maximum mazing above 3× breaks wave timing: waves overlap in ways the tables were never balanced for.
+
+## Not yet measured: difficulty slope
+
+Two maps can hit identical balance numbers and fail completely differently. `gauntlet` flips from 0% of
+runs lost to 90% on a **0.005** change in `hpGrowth`; `crossroads` degrades smoothly across the same
+range. A cliff fails pillar 4 — a loss you cannot see coming is not explainable — and **nothing here
+currently measures it.**
+
+Proposed: sweep `hpGrowth` and report how sharply runs-lost changes. Tracked as `difficulty-slope`.
 
 ## Hard invariants
 

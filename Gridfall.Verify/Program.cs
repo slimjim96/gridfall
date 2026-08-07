@@ -29,6 +29,7 @@ return mode switch
     "balance" => Balance(),
     "maps" => MapReport(),
     "perf" => Perf(),
+    "curve" => Curve(),
     _ => Usage(),
 };
 
@@ -54,6 +55,10 @@ int Usage()
                                    are a floor on difficulty, not a verdict.
 
       maps                         Geometry report for every map against MapTargets.
+
+      curve --map <id> [--growth N] [--bounty N]
+                                   Income against enemy strength, wave by wave.
+                                   Pure content analysis, no simulation.
 
       perf [--map <id>]            Tick cost against the 8ms budget.
     """);
@@ -328,6 +333,84 @@ int Balance()
     return 0;
 
     static string Verdict(bool ok) => ok ? "ok" : "MISS";
+}
+
+/// <summary>
+/// Income against enemy strength, wave by wave, computed straight from the
+/// content. No simulation: this is arithmetic over the wave table, so it is
+/// exact and answers a question the balance sim cannot.
+///
+/// The sim tells you WHETHER the player wins. This tells you why the curves
+/// diverge, which is what six balance passes failed to pin down by pushing on
+/// individual levers.
+/// </summary>
+int Curve()
+{
+    string mapId = Opt("map") ?? "crossroads";
+    ContentSet content = ContentFiles.LoadContent(root, mapId);
+
+    // Optional overrides so the ratio can be swept without editing content.
+    double growthOverride = double.TryParse(Opt("growth"), out double g) ? g : 0;
+    double bountyScale = double.TryParse(Opt("bounty"), out double b) ? b : 1.0;
+
+    // What a gold piece buys, in damage per tick, from the best tower available.
+    double bestDamagePerGold = 0;
+    foreach (TowerDef t in content.Towers)
+    {
+        if (t.Damage <= 0 || t.CooldownTicks <= 0) continue;
+        double v = t.Damage / (double)t.CooldownTicks / t.Cost;
+        if (v > bestDamagePerGold) bestDamagePerGold = v;
+    }
+
+    Console.WriteLine($"Income vs difficulty -- map '{mapId}'");
+    Console.WriteLine($"  best damage/tick per gold: {bestDamagePerGold:F5}"
+                      + (growthOverride > 0 ? $"   hpGrowth override {growthOverride}" : "")
+                      + (bountyScale != 1.0 ? $"   bounty x{bountyScale}" : ""));
+    Console.WriteLine();
+    Console.WriteLine($"  {"wave",-5} {"creeps",-7} {"wave HP",-9} {"income",-8} {"cum income",-11} " +
+                      $"{"capacity",-9} {"cap/HP",-8} {"vs wave 1",-9}");
+
+    double cumIncome = 0;
+    double firstRatio = 0;
+
+    for (int w = 0; w < content.Waves.Length; w++)
+    {
+        WaveDef wave = content.Waves[w];
+        double scale = growthOverride > 0
+            ? System.Math.Pow(growthOverride, w)
+            : wave.HpScale.Raw / 65536.0;
+
+        int creeps = 0;
+        double waveHp = 0, income = 0;
+        foreach (WaveEntry e in wave.Entries)
+        {
+            EnemyDef def = content.Enemy(e.EnemyIndex);
+            creeps += e.Count;
+            waveHp += e.Count * def.Hp * scale;
+            income += e.Count * def.Bounty * bountyScale;
+        }
+
+        // Capacity is what CUMULATIVE income could buy, because towers persist.
+        // That is the asymmetry: the player accumulates, the wave does not.
+        double capacity = cumIncome * bestDamagePerGold;
+        double ratio = waveHp > 0 ? capacity / waveHp : 0;
+        // Normalise against wave 2, not wave 1: before wave 1 the player has
+        // earned nothing, so its ratio is zero and divides into nonsense.
+        if (w == 1) firstRatio = ratio;
+
+        Console.WriteLine($"  {wave.Index,-5} {creeps,-7} {waveHp,-9:F0} {income,-8:F0} {cumIncome,-11:F0} " +
+                          $"{capacity,-9:F1} {ratio,-8:F4} " +
+                          (firstRatio > 0 && w >= 1 ? $"{ratio / firstRatio,-9:F2}x" : "-"));
+
+        cumIncome += income;
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("  cap/HP rising means the player outgrows the wave. Flat means they track.");
+    Console.WriteLine("  The last column is that ratio relative to wave 2 -- 1.00x throughout is balance.");
+    Console.WriteLine("  Capacity uses CUMULATIVE income because towers persist and a wave does not --");
+    Console.WriteLine("  that asymmetry is the whole problem, and no sink or stat can remove it.");
+    return 0;
 }
 
 int Perf()

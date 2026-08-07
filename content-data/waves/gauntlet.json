@@ -1,8 +1,9 @@
 {
   "map": "gauntlet",
   "_untuned": "Placeholder wave table. Waves 1-3 unchanged since the early-economy pass so the numbers stay comparable.",
+  "_growth": "hpGrowth 1.09 is TRIVIAL here (0% lost) and deliberately so: gauntlet's difficulty is a cliff, flipping 0% -> 90% between growth 1.12 and 1.125. Held well clear of that edge until the map is reworked. See docs/reports/2026-08-07-income-vs-difficulty.md.",
   "_roster": "husk enters at wave 5 and mite at wave 4. They ask opposite questions -- husk wants burst, mite wants coverage -- so a board optimised for either is punished by the other. That tension is what a monoculture of arrow towers cannot answer.",
-  "hpGrowth": 1.03,
+  "hpGrowth": 1.09,
   "waves": [
     {
       "index": 1,

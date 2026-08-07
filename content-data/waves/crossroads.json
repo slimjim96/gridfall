@@ -1,8 +1,9 @@
 {
   "map": "crossroads",
   "_untuned": "Placeholder wave table. Waves 1-3 unchanged since the early-economy pass so the numbers stay comparable.",
+  "_growth": "hpGrowth 1.09 lands runs-lost at 20% -- inside the 15-30% target for the first time. Found by sweeping, after the income-vs-difficulty model over-predicted the player and suggested 1.25. See docs/reports/2026-08-07-income-vs-difficulty.md.",
   "_roster": "husk enters at wave 5 and mite at wave 4. They ask opposite questions -- husk wants burst, mite wants coverage -- so a board optimised for either is punished by the other. That tension is what a monoculture of arrow towers cannot answer.",
-  "hpGrowth": 1.03,
+  "hpGrowth": 1.09,
   "waves": [
     {
       "index": 1,
