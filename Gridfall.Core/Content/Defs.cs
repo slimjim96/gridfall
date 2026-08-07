@@ -207,6 +207,20 @@ public sealed class WaveDef
 public sealed class MapDef
 {
     public required string Id { get; init; }
+
+    /// <summary>
+    /// Which terrain palette the view should draw this map with. **The simulation
+    /// never reads this** -- it is carried here for the same reason TowerDef.Name
+    /// is: the map file is the one place the author states it, and splitting it
+    /// into a side-car would mean two files to keep in step.
+    ///
+    /// Core deliberately does not know which themes exist. The registry lives in
+    /// the view, and a map naming an unknown theme falls back to the default --
+    /// caught by a test over the shipped maps rather than by a loader that would
+    /// have to hold a list of colours it can never use.
+    /// </summary>
+    public required string Theme { get; init; }
+
     public required int Width { get; init; }
     public required int Height { get; init; }
     /// <summary>Row-major, length Width*Height.</summary>

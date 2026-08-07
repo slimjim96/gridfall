@@ -24,7 +24,7 @@ public sealed partial class EditorHud : CanvasLayer
         "1 buildable   2 path-only   3 blocked   4 spawn   5 goal\n" +
         "left drag paint   right drag erase   [ ] brush size   wheel zoom\n" +
         "ctrl+S save   ctrl+N new   ctrl+Z/Y undo\n" +
-        "F1 help   F2 routes   F3 panel   F5 playtest   F6 maze estimate   esc quit";
+        "F4 cycle theme   F1 help   F2 routes   F3 panel   F5 playtest   F6 maze estimate   esc quit";
 
     public override void _Ready()
     {
@@ -37,7 +37,7 @@ public sealed partial class EditorHud : CanvasLayer
         _help.Text = HelpText;
         _help.Visible = false;
 
-        SetBrush(CellKind.Buildable, 1);
+        SetBrush(CellKind.Buildable, 1, "slate");
         _status.Text = "board editor";
     }
 
@@ -48,8 +48,8 @@ public sealed partial class EditorHud : CanvasLayer
         AddChild(label);
     }
 
-    public void SetBrush(CellKind brush, int size)
-        => _brush.Text = $"brush: {brush}   size {size}x{size}   (F1 for keys)";
+    public void SetBrush(CellKind brush, int size, string theme)
+        => _brush.Text = $"brush: {brush}   size {size}x{size}   theme: {theme}   (F1 for keys)";
 
     public void SetStatus(string text, bool error = false)
     {

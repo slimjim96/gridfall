@@ -32,6 +32,41 @@ normal rather than broken.
 
 Gradients are built in code (`Gradient` + `GradientTexture2D`), not shipped as images.
 
+### Terrain themes
+
+A map declares a `theme` and the view draws its ground from that palette — `slate`, `forest`, `desert`,
+`ocean`, `underwater`, `mountain`, `space`. Registry: `godot/Placeholders/TerrainTheme.cs`.
+
+**A theme is three colours, not five.** Blocked, path-only, buildable. **Spawn and goal keep the same
+hue on every board**, because they are functional markers rather than terrain — a player learns "purple
+is where they come from, green is what I am defending" once, and a theme that moved them would make
+that knowledge worthless. Same reasoning as the one-red rule.
+
+Three constraints, and the third was learned the hard way:
+
+1. **Terrain never competes with a tower.** Towers are the only warm saturated things on the board.
+2. **Buildable is terrain plus a subtle lift; path-only is terrain, darker.** The three tiers separate
+   at default zoom without a legend.
+3. **A theme's ramp must clear the hue band of every unit *and* of the two functional markers.**
+
+Constraint 3 is not a restatement of 1. The first `desert` was an ochre that cleared the tower slot
+comfortably and still failed: it landed in the **brute's** khaki band and a capture showed khaki cubes
+camouflaged on it. The first `underwater` was a teal that swallowed the **goal marker** outright. Both
+were fixed by rotating hue, and neither was predictable from the hex.
+
+> **The roster owns most of the warm spectrum** — khaki brute, orange-brown husk, two orange towers, one
+> red. That is *why* the original rule says terrain is cool, and it is why `desert` is the tightest
+> theme in the set. A warm theme has very little room; check it against units, not against taste.
+
+**Judge every theme from a capture with units on the board**, never from the hex:
+
+```
+./run-game.sh --shot /tmp/t.png --shot-seed sappers --theme desert --shot-after 40
+```
+
+The `sappers` seed is the right one — it puts four creep archetypes, damaged towers, and both markers on
+screen at once.
+
 ## Silhouette rules
 
 1. **No two creep archetypes share a silhouette.** Not "similar with different colors" — different

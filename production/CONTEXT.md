@@ -28,6 +28,9 @@ Stages 01–03 are usually authored by the domain workspaces and handed in. Stag
    `04-build/[slug]/build-notes.md` *as you make it*, not in a retrospective sweep.
 2. Build must be green (`dotnet build`, 0 warnings) before advancing.
 3. **05 Verify.** Run every acceptance criterion, plus the determinism trace diff if Core changed.
+   Re-capture every visual baseline whose **seed reaches content you changed** — a wave-table edit moves
+   what a wave-7 seed renders even with no renderer change, and `early-economy-2` shipped two stale
+   baselines by reading "no renderer change" as "no capture needed".
    Report each criterion as PASS / FAIL / NOT-VERIFIABLE-BY-AGENT with the evidence.
 4. On any FAIL, **branch resolution**: name exactly one stage to loop back to and why —
    02 if the design was wrong, 03 if the architecture was wrong, 04 if the build was wrong.

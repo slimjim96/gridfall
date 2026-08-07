@@ -22,7 +22,7 @@ gridfall/
 ├── Gridfall.Core/           ← the simulation. No Godot, no floats, no clock
 ├── Gridfall.Io/             ← reads content-data/; Core never touches disk
 ├── Gridfall.Verify/         ← net10.0 · determinism harness, balance sim, map/perf reports
-├── Gridfall.Tests/          ← net10.0 · 170 tests
+├── Gridfall.Tests/          ← net10.0 · 175 tests
 ├── godot/                   ← Godot 4.6.3 · renderer, HUD, Dev/BoardEditor
 │
 │   ── the workspaces ──

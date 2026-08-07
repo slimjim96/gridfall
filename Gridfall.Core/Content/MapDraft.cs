@@ -12,6 +12,14 @@ namespace Gridfall.Core.Content;
 public sealed class MapDraft
 {
     public string Id = "untitled";
+
+    /// <summary>
+    /// Terrain palette id for the view. The simulation never reads it; see
+    /// MapDef.Theme. Defaults to the palette the game shipped with, so an
+    /// existing map that names no theme looks exactly as it always did.
+    /// </summary>
+    public string Theme = "slate";
+
     public int Width;
     public int Height;
     public CellKind[] Cells = Array.Empty<CellKind>();
@@ -60,6 +68,7 @@ public sealed class MapDraft
         var draft = new MapDraft
         {
             Id = map.Id,
+            Theme = map.Theme,
             Width = map.Width,
             Height = map.Height,
             Cells = (CellKind[])map.Cells.Clone(),
@@ -78,6 +87,7 @@ public sealed class MapDraft
     public MapDef ToMapDef() => new()
     {
         Id = Id,
+        Theme = Theme,
         Width = Width,
         Height = Height,
         Cells = (CellKind[])Cells.Clone(),
@@ -151,6 +161,7 @@ public sealed class MapDraft
         var sb = new StringBuilder();
         sb.AppendLine("{");
         sb.AppendLine($"  \"id\": \"{Id}\",");
+        sb.AppendLine($"  \"theme\": \"{Theme}\",");
         sb.AppendLine("  \"version\": 1,");
         sb.AppendLine($"  \"width\": {Width},");
         sb.AppendLine($"  \"height\": {Height},");

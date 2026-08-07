@@ -427,6 +427,11 @@ public static class ContentLoader
         var draft = new MapDraft
         {
             Id = id,
+            // View-only, and Core holds no list of valid themes -- an unknown one
+            // falls back in the renderer rather than failing the load, because a
+            // map that will not open is a worse failure than a map drawn in the
+            // default palette.
+            Theme = r.TryGetProperty("theme", out var th) ? th.GetString() ?? "slate" : "slate",
             Width = width,
             Height = height,
             Cells = cells,

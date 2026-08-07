@@ -161,6 +161,7 @@ public sealed partial class BoardEditor : Node3D
             case Key.Key5: _brush = CellKind.Goal; break;
             case Key.Bracketleft: _brushSize = 1; break;
             case Key.Bracketright: _brushSize = 3; break;
+            case Key.F4: CycleTheme(); break;
             case Key.F1: _hud.ToggleHelp(); break;
             case Key.F2: _routes.Toggle(); break;
             case Key.F3: _hud.TogglePanel(); break;
@@ -168,7 +169,7 @@ public sealed partial class BoardEditor : Node3D
             case Key.F6: RunMazeEstimate(); break;
             case Key.Escape: GetTree().Quit(); break;
         }
-        _hud.SetBrush(_brush, _brushSize);
+        _hud.SetBrush(_brush, _brushSize, _draft.Theme);
     }
 
     private void HandleMouseButton(InputEventMouseButton mb)
@@ -233,6 +234,30 @@ public sealed partial class BoardEditor : Node3D
         foreach (MapFinding f in _findings)
             if (f.Severity == MapSeverity.Error && f.Cell.IsValid) cells.Add(f.Cell);
         return cells;
+    }
+
+    /// <summary>
+    /// Step to the next terrain palette and redraw.
+    ///
+    /// Editor spec v1 listed theming as out of scope on the grounds that "the
+    /// grid is flat and the art is procedural". Themes changed the second half of
+    /// that, so the exclusion is lifted -- but only this far: picking a palette is
+    /// not decoration, it is choosing which of the shipped ground ramps the map
+    /// declares. Terrain height and per-cell decoration are still out.
+    ///
+    /// Marks the draft dirty, because the theme is saved in the map file and a
+    /// change you cannot tell you have made is worse than no feature.
+    /// </summary>
+    private void CycleTheme()
+    {
+        var ids = new List<string>(TerrainTheme.Ids);
+        int next = (ids.IndexOf(_draft.Theme) + 1) % ids.Count;
+        _draft.Theme = ids[next];
+
+        _dirty = true;
+        RebuildEverything();
+        _hud.SetBrush(_brush, _brushSize, _draft.Theme);
+        _hud.SetStatus($"theme: {_draft.Theme}");
     }
 
     private void RunMazeEstimate()
@@ -352,6 +377,9 @@ public sealed partial class BoardEditor : Node3D
         IsoGrid.ConfigureCamera(_camera, map);
         _world.Initialise(map, _path);
         _routes.Initialise(map, _path);
+        // Here rather than only in HandleKey: the label was initialised with a
+        // literal and so read "slate" on a mountain map until you pressed a key.
+        _hud.SetBrush(_brush, _brushSize, _draft.Theme);
         Revalidate();
     }
 

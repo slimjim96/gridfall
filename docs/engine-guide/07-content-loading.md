@@ -290,6 +290,26 @@ order each tick and spawns whatever is due — so entry order determines entity 
 means **reordering entries changes the run**. Deterministic, but not inert; treat it as a content
 change and re-run the balance sim.
 
+## Themes
+
+```json
+"theme": "forest"
+```
+
+Which ground palette the view draws the map with. **The simulation never reads it** — `MapDef.Theme`
+exists for the same reason `TowerDef.Name` does: the map file is where the author states it, and a
+side-car would be a second file to keep in step. There is a test asserting two maps identical but for
+their theme hash the same at every tick.
+
+Core holds **no list of valid themes**. It carries the string; the registry lives in the view
+(`godot/Placeholders/TerrainTheme.cs`) and an unknown id falls back to `slate` rather than failing the
+load — a board in the wrong palette beats a map that will not open. The typo is caught instead by
+`EveryShippedMapNamesAKnownTheme`, which reads the registry out of the view's source rather than
+duplicating the list.
+
+Defaults to `slate`, the palette the game shipped with, so a map written before themes existed looks
+exactly as it did.
+
 ## Adding a new def field
 
 1. Add it to the JSON schema and to every existing file (a missing required field is a load failure —

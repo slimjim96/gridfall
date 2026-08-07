@@ -50,6 +50,9 @@ public sealed partial class GameplayScene : Node3D
     // never perturbs an already-committed baseline.
     private string _shotSeed = "upgrades";
 
+    /// <summary>--theme <id>: draw this map in another palette, for theme captures.</summary>
+    private string? _themeOverride;
+
     /// <summary>Cell the shot-mode cursor rests on, when the seed cares.</summary>
     private GridCell? _shotHoverCell;
 
@@ -59,6 +62,15 @@ public sealed partial class GameplayScene : Node3D
 
         string root = ContentFiles.FindRepoRoot();
         MapDef map = PlaytestDraft ?? ContentFiles.LoadMap(root, MapId);
+        if (_themeOverride is not null)
+        {
+            // Round-trip through the draft rather than adding a setter: MapDef is
+            // immutable on purpose, and the editor's own serialiser is the one
+            // definition of how a map is rebuilt.
+            MapDraft draft = MapDraft.From(map);
+            draft.Theme = _themeOverride;
+            map = draft.ToMapDef();
+        }
         _fromEditor = PlaytestDraft is not null;
         PlaytestDraft = null;
         ContentSet content = ContentFiles.LoadContent(root, MapId);
@@ -287,6 +299,7 @@ public sealed partial class GameplayScene : Node3D
             if (args[i] == "--shot-seed" && i + 1 < args.Length) _shotSeed = args[i + 1];
             if (args[i] == "--shot-after" && i + 1 < args.Length && int.TryParse(args[i + 1], out int n))
                 _shotAfterFrames = n;
+            if (args[i] == "--theme" && i + 1 < args.Length) _themeOverride = args[i + 1];
         }
     }
 

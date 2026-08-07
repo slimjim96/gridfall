@@ -14,6 +14,10 @@ namespace Gridfall.View;
 public sealed partial class WorldRenderer : Node3D
 {
     private readonly MeshInstance3D _terrain = new();
+
+    // Resolved from the map on every Initialise, so the editor picks up a theme
+    // change by rebuilding rather than by anyone remembering to set it.
+    private TerrainTheme _theme = TerrainTheme.For(null);
     private readonly MeshInstance3D _hover = new();
     private readonly MeshInstance3D _errors = new();
     private MapDef _map = null!;
@@ -37,6 +41,7 @@ public sealed partial class WorldRenderer : Node3D
     {
         _map = map;
         _path = path;
+        _theme = TerrainTheme.For(map.Theme);
         _builtForVersion = ushort.MaxValue;   // force a rebuild: this is a new field
         Rebuild();
     }
@@ -51,6 +56,7 @@ public sealed partial class WorldRenderer : Node3D
     {
         _map = map;
         _path = null;
+        _theme = TerrainTheme.For(map.Theme);
         _builtForVersion = ushort.MaxValue;
         Rebuild();
     }
@@ -114,23 +120,15 @@ public sealed partial class WorldRenderer : Node3D
                 CellKind kind = _map.Cells[index];
                 if (kind == CellKind.Blocked)
                 {
-                    AddCell(surface, x, y, 0.28f, Palette.TerrainBlocked);
+                    AddCell(surface, x, y, 0.28f, _theme.Blocked);
                     continue;
                 }
 
                 // A tower occupies the cell: raise it so the maze is legible as
                 // shape, not only as colour.
                 bool occupied = _path is not null && _path.IsBlocked(index);
-                Color colour = kind switch
-                {
-                    CellKind.Buildable => Palette.TerrainBuildable,
-                    CellKind.PathOnly => Palette.TerrainPathOnly,
-                    CellKind.Spawn => Palette.TerrainSpawn,
-                    CellKind.Goal => Palette.TerrainGoal,
-                    _ => Palette.TerrainBuildable,
-                };
 
-                AddCell(surface, x, y, occupied ? 0.10f : 0.0f, colour);
+                AddCell(surface, x, y, occupied ? 0.10f : 0.0f, _theme.ColourFor(kind));
             }
         }
 

@@ -1,5 +1,6 @@
 {
   "id": "crossroads",
+  "theme": "slate",
   "version": 1,
   "width": 20,
   "height": 9,
@@ -14,8 +15,16 @@
     "#bb..bb..bb..bb..bb#",
     "####################"
   ],
-  "spawns": [{ "x": 0, "y": 4 }],
-  "goal": { "x": 19, "y": 4 },
+  "spawns": [
+    {
+      "x": 0,
+      "y": 4
+    }
+  ],
+  "goal": {
+    "x": 19,
+    "y": 4
+  },
   "startingGold": 300,
   "startingLives": 20,
   "meta": {

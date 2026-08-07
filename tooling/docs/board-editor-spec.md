@@ -46,7 +46,7 @@ is not a possible state.
 | Wave composition | A second editor mode with its own UI. Wave tables stay hand-authored JSON. |
 | Undo history beyond a flat stack | A 50-step flat undo is enough; branching history is not. |
 | Multi-map / tileset management | The filesystem is the map manager. |
-| Terrain height, decoration, theming | Gridfall's grid is flat and the art is procedural. |
+| Terrain height, decoration | Gridfall's grid is flat. **Theming was here too and is now in — see below.** |
 | AI map generation | Nice to have. Not what unblocks development. |
 
 ## Editing
@@ -68,6 +68,7 @@ is not a possible state.
 | `Ctrl+N` / `Ctrl+O` | New / open |
 | `F2` | Toggle the route overlay |
 | `F3` | Toggle the validation panel |
+| `F4` | Cycle the terrain theme (saved in the map file) |
 | `F5` | **Playtest** |
 | `F6` | Run the maze estimate (on demand — see below) |
 | `Esc` | Return to editing from playtest |
@@ -77,6 +78,17 @@ Picking is the same ray-to-ground-plane intersection the game uses
 
 Grid resize is on a small panel: width and height spinners, 8–64, content anchored to the north corner
 and truncated rather than scaled.
+
+### Theming (added after v1)
+
+`F4` steps through the registered terrain palettes and marks the draft dirty, because the theme is
+saved in the map file and a change you cannot tell you have made is worse than no feature. The current
+theme is shown on the brush line.
+
+v1 excluded theming on the grounds that "the grid is flat and the art is procedural". The second half
+of that stopped being true when maps started declaring a ground palette. **The exclusion is lifted only
+this far**: picking one of the shipped ramps is choosing what the map *declares*, not authoring art.
+Terrain height and per-cell decoration are still out.
 
 ## Playtest
 
