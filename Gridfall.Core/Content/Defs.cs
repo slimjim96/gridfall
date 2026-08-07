@@ -56,6 +56,16 @@ public sealed class WaveEntry
 public sealed class WaveDef
 {
     public required int Index { get; init; }
+
+    /// <summary>
+    /// Multiplier applied to every enemy's HP in this wave.
+    ///
+    /// Without this, later waves cannot be harder: enemy HP is fixed per def, so
+    /// sending more of the same creeps just hands the player more bounty, which
+    /// becomes more towers. Measured -- waves 5-12 leaked nothing at all before
+    /// this existed. See 2026-08-06-crossroads-12-waves-balance.md.
+    /// </summary>
+    public required Fix32 HpScale { get; init; }
     /// <summary>
     /// Order is load-bearing: entries are walked in array order each tick, so it
     /// determines entity id order on ties. Reordering changes the run.

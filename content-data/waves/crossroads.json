@@ -1,7 +1,8 @@
 {
   "map": "crossroads",
   "_untuned": "Placeholder wave table. Waves 1-3 unchanged from the baseline; 4-12 added 2026-08-06 so the late-game targets become measurable.",
-  "_ramp": "Only two archetypes exist, and enemy HP is fixed per def with no per-wave multiplier, so the only levers here are count, spacing, and the brute ratio. Expect the curve to flatten -- see the balance report.",
+  "_ramp": "Difficulty comes from hpGrowth compounding wave to wave, plus count and the brute ratio. Before hpGrowth existed, waves 5-12 leaked nothing at all: more creeps of a fixed toughness just hand the player more bounty.",
+  "hpGrowth": 1.03,
   "waves": [
     {
       "index": 1,

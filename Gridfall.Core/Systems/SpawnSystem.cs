@@ -1,5 +1,6 @@
 using Gridfall.Core.Content;
 using Gridfall.Core.Events;
+using Gridfall.Core.Math;
 using Gridfall.Core.Path;
 
 namespace Gridfall.Core.Systems;
@@ -37,7 +38,14 @@ internal static class SpawnSystem
             if (heading == PathSystem.GoalMarker || heading == PathSystem.Unreachable)
                 heading = Directions.North;
 
-            int id = state.AddCreep(entry.EnemyIndex, cellIndex, heading, def.Hp);
+            // Long math rather than Fix32 multiply: a tough enemy late in a long
+            // wave table can exceed Fix32's +/-32767 range, and silently wrapping
+            // a creep's health is the kind of bug that shows up as "wave 30 is
+            // trivial" three months later.
+            int hp = (int)(((long)def.Hp * wave.HpScale.Raw) >> Fix32.FractionalBits);
+            if (hp < 1) hp = 1;
+
+            int id = state.AddCreep(entry.EnemyIndex, cellIndex, heading, hp);
             if (id < 0)
             {
                 events.Add(new SimEvent(tick, EventKind.CapacityExceeded, 0, 0, spawnCell));

@@ -128,6 +128,7 @@ a content decision, not an accident of layout.
 ```json
 {
   "map": "crossroads",
+  "hpGrowth": 1.03,
   "waves": [
     { "index": 1, "entries": [ { "enemy": "runner", "count": 8, "spacingTicks": 18, "spawn": 0 } ] },
     { "index": 2, "entries": [ { "enemy": "runner", "count": 12, "spacingTicks": 15, "spawn": 0 },
@@ -136,6 +137,18 @@ a content decision, not an accident of layout.
   ]
 }
 ```
+
+`hpGrowth` compounds wave to wave: wave N's enemies have `baseHp x growth^(N-1)`, computed once at
+load with `Fix32` multiply and stored per wave. Wave 1 is never scaled. A single wave may override the
+curve with an explicit `hpScale`.
+
+Without it later waves cannot be harder -- enemy HP is fixed per definition, so sending more creeps of
+the same toughness just hands the player more bounty, which becomes more towers. Measured before it
+existed: waves 5-12 leaked nothing at all.
+
+`SpawnSystem` applies the scalar in **long** arithmetic, not `Fix32` multiply: a tough enemy late in a
+long table can exceed Fix32's +/-32767 range, and a silently wrapped creep health shows up as "wave 30
+is trivial" months later.
 
 Entries within a wave spawn independently on their own timers. `SpawnSystem` walks entries in array
 order each tick and spawns whatever is due — so entry order determines entity id order on ties, which

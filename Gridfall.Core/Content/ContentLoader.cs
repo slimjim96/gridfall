@@ -193,6 +193,16 @@ public static class ContentLoader
         using JsonDocument doc = Parse(json, file);
         JsonElement wavesEl = RequireProperty(doc.RootElement, "waves", file);
 
+        // One authored growth rate, compounded here rather than in the tick loop.
+        // The balance targets want 1.10-1.18x wave to wave, so the content states
+        // the rate and the loader turns it into a per-wave scalar.
+        Fix32 growth = doc.RootElement.TryGetProperty("hpGrowth", out JsonElement g)
+            ? ParseFix(g, file)
+            : Fix32.One;
+
+        if (growth < Fix32.One)
+            throw new ContentException($"{file}: hpGrowth {growth} would make later waves weaker");
+
         var waves = new List<WaveDef>();
         foreach (JsonElement w in wavesEl.EnumerateArray())
         {
@@ -216,7 +226,15 @@ public static class ContentLoader
                     SpawnIndex = e.TryGetProperty("spawn", out var s) ? s.GetInt32() : 0,
                 });
             }
-            waves.Add(new WaveDef { Index = index, Entries = entries.ToArray() });
+            // Compounded with Fix32 multiply so the scalar is bit-identical
+            // everywhere -- Math.Pow would put a double in the content path.
+            Fix32 scale = Fix32.One;
+            for (int i = 1; i < index; i++) scale *= growth;
+
+            if (w.TryGetProperty("hpScale", out JsonElement explicitScale))
+                scale = ParseFix(explicitScale, file);
+
+            waves.Add(new WaveDef { Index = index, Entries = entries.ToArray(), HpScale = scale });
         }
 
         waves.Sort((a, b) => a.Index.CompareTo(b.Index));

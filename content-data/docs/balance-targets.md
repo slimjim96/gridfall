@@ -39,12 +39,22 @@ cannot name the utility, the number is wrong.
 | Property | Target |
 |---|---|
 | Archetypes per map | 4–7 |
-| HP growth, wave to wave | 1.10–1.18× |
+| HP growth, wave to wave | 1.10–1.18× — **disputed, see below** |
 | Speed spread across archetypes | 0.6× – 1.8× of base |
 | Waves where a single archetype is > 70% of the creeps | ≤ 3 per run |
 
 HP growth above 1.18× produces the classic wall: the player is fine, then suddenly is not, with nothing
 to react to. That fails pillar 4.
+
+> **The HP-growth band is contradicted by measurement (2026-08-06).** This target was written before
+> anything could be measured. When per-wave scaling was implemented and swept, **1.10 lost 80% of runs
+> and 1.18 lost 100%, dead by wave 5**; the playable range turned out to be 1.02–1.04. See
+> [the HP scaling pass](reports/2026-08-06-crossroads-hp-scaling-balance.md).
+>
+> The number has deliberately **not** been edited to match. Either the band is wrong for this game, or
+> the early economy is (wave 3 leaks 21.5% with 12 gold in hand) — and a target rewritten to match its
+> first measurement stops being a target. Resolve it as `hp-growth-target`; until then, treat the band
+> as unverified and the shipped 1.03 as the empirical answer.
 
 ## Map targets
 
