@@ -15,7 +15,8 @@ reimplementing it.
 
 | Task | Load These | Skip These |
 |------|-----------|------------|
-| Board editor work | `docs/board-editor-spec.md`, `../docs/iso-grid.md`, `../docs/engine-guide/07-content-loading.md` | `../game-design/**`, `../presentation/prompts/**`, `../content-data/waves/**` |
+| Board editor work | `docs/board-editor-spec.md`, `../docs/iso-grid.md`, `../docs/engine-guide/07-content-loading.md` |
+| Using the editor, or explaining it | `docs/board-editor-guide.md` alone | `../game-design/**`, `../presentation/prompts/**`, `../content-data/waves/**` |
 | Harness / CLI work | `../docs/engine-guide/08-determinism-playbook.md`, `../docs/engine-guide/04-state-and-entities.md` | `../presentation/**`, art direction, balance targets |
 | Map format questions | `../docs/engine-guide/07-content-loading.md` only | everything else — the format is defined in one place |
 | Adding a tool | `docs/board-editor-spec.md` as the shape to copy | the rest of `docs/` |

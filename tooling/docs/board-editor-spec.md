@@ -5,6 +5,8 @@ A dev-only scene inside the game project for painting maps and immediately playi
 > **Status 2026-08-06: built.** `godot/Dev/BoardEditor.cs`, launched with
 > `godot-mono --path godot --scene res://Dev/BoardEditor.tscn -- --map <id>`.
 > Built and verified in `production/05-verify/board-editor-report.md`.
+> **To actually use it, read [board-editor-guide.md](board-editor-guide.md)** — this file is the spec,
+> not a tutorial.
 >
 > **Three items from this spec are not built:** the resize panel (the model supports it, no UI),
 > `Ctrl+O` open (use `--map <id>`), and the release-export exclusion — there is no
