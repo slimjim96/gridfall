@@ -61,7 +61,7 @@ public sealed class PathSystem
     public bool IsDirty => _dirty;
 
     /// <summary>Set by CommandSystem in phase 1. Nothing else may set it.</summary>
-    public void MarkDirty() => _dirty = true;
+    internal void MarkDirty() => _dirty = true;
 
     public byte FlowAt(int cellIndex) => _flow[cellIndex];
     public byte FlowAt(GridCell c) => _flow[_map.Index(c)];
@@ -70,10 +70,10 @@ public sealed class PathSystem
     public bool IsReachable(GridCell c) => _dist[_map.Index(c)] != NoDistance;
     public bool IsBlocked(int cellIndex) => _cost[cellIndex] == BlockedCost;
 
-    public ReadOnlySpan<byte> CostSpan => _cost;
+    internal ReadOnlySpan<byte> CostSpan => _cost;
 
     /// <summary>Phase 2. Does nothing at all on a tick where the grid did not change.</summary>
-    public bool RecomputeIfDirty()
+    internal bool RecomputeIfDirty()
     {
         if (!_dirty) return false;
         BuildInto(_cost, _flow, _dist);
@@ -82,7 +82,7 @@ public sealed class PathSystem
         return true;
     }
 
-    public void ForceRebuild()
+    internal void ForceRebuild()
     {
         BuildInto(_cost, _flow, _dist);
         _dirty = false;
@@ -97,7 +97,7 @@ public sealed class PathSystem
     /// diverge on the very first hash after the round trip. Found by
     /// SnapshotRoundTrip_MatchesRunningStraightThrough.
     /// </summary>
-    public void RestoreFrom(ReadOnlySpan<byte> cost, ushort version)
+    internal void RestoreFrom(ReadOnlySpan<byte> cost, ushort version)
     {
         cost.CopyTo(_cost);
         BuildInto(_cost, _flow, _dist);
@@ -106,7 +106,7 @@ public sealed class PathSystem
     }
 
     /// <summary>Blocks a cell for tower placement. Callers must have run the block check first.</summary>
-    public void SetBlocked(int cellIndex, bool blocked)
+    internal void SetBlocked(int cellIndex, bool blocked)
     {
         byte want = blocked
             ? BlockedCost
@@ -120,8 +120,9 @@ public sealed class PathSystem
     /// Would blocking this cell leave every spawn able to reach the goal?
     /// One extra BFS on build attempts only -- not per tick.
     ///
-    /// SimStateView.PreviewRoute calls the same function, so the drag preview the
-    /// player sees and the refusal the sim issues are literally the same code.
+    /// This is the same call the drag preview makes, so the route the player sees
+    /// while hovering and the refusal the sim issues on release cannot disagree --
+    /// they are literally the same code on the same buffers.
     /// </summary>
     public bool WouldRemainConnected(int cellIndex)
     {
@@ -135,8 +136,61 @@ public sealed class PathSystem
         return true;
     }
 
-    /// <summary>The distance field the block check produced. Valid until the next call.</summary>
-    public ReadOnlySpan<ushort> ScratchDistances => _scratchDist;
+    /// <summary>
+    /// The hypothetical field left by the last WouldRemainConnected call. Valid
+    /// until the next one.
+    ///
+    /// Safe to read from the view between ticks: the block check runs in phase 1
+    /// and a hover query runs between frames, so the two can never contend for
+    /// the scratch buffers.
+    /// </summary>
+    public byte PreviewFlowAt(int cellIndex) => _scratchFlow[cellIndex];
+
+    public ushort PreviewDistanceAt(int cellIndex) => _scratchDist[cellIndex];
+
+    internal ReadOnlySpan<ushort> ScratchDistances => _scratchDist;
+
+    /// <summary>
+    /// Walks the flow field from a cell to the goal, writing the cell indices
+    /// into the caller's span and returning how many were written.
+    ///
+    /// Allocation-free by design: the renderer calls this every time the hover
+    /// cell changes. The step cap is the cell count, so a malformed field costs a
+    /// bounded walk rather than an infinite loop -- "should be impossible" is not
+    /// "cannot", and a hang in the render loop is worse than a short route.
+    /// </summary>
+    /// <param name="preview">Walk the hypothetical field instead of the live one.</param>
+    public int TraceRoute(int startCellIndex, Span<int> into, bool preview = false)
+    {
+        byte[] flow = preview ? _scratchFlow : _flow;
+
+        int count = 0;
+        int cell = startCellIndex;
+
+        for (int step = 0; step < _cellCount && count < into.Length; step++)
+        {
+            into[count++] = cell;
+
+            byte direction = flow[cell];
+            if (direction == GoalMarker || direction == Unreachable) break;
+
+            (int dx, int dy) = Directions.Offsets[direction];
+            int nx = cell % _map.Width + dx;
+            int ny = cell / _map.Width + dy;
+            if (!_map.InBounds(nx, ny)) break;
+
+            cell = ny * _map.Width + nx;
+        }
+
+        return count;
+    }
+
+    /// <summary>Route length from a spawn to the goal on the live field, in cells.</summary>
+    public int RouteLength(GridCell from)
+    {
+        ushort distance = _dist[_map.Index(from)];
+        return distance == NoDistance ? -1 : distance;
+    }
 
     // -----------------------------------------------------------------------
 

@@ -32,7 +32,7 @@ public sealed partial class Hud : CanvasLayer
         _help.Position = new Vector2(16, 70);
         _help.AddThemeFontSizeOverride("font_size", 14);
         _help.Modulate = new Color(1, 1, 1, 0.55f);
-        _help.Text = "left click: build arrow tower   right click: sell   space: start wave   1/2: tower";
+        _help.Text = "left click: build   right click: sell   space: start wave   1/2: tower   r: routes";
         AddChild(_help);
     }
 

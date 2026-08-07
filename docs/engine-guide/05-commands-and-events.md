@@ -130,9 +130,36 @@ caller cannot take a reference and write through it, which is the difference bet
 naming convention. `SimStateViewTests` asserts both properties by reflection so they cannot quietly
 erode.
 
-Pathing is read from `Sim.Path` (`FlowAt`, `DistanceAt`, `IsBlocked`), which is already read-only in
-practice. `PreviewRoute` for the drag preview is **not implemented yet** — the block check exists as
-`PathSystem.WouldRemainConnected`, and exposing it to the view is follow-up work.
+Pathing is read from `Sim.Path`. Its mutators — `SetBlocked`, `MarkDirty`, `ForceRebuild`,
+`RecomputeIfDirty`, `RestoreFrom` — are `internal`, so the same boundary applies: the view reads the
+field and cannot change it.
+
+The read surface the renderer uses:
+
+```csharp
+public byte   FlowAt(int cellIndex);
+public ushort DistanceAt(int cellIndex);
+public bool   IsBlocked(int cellIndex);
+public int    RouteLength(GridCell from);
+
+// Walk the field to the goal, into the caller's span. Allocation-free.
+public int TraceRoute(int startCellIndex, Span<int> into, bool preview = false);
+
+// The drag preview: run the block check, then read the hypothetical field.
+public bool   WouldRemainConnected(int cellIndex);
+public byte   PreviewFlowAt(int cellIndex);
+public ushort PreviewDistanceAt(int cellIndex);
+```
+
+`WouldRemainConnected` is the same call the simulation makes in phase 1, on the same scratch buffers, so
+**the route the player sees while hovering and the refusal the sim issues on release cannot disagree**.
+They can never contend for the buffers: the check runs in phase 1, a hover query runs between frames.
+
+> **It answers connectivity, not legality.** `WouldRemainConnected` says the board stays connected — it
+> does not say you may build there. Buildability is `map.Cells[i] == CellKind.Buildable` plus gold plus
+> occupancy, checked separately by `CommandSystem` and by the view. Conflating the two produced a test
+> that passed for the wrong reason; `WouldRemainConnected_AnswersConnectivity_NotBuildability` now pins
+> it down.
 
 ### The escape hatch, and who gets it
 

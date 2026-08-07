@@ -66,8 +66,9 @@ concluding a visual change did nothing.**
 
 ## Known Not Verified
 
-- No input has been exercised. Click-to-build, sell, the refusal message, and the hover preview are
-  wired and compile, but nobody has clicked.
+- ~~No input has been exercised.~~ **Human sign-off 2026-08-06: played it, input works.** Click-to-build,
+  sell, wave start, and the HUD confirmed working by hand. This was the slice's largest gap and it is
+  now closed.
 - Motion, interpolation smoothness, and the hit flash are unassessed — a still frame cannot show them.
 - Only one creep archetype has been on screen.
 - Readability was judged at four creeps, not at peak density.

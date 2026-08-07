@@ -23,6 +23,7 @@ public sealed partial class GameplayScene : Node3D
     private SimDriver _driver = null!;
     private WorldRenderer _world = null!;
     private UnitRenderer _units = null!;
+    private RouteOverlay _routes = null!;
     private Hud _hud = null!;
     private Camera3D _camera = null!;
 
@@ -57,6 +58,10 @@ public sealed partial class GameplayScene : Node3D
         AddChild(_world);
         _world.Initialise(map, _driver.Sim.Path);
 
+        _routes = new RouteOverlay();
+        AddChild(_routes);
+        _routes.Initialise(map, _driver.Sim.Path);
+
         _units = new UnitRenderer();
         AddChild(_units);
         _units.Initialise(_driver);
@@ -77,6 +82,7 @@ public sealed partial class GameplayScene : Node3D
         // machine happened to be, which defeats using it as a visual baseline.
         if (_shotPath is null) _driver.Advance(dt);
         _world.RebuildIfChanged();
+        _routes.RebuildLiveIfChanged();
 
         // Fixed delta in shot mode too: idle bob and hit flash are view-side and
         // wall-clock driven, so a real delta makes two captures of the same
@@ -104,6 +110,7 @@ public sealed partial class GameplayScene : Node3D
                 case Key.Space: _driver.Enqueue(new StartWaveCommand()); break;
                 case Key.Key1: SelectTower("arrow-tower"); break;
                 case Key.Key2: SelectTower("cannon"); break;
+                case Key.R: _routes.Toggle(); break;
                 case Key.Escape: GetTree().Quit(); break;
             }
             return;
@@ -140,17 +147,34 @@ public sealed partial class GameplayScene : Node3D
 
     private void UpdateHover()
     {
+        // Shot mode has no mouse, so hover a fixed cell -- one squarely on the
+        // lane, where a build forces a visible detour. Without this the capture
+        // shows the live route only and the preview goes unverified.
+        if (_shotPath is not null)
+        {
+            var hovered = new GridCell(10, 4);
+            _world.ShowHover(hovered, true);
+            _routes.ShowPreviewFor(hovered);
+            return;
+        }
+
         Vector2 mouse = GetViewport().GetMousePosition();
         if (!IsoGrid.TryPick(_camera, mouse, _driver.Map, out GridCell cell))
         {
             _world.HideHover();
+            _routes.ClearPreview();
             return;
         }
 
         int index = _driver.Map.Index(cell);
-        bool legal = _driver.Map.Cells[index] == CellKind.Buildable
-                     && !_driver.Sim.Path.IsBlocked(index);
-        _world.ShowHover(cell, legal);
+        bool buildable = _driver.Map.Cells[index] == CellKind.Buildable
+                         && !_driver.Sim.Path.IsBlocked(index);
+        _world.ShowHover(cell, buildable);
+
+        // Only preview where a build is actually possible: showing a hypothetical
+        // route for a cell you cannot build on answers a question nobody asked.
+        if (buildable) _routes.ShowPreviewFor(cell);
+        else _routes.ClearPreview();
     }
 
     private void BuildEnvironment()

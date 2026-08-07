@@ -38,6 +38,16 @@ public static class Palette
     /// </summary>
     public static readonly Color Danger = Color.FromHtml("e2483d");
 
+    /// <summary>
+    /// The route creeps currently take. Cool and quiet -- it is always on screen --
+    /// but it has to clear the buildable terrain it sits on, and the first attempt
+    /// (7f96ad) was close enough to that slate to vanish into it.
+    /// </summary>
+    public static readonly Color RouteLive = Color.FromHtml("cfe2f2");
+
+    /// <summary>The route a pending build would create. Brighter: it is the answer to a question you just asked.</summary>
+    public static readonly Color RoutePreview = Color.FromHtml("e8c46a");
+
     public static readonly Color Projectile = Color.FromHtml("f2e6c8");
     public static readonly Color HitFlash = Color.FromHtml("ffffff");
     public static readonly Color BuildPreviewOk = Color.FromHtml("8fd98f");

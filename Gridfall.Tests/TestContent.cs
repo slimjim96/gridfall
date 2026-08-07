@@ -95,6 +95,30 @@ public static class TestContent
     }
     """;
 
+    /// <summary>
+    /// The lane itself is buildable, so a tower can actually lengthen the route.
+    ///
+    /// ArenaMap cannot do this: its lane is path-only, so no legal build changes
+    /// the route at all -- which made a preview test pass for the wrong reason.
+    /// </summary>
+    public const string LaneMap = """
+    {
+      "id": "lane", "width": 12, "height": 8,
+      "cells": [
+        "############",
+        "#bbbbbbbbbb#",
+        "#bbbbbbbbbb#",
+        "SbbbbbbbbbbG",
+        "#bbbbbbbbbb#",
+        "#bbbbbbbbbb#",
+        "#bbbbbbbbbb#",
+        "############"
+      ],
+      "spawns": [{ "x": 0, "y": 3 }],
+      "startingGold": 500, "startingLives": 20
+    }
+    """;
+
     private const string ArrowTower = """
     { "id": "arrow-tower", "name": "Arrow Tower", "cost": 50, "range": 3.0,
       "cooldown": 0.6, "damage": 12, "projectileSpeed": 0.8,
