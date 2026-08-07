@@ -39,6 +39,13 @@ public sealed class PlayPolicy
     /// <summary>Pick uniformly among this many best placements, so runs differ.</summary>
     private const int JitterTopN = 3;
 
+    /// <summary>
+    /// Cap on seal checks per build attempt. Each one is a BFS, and on a
+    /// saturated board almost every candidate fails -- without a cap the policy
+    /// would spend a full board scan of BFS calls every third tick.
+    /// </summary>
+    private const int MaxSealChecksPerAttempt = 40;
+
     private readonly Sim _sim;
     private readonly SimRandom _rng;
     private readonly int[] _routeBuffer = new int[4096];
@@ -54,6 +61,13 @@ public sealed class PlayPolicy
 
     public int BuildsPlaced { get; private set; }
     public int BuildsRefused { get; private set; }
+
+    /// <summary>
+    /// Attempts that found no cell worth building on. A high count means the
+    /// policy has saturated the useful space and gold is piling up with nothing
+    /// to buy -- which is an economy finding, not a policy bug.
+    /// </summary>
+    public int NoPlacementFound { get; private set; }
 
     /// <summary>Call once per tick, before Sim.Tick().</summary>
     public void Update()
@@ -80,7 +94,7 @@ public sealed class PlayPolicy
         if (choice is not { } towerIndex) return;
 
         int cell = BestPlacement(_sim.Content.Tower(towerIndex));
-        if (cell < 0) return;
+        if (cell < 0) { NoPlacementFound++; return; }
 
         _sim.Enqueue(new BuildCommand(
             new GridCell(cell % _sim.Map.Width, cell / _sim.Map.Width), towerIndex));
@@ -149,6 +163,7 @@ public sealed class PlayPolicy
         // cell ascending keeps the candidate list itself deterministic.
         _candidates.Sort((a, b) => a.score != b.score ? b.score - a.score : a.cell - b.cell);
 
+        // Jitter among the best few, so runs differ.
         int window = System.Math.Min(JitterTopN, _candidates.Count);
         for (int attempt = 0; attempt < window; attempt++)
         {
@@ -157,6 +172,20 @@ public sealed class PlayPolicy
             // Ask the game, do not guess: a placement that would seal a lane is
             // refused, and the policy should not be the thing that discovers it.
             if (path.WouldRemainConnected(pick)) return pick;
+            BuildsRefused++;
+        }
+
+        // Then settle. Trying only the top few and giving up made the policy stop
+        // building at ~21 towers on crossroads while sitting on 3,000 gold -- not
+        // because the board was full, but because its three favourite cells were
+        // all chokepoints the game refuses. A real player takes a worse spot; so
+        // does this now. Reporting that as an economy finding would have been
+        // measuring the policy, not the game.
+        int scanned = 0;
+        foreach ((int cell, int _) in _candidates)
+        {
+            if (++scanned > MaxSealChecksPerAttempt) break;
+            if (path.WouldRemainConnected(cell)) return cell;
             BuildsRefused++;
         }
 

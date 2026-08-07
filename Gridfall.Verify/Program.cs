@@ -219,7 +219,8 @@ int Balance()
     var perWaveTicks = new List<int>[waveCount];
     for (int i = 0; i < waveCount; i++) perWaveTicks[i] = new List<int>();
 
-    int totalSpawned = 0, totalLeaked = 0, runsLost = 0, totalBuilds = 0;
+    int totalSpawned = 0, totalLeaked = 0, runsLost = 0, totalBuilds = 0, noPlacement = 0, refused = 0;
+    var towersStanding = new List<int>();
     var goldAtWave = new List<int>[waveCount];
     for (int i = 0; i < waveCount; i++) goldAtWave[i] = new List<int>();
     var finalLives = new List<int>();
@@ -263,6 +264,9 @@ int Balance()
         }
 
         totalBuilds += policy.BuildsPlaced;
+        towersStanding.Add(sim.State.TowerCount);
+        noPlacement += policy.NoPlacementFound;
+        refused += policy.BuildsRefused;
         finalLives.Add(sim.State.Lives);
         if (sim.State.Lives <= 0) runsLost++;
     }
@@ -272,7 +276,8 @@ int Balance()
 
     Console.WriteLine($"Balance report -- map '{mapId}', {runs} runs, seed {baseSeed}");
     Console.WriteLine($"  policy          competent-beginner (coverage placement, best dps/gold, no reserve)");
-    Console.WriteLine($"  towers built    {totalBuilds / (double)runs:F1} avg per run");
+    Console.WriteLine($"  towers built    {totalBuilds / (double)runs:F1} avg per run, {towersStanding.Average():F1} standing at end");
+    Console.WriteLine($"  no placement    {noPlacement / (double)runs:F0} attempts found nowhere to go ({refused / (double)runs:F0} of them blocked by the seal check)");
     Console.WriteLine();
     Console.WriteLine($"  {"metric",-22} {"value",-14} target");
     Console.WriteLine($"  {"leak rate",-22} {leakRate,6:F1}%        <= 4.0%      {Verdict(leakRate <= 4.0)}");

@@ -1,6 +1,7 @@
 {
   "map": "crossroads",
-  "_untuned": "Placeholder wave table. No balance sim has run against it.",
+  "_untuned": "Placeholder wave table. Waves 1-3 unchanged from the baseline; 4-12 added 2026-08-06 so the late-game targets become measurable.",
+  "_ramp": "Only two archetypes exist, and enemy HP is fixed per def with no per-wave multiplier, so the only levers here are count, spacing, and the brute ratio. Expect the curve to flatten -- see the balance report.",
   "waves": [
     {
       "index": 1,
@@ -20,6 +21,69 @@
       "entries": [
         { "enemy": "runner", "count": 16, "spacingTicks": 12, "spawn": 0 },
         { "enemy": "brute", "count": 4, "spacingTicks": 45, "delayTicks": 90, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 4,
+      "entries": [
+        { "enemy": "runner", "count": 20, "spacingTicks": 11, "spawn": 0 },
+        { "enemy": "brute", "count": 5, "spacingTicks": 40, "delayTicks": 80, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 5,
+      "entries": [
+        { "enemy": "runner", "count": 24, "spacingTicks": 10, "spawn": 0 },
+        { "enemy": "brute", "count": 7, "spacingTicks": 36, "delayTicks": 70, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 6,
+      "entries": [
+        { "enemy": "runner", "count": 26, "spacingTicks": 9, "spawn": 0 },
+        { "enemy": "brute", "count": 9, "spacingTicks": 32, "delayTicks": 60, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 7,
+      "entries": [
+        { "enemy": "runner", "count": 28, "spacingTicks": 8, "spawn": 0 },
+        { "enemy": "brute", "count": 12, "spacingTicks": 28, "delayTicks": 55, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 8,
+      "entries": [
+        { "enemy": "runner", "count": 30, "spacingTicks": 8, "spawn": 0 },
+        { "enemy": "brute", "count": 15, "spacingTicks": 26, "delayTicks": 50, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 9,
+      "entries": [
+        { "enemy": "runner", "count": 32, "spacingTicks": 7, "spawn": 0 },
+        { "enemy": "brute", "count": 18, "spacingTicks": 24, "delayTicks": 45, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 10,
+      "entries": [
+        { "enemy": "runner", "count": 34, "spacingTicks": 7, "spawn": 0 },
+        { "enemy": "brute", "count": 22, "spacingTicks": 22, "delayTicks": 40, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 11,
+      "entries": [
+        { "enemy": "runner", "count": 36, "spacingTicks": 6, "spawn": 0 },
+        { "enemy": "brute", "count": 26, "spacingTicks": 20, "delayTicks": 36, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 12,
+      "entries": [
+        { "enemy": "runner", "count": 38, "spacingTicks": 6, "spawn": 0 },
+        { "enemy": "brute", "count": 32, "spacingTicks": 18, "delayTicks": 32, "spawn": 0 }
       ]
     }
   ]
