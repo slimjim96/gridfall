@@ -20,7 +20,8 @@ Upstream: `game-design` (intent). Downstream: `production` (the slice that loads
 
 1. Find the design intent for the knob. A number with no stated intent is a number nobody can defend —
    go get the intent first.
-2. Change the smallest thing that could work. One knob per pass.
+2. Change the smallest thing that could work. One knob per pass — **or a swept grid, if the curve needs
+   two ends moved in opposite directions.** See the note under What NOT to Do.
 3. Run the balance sim: `Gridfall.Verify --balance --map <map> --runs 200`.
 4. Report the deltas against `docs/balance-targets.md`: leak rate, gold curve, time-to-clear, and the
    share of runs that fail. A pass that moves a number without reporting these is not finished.
@@ -40,5 +41,9 @@ Upstream: `game-design` (intent). Downstream: `production` (the slice that loads
 
 - Don't tune by feel and file it as balanced. The sim is cheap; run it.
 - Don't bake behavior into data. If a tower needs a new *rule*, that is `engine-systems`, not a new field.
-- Don't change two knobs in one pass — you lose the ability to attribute the result.
+- Don't change two knobs in one pass **without sweeping them as a grid** — you lose the ability to
+  attribute the result. The rule is about attribution, not arity: a 3x4 sweep moves two knobs and keeps
+  attribution, and `early-economy-2` needed exactly that. Six passes failed to fix wave 3 because the
+  difficulty curve needed its opening flattened *and* its ending steepened, which no single knob can do.
+  Reading the rule as "never two knobs" is what kept the bug alive.
 - Don't edit `.tres` files by hand; JSON is the source of truth and the resources are generated.

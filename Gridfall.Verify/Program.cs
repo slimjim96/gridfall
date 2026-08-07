@@ -250,6 +250,10 @@ int Balance()
         spentByWave[i] = new List<int>();
     }
     var finalLives = new List<int>();
+    // WHICH wave killed the run, not just how many died. balance-targets.md has
+    // carried separate early (0-5%) and late (15-30%) runs-lost targets since it
+    // was written, and nothing has ever measured the split.
+    var lostAtWave = new List<int>();
 
     for (int run = 0; run < runs; run++)
     {
@@ -331,7 +335,7 @@ int Balance()
         repairGold += policy.GoldSpentRepairing;
         salvaged += policy.TowersSalvaged;
         finalLives.Add(sim.State.Lives);
-        if (sim.State.Lives <= 0) runsLost++;
+        if (sim.State.Lives <= 0) { runsLost++; lostAtWave.Add(sim.State.WaveIndex); }
     }
 
     double leakRate = totalSpawned == 0 ? 0 : 100.0 * totalLeaked / totalSpawned;
@@ -356,8 +360,18 @@ int Balance()
     Console.WriteLine();
     Console.WriteLine($"  {"metric",-22} {"value",-14} target");
     Console.WriteLine($"  {"leak rate",-22} {leakRate,6:F1}%        <= 4.0%      {Verdict(leakRate <= 4.0)}");
-    Console.WriteLine($"  {"runs lost",-22} {lostRate,6:F1}%        15-30% late  {Verdict(lostRate is >= 0 and <= 60)}");
+    int lostEarly = lostAtWave.Count(w => w <= 10);
+    int lostLate = lostAtWave.Count(w => w > 10);
+    double earlyRate = 100.0 * lostEarly / runs;
+    double lateRate = 100.0 * lostLate / runs;
+
+    Console.WriteLine($"  {"runs lost",-22} {lostRate,6:F1}%        (split below)");
+    Console.WriteLine($"  {"  in waves 1-10",-22} {earlyRate,6:F1}%        0-5%         {Verdict(earlyRate <= 5.0)}");
+    Console.WriteLine($"  {"  in waves 11+",-22} {lateRate,6:F1}%        15-30%       {Verdict(lateRate is >= 15.0 and <= 30.0)}");
     Console.WriteLine($"  {"lives left (avg)",-22} {finalLives.Average(),6:F1}");
+    if (lostAtWave.Count > 0)
+        Console.WriteLine($"  {"lost runs died at wave",-22} {lostAtWave.Average(),6:F1} avg " +
+                          $"(earliest {lostAtWave.Min()}, latest {lostAtWave.Max()})");
     Console.WriteLine();
     Console.WriteLine($"  {"wave",-6} {"spawned",-9} {"leaked",-9} {"leak%",-8} {"ticks",-8} {"gold",-7} {"towers",-8} {"earned so far",-14}");
 

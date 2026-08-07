@@ -257,9 +257,25 @@ a content decision, not an accident of layout.
 }
 ```
 
-`hpGrowth` compounds wave to wave: wave N's enemies have `baseHp x growth^(N-1)`, computed once at
-load with `Fix32` multiply and stored per wave. Wave 1 is never scaled. A single wave may override the
-curve with an explicit `hpScale`.
+`hpGrowth` compounds wave to wave: wave N's enemies have `baseHp x growth^(N - hpGrowthFrom)`, computed
+once at load with `Fix32` multiply and stored per wave. A single wave may override the curve with an
+explicit `hpScale`.
+
+**`hpGrowthFrom` is where the ramp starts**, defaulting to 1. Waves at or before it sit at scale 1.0.
+
+```json
+"hpGrowth": 1.14,
+"hpGrowthFrom": 4      // waves 1-4 flat, wave 5 = 1.14, wave 12 = 1.14^8
+```
+
+One scalar could not shape this curve. `hpGrowth` alone applies from wave 1, so wave 3 carries
+`growth^2` and wave 12 carries `growth^11` -- and any rate that threatened wave 12 also inflated waves
+2-4, which is where the player is broke and therefore the binding constraint on the whole curve. Six
+balance passes pushed that single number and each had to choose between a lethal opening and a trivial
+ending. Splitting *where the ramp starts* from *how steep it is* is what let both ends move.
+
+Wave 3 leaked 14.1% for six passes and lands at 4.3% under any late rate once the opening is flat.
+See [the pass](../../content-data/docs/reports/2026-08-07-early-economy-2-balance.md).
 
 Without it later waves cannot be harder -- enemy HP is fixed per definition, so sending more creeps of
 the same toughness just hands the player more bounty, which becomes more towers. Measured before it

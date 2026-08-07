@@ -109,6 +109,73 @@ public class WaveScalingTests
         Assert.Equal(RunAndHash(9), RunAndHash(9));
     }
 
+    // ---- hpGrowthFrom: where the ramp starts -------------------------------
+
+    private static string SixWaves(string header) => $$"""
+    {
+      "map": "t", {{header}},
+      "waves": [
+        { "index": 1, "entries": [ { "enemy": "runner", "count": 1, "spacingTicks": 10 } ] },
+        { "index": 2, "entries": [ { "enemy": "runner", "count": 1, "spacingTicks": 10 } ] },
+        { "index": 3, "entries": [ { "enemy": "runner", "count": 1, "spacingTicks": 10 } ] },
+        { "index": 4, "entries": [ { "enemy": "runner", "count": 1, "spacingTicks": 10 } ] },
+        { "index": 5, "entries": [ { "enemy": "runner", "count": 1, "spacingTicks": 10 } ] },
+        { "index": 6, "entries": [ { "enemy": "runner", "count": 1, "spacingTicks": 10 } ] }
+      ]
+    }
+    """;
+
+    [Fact]
+    public void WithoutGrowthFrom_TheCurveIsExactlyWhatItWasBefore()
+    {
+        // The back-compat guarantee. gauntlet declares no hpGrowthFrom and its
+        // numbers must not move because crossroads needed a different shape.
+        WaveDef[] withoutField = Load(SixWaves("\"hpGrowth\": 1.5"));
+        WaveDef[] withDefault = Load(SixWaves("\"hpGrowth\": 1.5, \"hpGrowthFrom\": 1"));
+
+        for (int i = 0; i < withoutField.Length; i++)
+            Assert.Equal(withoutField[i].HpScale.Raw, withDefault[i].HpScale.Raw);
+    }
+
+    [Fact]
+    public void WavesAtOrBeforeGrowthFrom_AreFlat()
+    {
+        // The opening is where the player is broke and thin. Making it flat is
+        // what lets the late rate be steep -- see early-economy-2.
+        WaveDef[] waves = Load(SixWaves("\"hpGrowth\": 1.5, \"hpGrowthFrom\": 4"));
+
+        Assert.Equal(Fix32.One, waves[0].HpScale);   // wave 1
+        Assert.Equal(Fix32.One, waves[1].HpScale);   // wave 2
+        Assert.Equal(Fix32.One, waves[2].HpScale);   // wave 3
+        Assert.Equal(Fix32.One, waves[3].HpScale);   // wave 4 -- the last flat one
+    }
+
+    [Fact]
+    public void AfterGrowthFrom_TheRampRunsAtTheDeclaredRate()
+    {
+        WaveDef[] waves = Load(SixWaves("\"hpGrowth\": 1.5, \"hpGrowthFrom\": 4"));
+
+        Assert.Equal(Fix32.FromFraction(15, 10), waves[4].HpScale);          // wave 5 = 1.5^1
+        Assert.InRange(waves[5].HpScale.Raw,                                  // wave 6 = 1.5^2
+            Fix32.FromFraction(225, 100).Raw - 2, Fix32.FromFraction(225, 100).Raw + 2);
+    }
+
+    [Fact]
+    public void AGrowthFromBelowOne_FailsToLoad()
+        => Assert.Throws<ContentException>(
+            () => Load(SixWaves("\"hpGrowth\": 1.5, \"hpGrowthFrom\": 0")));
+
+    [Fact]
+    public void AnExplicitScale_StillOverridesGrowthFrom()
+    {
+        const string json = """
+        { "map": "t", "hpGrowth": 1.5, "hpGrowthFrom": 4, "waves": [
+            { "index": 1, "entries": [ { "enemy": "runner", "count": 1, "spacingTicks": 10 } ] },
+            { "index": 2, "hpScale": 9.0, "entries": [ { "enemy": "runner", "count": 1, "spacingTicks": 10 } ] } ] }
+        """;
+        Assert.Equal(Fix32.FromInt(9), Load(json)[1].HpScale);
+    }
+
     [Fact]
     public void HugeScale_DoesNotOverflowCreepHealth()
     {

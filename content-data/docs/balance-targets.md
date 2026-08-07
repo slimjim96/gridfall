@@ -19,6 +19,13 @@ Measured over 200 headless runs per map, fixed seed, competent-play policy.
 | Idle gold at wave 10 | 0–2 tower costs | > 4 (nothing worth buying) |
 | Idle gold at wave 20 | 0–3 tower costs | > 6 |
 
+> **Both runs-lost targets were carried here for months and only one was ever measured (2026-08-07).**
+> The balance sim printed a single figure, labelled it `15-30% late`, and checked it against a 0-60%
+> band that appears nowhere in this document. Split, the shipped 26.0% was **25.5% early and 0.5%
+> late** — the exact inverse of the intent, with lost runs dying at wave 4.3 of 12. Six passes read that
+> number as "ok". `balance` now reports the split and the mean wave a lost run died on.
+> See [early economy 2](reports/2026-08-07-early-economy-2-balance.md).
+
 **Idle gold** is the interesting one. High idle gold means the player has money and no decision — the
 economy has stopped generating choices, which fails pillar 5 before it fails any math.
 

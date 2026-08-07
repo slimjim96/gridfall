@@ -292,6 +292,24 @@ public static class ContentLoader
         if (growth < Fix32.One)
             throw new ContentException($"{file}: hpGrowth {growth} would make later waves weaker");
 
+        // The wave the ramp starts from. Waves at or before it sit at scale 1.0,
+        // so the opening is flat and the curve steepens afterwards.
+        //
+        // One knob could not do this. hpGrowth applies from wave 1, so the only
+        // way to threaten wave 12 was a rate that also inflated waves 2-4 -- and
+        // waves 2-4 are where the player is broke, so they were the binding
+        // constraint on the whole curve. Six passes pushed that single scalar and
+        // every one of them had to choose between a lethal opening and a trivial
+        // ending. See 2026-08-07-early-economy-2-balance.md.
+        //
+        // Defaults to 1, which is exactly the previous behaviour: growth^(index-1).
+        int growthFrom = doc.RootElement.TryGetProperty("hpGrowthFrom", out JsonElement gf)
+            ? gf.GetInt32()
+            : 1;
+
+        if (growthFrom < 1)
+            throw new ContentException($"{file}: hpGrowthFrom {growthFrom} must be at least 1");
+
         var waves = new List<WaveDef>();
         foreach (JsonElement w in wavesEl.EnumerateArray())
         {
@@ -318,7 +336,7 @@ public static class ContentLoader
             // Compounded with Fix32 multiply so the scalar is bit-identical
             // everywhere -- Math.Pow would put a double in the content path.
             Fix32 scale = Fix32.One;
-            for (int i = 1; i < index; i++) scale *= growth;
+            for (int i = growthFrom; i < index; i++) scale *= growth;
 
             if (w.TryGetProperty("hpScale", out JsonElement explicitScale))
                 scale = ParseFix(explicitScale, file);
