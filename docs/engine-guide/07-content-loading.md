@@ -51,6 +51,24 @@ Three things to notice:
 3. **Time is in ticks inside Core.** The JSON says `"cooldown": 0.8` (seconds, human-friendly); the
    loader converts to `24` ticks. Rounding happens once, at load, deterministically.
 
+## Armour
+
+`"armour": 8` on an enemy def. Flat damage reduction applied **per hit** in phase 7, floored at 1:
+
+```csharp
+int amount = Math.Max(1, record.Amount - enemy.Armour);
+```
+
+Per hit rather than per tick total, and flat rather than percentage — both deliberate. A percentage
+scales every tower equally and changes no decisions; flat punishes many-small-hits and rewards
+few-big-hits. Applying it to a tick's total would leave rapid-fire towers almost unaffected, which is
+the opposite of the intent.
+
+The floor of 1 means no tower is ever useless against an enemy, only inefficient. An enemy immune to a
+tower is a soft-lock waiting to happen.
+
+Armour does **not** scale with `hpGrowth`. A growing armour value becomes immunity.
+
 ## Upgrades
 
 ```json

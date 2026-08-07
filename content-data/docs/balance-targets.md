@@ -64,8 +64,21 @@ to react to. That fails pillar 4.
 | Longest path at maximum mazing | ≤ 3× the unmazed path |
 | Buildable cells | 35–55% of the grid |
 | Lanes | 1–3 |
+| Buildable cells per route cell | **proposed: 1.5–2.0** — see below |
 
-These four are also `MapTargets` constants in code — read by the balance sim's map report and by the
+> **Buildable share is the wrong metric, and the enemy-roster pass proved it (2026-08-07).**
+> `crossroads` is 42% buildable — comfortably inside the band — and still permits a defence of 55
+> towers against a 19-cell route. That is 4.0 buildable cells per route cell, and no enemy design
+> survives it: raising a creep's armour until arrow towers dealt the floor of 1 damage produced zero
+> leaks in the late game.
+>
+> A map can pass every current target and still be unwinnable for the attacker. The proposed
+> **1.5–2.0 buildable cells per route cell** is the metric that would have caught it. It is not yet a
+> `MapTargets` constant and not yet enforced — adding it is `map-density-target`, and the number itself
+> needs a decision rather than my guess. See
+> [the roster pass](reports/2026-08-07-crossroads-enemy-roster-balance.md).
+
+The first four are also `MapTargets` constants in code — read by the balance sim's map report and by the
 board editor's live validation panel. **Changing a number here means changing the constant too.** Two
 copies of a target is one too many, and this doc is the one people read before they trust the panel.
 
@@ -88,7 +101,9 @@ Not targets. These are checked on every map, every pass, and a failure blocks th
 ## Sim invocation
 
 ```bash
-dotnet run --project Gridfall.Verify -- --balance --map <map> --runs 200 --seed 1
+dotnet run --project Gridfall.Verify -c Release -- balance --map <map> --runs 200 --seed 1
 ```
+
+The mode is a bare word — `-- balance`, not `-- --balance`.
 
 Same seed, same run count, before and after. A different seed measures noise and reports it as insight.

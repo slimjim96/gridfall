@@ -30,6 +30,8 @@ public static class Palette
     // Creeps: hue carries threat tier, cool to hot.
     public static readonly Color CreepRunner = Color.FromHtml("7fc4a8");
     public static readonly Color CreepBrute = Color.FromHtml("b8a05a");
+    public static readonly Color CreepHusk = Color.FromHtml("c98a5e");
+    public static readonly Color CreepMite = Color.FromHtml("9ad4c0");
     public static readonly Color CreepUnknown = Color.FromHtml("9aa8b8");
 
     /// <summary>
@@ -64,6 +66,8 @@ public static class Palette
     {
         "runner" => CreepRunner,
         "brute" => CreepBrute,
+        "husk" => CreepHusk,
+        "mite" => CreepMite,
         _ => CreepUnknown,
     };
 

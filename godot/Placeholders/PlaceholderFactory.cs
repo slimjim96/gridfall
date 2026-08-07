@@ -39,6 +39,14 @@ public static class PlaceholderFactory
         "brute" => new PlaceholderUnitView(
             Shapes.BroadBox(0.44f, 0.38f), Palette.ForCreep(contentId), 0.22f, bobs: true, entityId),
 
+        // Squat plated drum: heavy, and unmistakable beside a sphere or a box.
+        "husk" => new PlaceholderUnitView(
+            Shapes.PlatedDrum(0.26f, 0.34f), Palette.ForCreep(contentId), 0.19f, bobs: true, entityId),
+
+        // Stacked cones: small and spiky, reads as one of many.
+        "mite" => new PlaceholderUnitView(
+            Shapes.StackedCones(0.15f), Palette.ForCreep(contentId), 0.18f, bobs: true, entityId),
+
         _ => new PlaceholderUnitView(
             Shapes.LowSphere(0.18f), Palette.CreepUnknown, 0.18f, bobs: true, entityId),
     };

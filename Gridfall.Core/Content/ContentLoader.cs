@@ -213,6 +213,7 @@ public static class ContentLoader
                 Speed = speed,
                 Bounty = RequireInt(r, "bounty", file),
                 LivesCost = r.TryGetProperty("livesCost", out var lc) ? lc.GetInt32() : 1,
+                Armour = r.TryGetProperty("armour", out var ar) ? ar.GetInt32() : 0,
             };
             doc.Dispose();
         }

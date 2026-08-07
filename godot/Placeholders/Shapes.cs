@@ -42,6 +42,26 @@ public static class Shapes
     public static Mesh BroadBox(float width = 0.42f, float height = 0.36f)
         => new BoxMesh { Size = new Vector3(width, height, width * 0.8f) };
 
+    /// <summary>Squat hexagonal drum -- heavy, plated. Armoured creeps.</summary>
+    public static Mesh PlatedDrum(float radius = 0.26f, float height = 0.34f)
+        => new CylinderMesh
+        {
+            TopRadius = radius,
+            BottomRadius = radius,
+            Height = height,
+            RadialSegments = 6,
+        };
+
+    /// <summary>Stacked cones -- reads as a swarm unit. Small and fast.</summary>
+    public static Mesh StackedCones(float radius = 0.15f)
+        => new CylinderMesh
+        {
+            TopRadius = 0.0f,
+            BottomRadius = radius,
+            Height = radius * 2.4f,
+            RadialSegments = 5,
+        };
+
     /// <summary>Small unshaded quad for projectiles.</summary>
     public static Mesh Pip(float size = 0.12f)
         => new SphereMesh { Radius = size, Height = size * 2f, RadialSegments = 6, Rings = 3 };

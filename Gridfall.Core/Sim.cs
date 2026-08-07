@@ -89,7 +89,7 @@ public sealed class Sim
             _leakedCreepIds);                                                           // 4
         TargetingSystem.Run(_state, _map, _content, _path, _events, TickCount);         // 5
         ProjectileSystem.Run(_state, _map, _pending);                                   // 6
-        DamageSystem.Run(_state, _pending, _events, TickCount, _leakedCreepIds,
+        DamageSystem.Run(_state, _content, _pending, _events, TickCount, _leakedCreepIds,
             _scratchDeadIds, _deadDefIndices, _leakedDefIndices);                       // 7
         EconomySystem.Run(_state, _content, _events, TickCount,
             _deadDefIndices, _leakedDefIndices);                                        // 8

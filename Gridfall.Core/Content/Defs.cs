@@ -79,6 +79,14 @@ public sealed class EnemyDef
     public required Fix32 Speed { get; init; }
     public required int Bounty { get; init; }
     public required int LivesCost { get; init; }
+
+    /// <summary>
+    /// Flat damage reduction per HIT. Flat rather than percentage on purpose:
+    /// a percentage scales every tower equally and changes no decisions, while
+    /// flat punishes many-small-hits and rewards few-big-hits. That is the axis
+    /// a roster of pure stat-variants cannot express.
+    /// </summary>
+    public required int Armour { get; init; }
 }
 
 public sealed class WaveEntry

@@ -1,3 +1,4 @@
+using Gridfall.Core.Content;
 using Gridfall.Core.Events;
 
 namespace Gridfall.Core.Systems;
@@ -18,6 +19,7 @@ internal static class DamageSystem
     /// <param name="leakedDefIndices">Filled for phase 8: one entry per leak.</param>
     public static void Run(
         SimState state,
+        ContentSet content,
         DamageBuffer pending,
         EventLog events,
         int tick,
@@ -38,8 +40,17 @@ internal static class DamageSystem
             if (slot < 0) continue;
             if (state.CreepHp[slot] <= 0) continue;   // already lethal this tick
 
-            state.CreepHp[slot] -= r.Amount;
-            events.Add(new SimEvent(tick, EventKind.CreepDamaged, r.CreepId, r.Amount));
+            // Per RECORD, not per tick total. Two 12-damage hits against armour 8
+            // deal 4 + 4, never 24 - 8 = 16 -- per-hit is what makes rapid-fire
+            // towers weak against armour, which is the entire design.
+            //
+            // Floored at 1: an enemy immune to a tower is a soft-lock waiting to
+            // happen, and "my towers do nothing" is not a readable failure.
+            int armour = content.Enemy(state.CreepDefIndex[slot]).Armour;
+            int amount = System.Math.Max(1, r.Amount - armour);
+
+            state.CreepHp[slot] -= amount;
+            events.Add(new SimEvent(tick, EventKind.CreepDamaged, r.CreepId, amount));
 
             if (state.CreepHp[slot] <= 0) scratchDeadIds.Add(r.CreepId);
         }
