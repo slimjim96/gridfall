@@ -9,6 +9,8 @@ public enum EventKind : byte
     BuildPlaced,
     BuildRejected,
     TowerSold,
+    TowerUpgraded,
+    UpgradeRejected,
     TowerFired,
     CreepDamaged,
     CreepDied,
@@ -31,6 +33,8 @@ public enum RejectReason : byte
     WouldSealLane = 5,
     UnknownTower = 6,
     CapacityExceeded = 7,
+    AlreadyMaxLevel = 8,
+    NoSuchTower = 9,
 }
 
 /// <summary>

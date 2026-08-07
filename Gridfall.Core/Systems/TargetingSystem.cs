@@ -32,17 +32,18 @@ internal static class TargetingSystem
             }
 
             TowerDef def = content.Tower(state.TowerDefIndex[slot]);
+            int level = state.TowerLevel[slot];
             int cellIndex = state.TowerCellIndex[slot];
             var towerPos = new FixVec2(
                 Fix32.FromInt(cellIndex % map.Width),
                 Fix32.FromInt(cellIndex / map.Width));
 
-            int targetSlot = Acquire(state, map, path, def, towerPos);
+            int targetSlot = Acquire(state, map, path, def, towerPos, def.RangeSquaredAt(level));
             if (targetSlot < 0) continue;
 
             state.TowerCooldown[slot] = def.CooldownTicks;
             int projectileId = state.AddProjectile(
-                state.CreepId[targetSlot], towerPos, def.ProjectileSpeed, def.Damage);
+                state.CreepId[targetSlot], towerPos, def.ProjectileSpeed, def.DamageAt(level));
 
             if (projectileId < 0)
             {
@@ -56,7 +57,7 @@ internal static class TargetingSystem
     }
 
     private static int Acquire(
-        SimState state, MapDef map, PathSystem path, TowerDef def, FixVec2 towerPos)
+        SimState state, MapDef map, PathSystem path, TowerDef def, FixVec2 towerPos, Fix32 rangeSquared)
     {
         int best = -1;
         ushort bestDistToGoal = ushort.MaxValue;
@@ -69,7 +70,7 @@ internal static class TargetingSystem
             int slot = state.CreepSlotByOrder(k);
             FixVec2 pos = MovementSystem.PositionOf(state, map, slot);
             Fix32 d2 = FixVec2.DistanceSquared(towerPos, pos);
-            if (d2 > def.RangeSquared) continue;
+            if (d2 > rangeSquared) continue;
 
             switch (def.Targeting)
             {

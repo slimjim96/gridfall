@@ -15,6 +15,21 @@ public enum TargetRule : byte
 /// alphabetically, so the mapping is stable across runs and machines.
 /// Runtime code uses Index; Id is for authoring and logs (engine guide 07).
 /// </summary>
+/// <summary>
+/// One step up the upgrade track. Cost and effect are authored data -- the
+/// design rule (rising cost, falling damage-per-gold) lives in the numbers, not
+/// in code.
+/// </summary>
+public sealed class UpgradeLevel
+{
+    public required int Cost { get; init; }
+    public required Fix32 DamageMultiplier { get; init; }
+    public required Fix32 RangeMultiplier { get; init; }
+    /// <summary>Precomputed at load, like TowerDef.RangeSquared.</summary>
+    public required Fix32 RangeSquared { get; init; }
+    public required int Damage { get; init; }
+}
+
 public sealed class TowerDef
 {
     public required ushort Index { get; init; }
@@ -30,6 +45,28 @@ public sealed class TowerDef
     public required Fix32 ProjectileSpeed { get; init; }
     public required TargetRule Targeting { get; init; }
     public required int SellValue { get; init; }
+
+    /// <summary>Levels above the base. Empty means the tower cannot be upgraded.</summary>
+    public required UpgradeLevel[] Upgrades { get; init; }
+
+    public int MaxLevel => Upgrades.Length + 1;
+
+    /// <summary>Damage at a 1-based level.</summary>
+    public int DamageAt(int level) => level <= 1 ? Damage : Upgrades[level - 2].Damage;
+
+    /// <summary>Squared range at a 1-based level.</summary>
+    public Fix32 RangeSquaredAt(int level) => level <= 1 ? RangeSquared : Upgrades[level - 2].RangeSquared;
+
+    /// <summary>
+    /// Half of everything spent to reach this level. Selling can never profit,
+    /// however many upgrades were bought.
+    /// </summary>
+    public int SellValueAt(int level)
+    {
+        int spent = Cost;
+        for (int i = 0; i < level - 1; i++) spent += Upgrades[i].Cost;
+        return spent / 2;
+    }
 }
 
 public sealed class EnemyDef

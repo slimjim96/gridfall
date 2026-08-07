@@ -25,6 +25,8 @@ public sealed class PlaceholderUnitView : IUnitView
     private readonly float _phase;
 
     private float _time;
+    private int _level = 1;
+    private Color _levelTint;
     private float _flashRemaining;
     private float _collapseRemaining;
     private bool _collapsing;
@@ -42,6 +44,7 @@ public sealed class PlaceholderUnitView : IUnitView
         Node = new Node3D();
         Node.AddChild(_mesh);
         _mesh.Position = new Vector3(0, restHeight, 0);
+        _levelTint = colour;
     }
 
     public Node3D Node { get; }
@@ -49,6 +52,23 @@ public sealed class PlaceholderUnitView : IUnitView
     public bool IsFinished => _collapsing && _collapseRemaining <= 0f;
 
     public void SetWorldPosition(Vector3 position) => Node.Position = position;
+
+    /// <summary>
+    /// Taller and brighter per level, on the same palette slot. Height is the
+    /// primary cue because it survives greyscale -- pillar 2 says silhouette
+    /// first, colour second.
+    /// </summary>
+    public void SetLevel(int level)
+    {
+        if (level == _level) return;
+        _level = level;
+
+        float grow = 1f + 0.28f * (level - 1);
+        _mesh.Scale = new Vector3(1f + 0.10f * (level - 1), grow, 1f + 0.10f * (level - 1));
+        _mesh.Position = new Vector3(0, _restHeight * grow, 0);
+        _levelTint = _baseColour.Lightened(0.18f * (level - 1));
+        _material.AlbedoColor = _levelTint;
+    }
 
     public void PlayClip(string clip)
     {
@@ -77,17 +97,20 @@ public sealed class PlaceholderUnitView : IUnitView
         {
             _flashRemaining -= delta;
             float t = Mathf.Clamp(_flashRemaining / HitFlashSeconds, 0f, 1f);
-            _material.AlbedoColor = _baseColour.Lerp(Palette.HitFlash, t);
+            _material.AlbedoColor = CurrentTint.Lerp(Palette.HitFlash, t);
         }
-        else if (_material.AlbedoColor != _baseColour)
+        else if (_material.AlbedoColor != CurrentTint)
         {
-            _material.AlbedoColor = _baseColour;
+            _material.AlbedoColor = CurrentTint;
         }
 
         if (!_bobs) return;
+        float grow = 1f + 0.28f * (_level - 1);
         float bob = Mathf.Sin(_time * BobSpeed * Mathf.Tau + _phase) * BobAmplitude;
-        _mesh.Position = new Vector3(0, _restHeight + bob, 0);
+        _mesh.Position = new Vector3(0, _restHeight * grow + bob, 0);
     }
+
+    private Color CurrentTint => _level > 1 ? _levelTint : _baseColour;
 
     public void Dispose()
     {

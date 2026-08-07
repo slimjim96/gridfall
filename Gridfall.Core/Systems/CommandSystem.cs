@@ -30,6 +30,7 @@ internal static class CommandSystem
                 case CommandKind.Build: Build(state, map, content, path, events, tick, e.Cell, e.TowerDefIndex); break;
                 case CommandKind.Sell: Sell(state, content, path, events, tick, e.TowerId); break;
                 case CommandKind.StartWave: StartWave(state, content, events, tick); break;
+                case CommandKind.Upgrade: Upgrade(state, content, events, tick, e.TowerId); break;
             }
         }
         queue.Clear();
@@ -100,12 +101,53 @@ internal static class CommandSystem
         int cellIndex = state.TowerCellIndex[slot];
         TowerDef def = content.Tower(state.TowerDefIndex[slot]);
 
+        // Half of EVERYTHING spent, upgrades included. A flat base refund would
+        // make upgrade-then-sell a money printer.
+        int refund = def.SellValueAt(state.TowerLevel[slot]);
+
         state.RemoveTowerBySlot(slot);
-        state.Gold += def.SellValue;
+        state.Gold += refund;
         path.SetBlocked(cellIndex, false);
 
-        events.Add(new SimEvent(tick, EventKind.TowerSold, towerId, def.SellValue));
-        events.Add(new SimEvent(tick, EventKind.GoldChanged, state.Gold, def.SellValue));
+        events.Add(new SimEvent(tick, EventKind.TowerSold, towerId, refund));
+        events.Add(new SimEvent(tick, EventKind.GoldChanged, state.Gold, refund));
+    }
+
+    /// <summary>
+    /// Raise a tower one level. No block check: an upgrade occupies the same cell
+    /// and changes no route, so it cannot seal a lane and never dirties the grid.
+    /// </summary>
+    private static void Upgrade(
+        SimState state, ContentSet content, EventLog events, int tick, int towerId)
+    {
+        int slot = state.SlotOfTower(towerId);
+        if (slot < 0)
+        {
+            events.Add(new SimEvent(tick, EventKind.UpgradeRejected, (int)RejectReason.NoSuchTower, towerId));
+            return;
+        }
+
+        TowerDef def = content.Tower(state.TowerDefIndex[slot]);
+        int level = state.TowerLevel[slot];
+
+        if (level >= def.MaxLevel)
+        {
+            events.Add(new SimEvent(tick, EventKind.UpgradeRejected, (int)RejectReason.AlreadyMaxLevel, towerId));
+            return;
+        }
+
+        int cost = def.Upgrades[level - 1].Cost;
+        if (state.Gold < cost)
+        {
+            events.Add(new SimEvent(tick, EventKind.UpgradeRejected, (int)RejectReason.InsufficientGold, towerId));
+            return;
+        }
+
+        state.Gold -= cost;
+        state.TowerLevel[slot] = (byte)(level + 1);
+
+        events.Add(new SimEvent(tick, EventKind.TowerUpgraded, towerId, level + 1));
+        events.Add(new SimEvent(tick, EventKind.GoldChanged, state.Gold, -cost));
     }
 
     private static void StartWave(SimState state, ContentSet content, EventLog events, int tick)

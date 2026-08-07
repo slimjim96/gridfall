@@ -19,8 +19,11 @@ namespace Gridfall.Verify;
 ///      refuse.
 ///   3. Buy the best damage-per-gold that is affordable right now, with no
 ///      lookahead and no saving up for something better.
-///   4. Start the next wave as soon as the board is clear.
-///   5. Never sell, never upgrade, never re-maze deliberately.
+///   4. When there is nowhere useful left to build, upgrade the tower covering
+///      the most of the route instead. Board saturation is exactly the moment
+///      upgrades are for.
+///   5. Start the next wave as soon as the board is clear.
+///   6. Never sell, never re-maze deliberately.
 ///
 /// That is a reasonable beginner who understands coverage: clearly better than
 /// nothing, clearly worse than a good player. Balance numbers from it are a
@@ -69,6 +72,8 @@ public sealed class PlayPolicy
     /// </summary>
     public int NoPlacementFound { get; private set; }
 
+    public int UpgradesBought { get; private set; }
+
     /// <summary>Call once per tick, before Sim.Tick().</summary>
     public void Update()
     {
@@ -94,11 +99,59 @@ public sealed class PlayPolicy
         if (choice is not { } towerIndex) return;
 
         int cell = BestPlacement(_sim.Content.Tower(towerIndex));
-        if (cell < 0) { NoPlacementFound++; return; }
+        if (cell < 0)
+        {
+            // Nowhere useful to build. Before this existed the policy simply
+            // stopped spending and gold ran away -- which is the economy hole
+            // upgrades are meant to close.
+            NoPlacementFound++;
+            TryUpgrade();
+            return;
+        }
 
         _sim.Enqueue(new BuildCommand(
             new GridCell(cell % _sim.Map.Width, cell / _sim.Map.Width), towerIndex));
         BuildsPlaced++;
+    }
+
+    /// <summary>
+    /// Upgrade the highest-coverage tower that can afford its next level.
+    ///
+    /// Deliberately only reached when building fails: the content is authored so
+    /// upgrading costs more per point of damage than a new tower, so a player who
+    /// upgrades while good spots remain is playing badly.
+    /// </summary>
+    private void TryUpgrade()
+    {
+        SimStateView state = _sim.State;
+        MapDef map = _sim.Map;
+
+        int routeLength = _sim.Path.TraceRoute(map.Index(map.Spawns[0]), _routeBuffer);
+        if (routeLength == 0) return;
+
+        int bestTowerId = -1;
+        int bestScore = -1;
+
+        // Ascending tower id, so ties resolve identically every run.
+        for (int k = 0; k < state.TowerCount; k++)
+        {
+            int slot = state.TowerSlotByOrder(k);
+            TowerDef def = _sim.Content.Tower(state.TowerDefIndex(slot));
+            int level = state.TowerLevel(slot);
+            if (level >= def.MaxLevel) continue;
+            if (state.Gold < def.Upgrades[level - 1].Cost) continue;
+
+            int score = CoverageScore(state.TowerCellIndex(slot), def, routeLength, map);
+            if (score <= bestScore) continue;
+
+            bestScore = score;
+            bestTowerId = state.TowerId(slot);
+        }
+
+        if (bestTowerId < 0) return;
+
+        _sim.Enqueue(new UpgradeCommand(bestTowerId));
+        UpgradesBought++;
     }
 
     /// <summary>

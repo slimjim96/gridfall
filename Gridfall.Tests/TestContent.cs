@@ -119,16 +119,24 @@ public static class TestContent
     }
     """;
 
+    // Mirrors the shipped shape, upgrades included -- a fixture without them
+    // makes every upgrade test pass vacuously by being refused at max level.
     private const string ArrowTower = """
     { "id": "arrow-tower", "name": "Arrow Tower", "cost": 50, "range": 3.0,
       "cooldown": 0.6, "damage": 12, "projectileSpeed": 0.8,
-      "targeting": "furthest-along-path", "sellValue": 25 }
+      "targeting": "furthest-along-path", "sellValue": 25,
+      "upgrades": [
+        { "cost": 110, "damageMultiplier": 2.0, "rangeMultiplier": 1.0 },
+        { "cost": 240, "damageMultiplier": 4.0, "rangeMultiplier": 1.15 } ] }
     """;
 
     private const string Cannon = """
     { "id": "cannon", "name": "Cannon", "cost": 90, "range": 2.5,
       "cooldown": 1.5, "damage": 40, "projectileSpeed": 0.5,
-      "targeting": "furthest-along-path", "sellValue": 45 }
+      "targeting": "furthest-along-path", "sellValue": 45,
+      "upgrades": [
+        { "cost": 198, "damageMultiplier": 2.0, "rangeMultiplier": 1.0 },
+        { "cost": 432, "damageMultiplier": 4.0, "rangeMultiplier": 1.15 } ] }
     """;
 
     /// <summary>One shot kills a runner. Used for the simultaneous-kill test.</summary>

@@ -130,10 +130,43 @@ public static class ContentLoader
                     : Fix32.FromInt(1),
                 Targeting = ParseTargeting(r, file),
                 SellValue = r.TryGetProperty("sellValue", out var sv) ? sv.GetInt32() : cost / 2,
+                Upgrades = ParseUpgrades(r, file, damage, range),
             };
             doc.Dispose();
         }
         return towers;
+    }
+
+    private static UpgradeLevel[] ParseUpgrades(JsonElement r, string file, int baseDamage, Fix32 baseRange)
+    {
+        if (!r.TryGetProperty("upgrades", out JsonElement arr)) return Array.Empty<UpgradeLevel>();
+
+        var levels = new List<UpgradeLevel>();
+        foreach (JsonElement u in arr.EnumerateArray())
+        {
+            int cost = RequireInt(u, "cost", file);
+            if (cost <= 0) throw new ContentException($"{file}: upgrade cost must be > 0");
+
+            Fix32 dmgMul = ParseFix(RequireProperty(u, "damageMultiplier", file), file);
+            if (dmgMul < Fix32.One)
+                throw new ContentException($"{file}: damageMultiplier {dmgMul} would weaken the tower");
+
+            Fix32 rangeMul = u.TryGetProperty("rangeMultiplier", out JsonElement rm)
+                ? ParseFix(rm, file) : Fix32.One;
+
+            // Resolved once here, so the tick loop never multiplies to find a
+            // tower's damage or range -- same reason RangeSquared is precomputed.
+            Fix32 range = baseRange * rangeMul;
+            levels.Add(new UpgradeLevel
+            {
+                Cost = cost,
+                DamageMultiplier = dmgMul,
+                RangeMultiplier = rangeMul,
+                RangeSquared = range * range,
+                Damage = (int)(((long)baseDamage * dmgMul.Raw) >> Fix32.FractionalBits),
+            });
+        }
+        return levels.ToArray();
     }
 
     private static TargetRule ParseTargeting(JsonElement r, string file)

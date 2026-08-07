@@ -117,10 +117,15 @@ public sealed partial class UnitRenderer : Node3D
             int cellIndex = state.TowerCellIndex(slot);
             Vector3 world = IsoGrid.CellCentre(cellIndex % map.Width, cellIndex / map.Width);
 
-            if (_towers.ContainsKey(id)) continue;
+            if (_towers.TryGetValue(id, out Tracked? existing))
+            {
+                existing.View.SetLevel(state.TowerLevel(slot));   // cheap: no-ops unless it changed
+                continue;
+            }
 
             string contentId = content.Tower(state.TowerDefIndex(slot)).Id;
             IUnitView view = PlaceholderFactory.CreateTower(contentId, id);
+            view.SetLevel(state.TowerLevel(slot));
             AddChild(view.Node);
             _towers[id] = new Tracked { View = view, Previous = world, Current = world };
         }

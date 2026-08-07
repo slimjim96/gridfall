@@ -39,6 +39,8 @@ public sealed class SimState
     public readonly ushort[] TowerDefIndex = new ushort[MaxTowers];
     public readonly int[] TowerCellIndex = new int[MaxTowers];
     public readonly int[] TowerCooldown = new int[MaxTowers];
+    /// <summary>1-based. Hashed and snapshotted like every other piece of state.</summary>
+    public readonly byte[] TowerLevel = new byte[MaxTowers];
     private readonly int[] _towerIdOrder = new int[MaxTowers];
     private int[] _slotOfTowerId = new int[1024];
 
@@ -122,6 +124,7 @@ public sealed class SimState
         TowerDefIndex[slot] = defIndex;
         TowerCellIndex[slot] = cellIndex;
         TowerCooldown[slot] = 0;
+        TowerLevel[slot] = 1;
 
         EnsureSlotMap(ref _slotOfTowerId, id);
         _slotOfTowerId[id] = slot;
@@ -140,6 +143,7 @@ public sealed class SimState
             TowerDefIndex[slot] = TowerDefIndex[last];
             TowerCellIndex[slot] = TowerCellIndex[last];
             TowerCooldown[slot] = TowerCooldown[last];
+            TowerLevel[slot] = TowerLevel[last];
             _slotOfTowerId[TowerId[slot]] = slot;
         }
         TowerCount--;
@@ -229,7 +233,7 @@ public sealed class SimState
         {
             int s = TowerSlotByOrder(k);
             h = FnvHash.Combine(h, TowerId[s], TowerCellIndex[s], TowerCooldown[s]);
-            h = FnvHash.Combine(h, TowerDefIndex[s]);
+            h = FnvHash.Combine(h, TowerDefIndex[s], TowerLevel[s]);
         }
 
         // Projectiles are short-lived and never referenced across a removal, so
@@ -284,6 +288,7 @@ public sealed class SimState
         Array.Copy(TowerDefIndex, other.TowerDefIndex, MaxTowers);
         Array.Copy(TowerCellIndex, other.TowerCellIndex, MaxTowers);
         Array.Copy(TowerCooldown, other.TowerCooldown, MaxTowers);
+        Array.Copy(TowerLevel, other.TowerLevel, MaxTowers);
         Array.Copy(_towerIdOrder, other._towerIdOrder, MaxTowers);
 
         other.ProjectileCount = ProjectileCount;

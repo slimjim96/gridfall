@@ -57,6 +57,20 @@ Audio is driven off the `SimEvent` stream, same as VFX. One event, one cue, no p
 ducked by priority: leak > wave start > build rejected > tower fire. Tower fire at wave 18 must not
 drown out a leak.
 
+## Visual baselines
+
+`board-baseline.png` and `editor-baseline.png` are byte-reproducible captures used as visual regression
+references. Refresh with:
+
+```bash
+godot-mono --path godot -- --shot presentation/docs/board-baseline.png --shot-after 40
+```
+
+> **Both are STALE as of 2026-08-06.** The `tower-upgrades` slice changed the screenshot seed to include
+> an upgraded tower, and no display was available to re-capture — the X server they were made on was an
+> xrdp session that has since ended. **Diffing against them right now produces a false failure.**
+> Re-capture over RDP before trusting either. Follow-up `refresh-baselines`.
+
 ## What NOT to do
 
 - Don't polish placeholders. They have an hour budget; see `placeholder-standard.md`.

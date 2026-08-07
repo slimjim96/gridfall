@@ -51,6 +51,26 @@ Three things to notice:
 3. **Time is in ticks inside Core.** The JSON says `"cooldown": 0.8` (seconds, human-friendly); the
    loader converts to `24` ticks. Rounding happens once, at load, deterministically.
 
+## Upgrades
+
+```json
+"upgrades": [
+  { "cost": 110, "damageMultiplier": 2.0, "rangeMultiplier": 1.0 },
+  { "cost": 240, "damageMultiplier": 4.0, "rangeMultiplier": 1.15 }
+]
+```
+
+Levels above the base; an absent array means the tower cannot be upgraded. Damage and squared range for
+every level are resolved **once at load** into `UpgradeLevel`, for the same reason `RangeSquared` is —
+the tick loop must never multiply to find a tower's stats.
+
+The design rule these numbers must satisfy: **rising cost, falling damage-per-gold.** If upgrading were
+more efficient than building, nobody would spread out and mazing would stop mattering.
+`DamagePerGold_FallsWithEachLevel` fails the build if a content author breaks it.
+
+`TowerLevel` is state on `SimState`: 1-based, hashed, snapshotted. Selling refunds half of everything
+spent via `TowerDef.SellValueAt(level)`, so upgrade-then-sell cannot profit.
+
 ## Numbers in JSON → Fix32
 
 The single conversion point in the whole system:

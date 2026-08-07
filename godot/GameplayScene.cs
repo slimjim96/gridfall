@@ -241,7 +241,15 @@ public sealed partial class GameplayScene : Node3D
         _driver.Enqueue(new BuildCommand(new GridCell(9, 3), cannon));
         _driver.Enqueue(new StartWaveCommand());
 
-        for (int t = 0; t < 90; t++) _driver.StepOneTick();
+        for (int t = 0; t < 40; t++) _driver.StepOneTick();
+
+        // Upgrade one tower twice so the capture shows the level cue -- otherwise
+        // "level is visible on the board" goes unverified.
+        int firstTower = _driver.State.TowerId(_driver.State.TowerSlotByOrder(0));
+        _driver.Enqueue(new UpgradeCommand(firstTower));
+        _driver.StepOneTick();
+        _driver.Enqueue(new UpgradeCommand(firstTower));
+        for (int t = 0; t < 49; t++) _driver.StepOneTick();
 
         // Printed so it can be diffed against a headless run of the same script:
         // if the renderer is touching simulation state, this is where it shows.

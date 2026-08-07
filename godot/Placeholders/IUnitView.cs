@@ -32,6 +32,14 @@ public interface IUnitView
     /// </summary>
     void PlayClip(string clip);
 
+    /// <summary>
+    /// Tower level, 1-based. Added rather than expressed as a clip because level
+    /// is a persistent STATE, not an event: a clip would replay on every reload
+    /// and would not survive the view being recreated. Design rule "every
+    /// player-visible state has a visible representation" makes it mandatory.
+    /// </summary>
+    void SetLevel(int level);
+
     /// <summary>Per-frame view-side animation. Never feeds back into the sim.</summary>
     void Advance(float delta);
 

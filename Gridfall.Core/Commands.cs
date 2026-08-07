@@ -18,6 +18,7 @@ public enum CommandKind : byte
     Build = 1,
     Sell = 2,
     StartWave = 3,
+    Upgrade = 4,
 }
 
 public readonly struct BuildCommand : ICommand
@@ -44,6 +45,18 @@ public readonly struct SellCommand : ICommand
 public readonly struct StartWaveCommand : ICommand
 {
     public CommandKind Kind => CommandKind.StartWave;
+}
+
+/// <summary>
+/// Raise a tower one level. No Path field: the upgrade track is linear on
+/// purpose (see the design spec) -- branching is a real design with real cost
+/// and the economy problem does not need it.
+/// </summary>
+public readonly struct UpgradeCommand : ICommand
+{
+    public readonly int TowerId;
+    public UpgradeCommand(int towerId) => TowerId = towerId;
+    public CommandKind Kind => CommandKind.Upgrade;
 }
 
 /// <summary>
@@ -82,6 +95,10 @@ public sealed class CommandQueue
                 break;
             case StartWaveCommand:
                 e.Kind = CommandKind.StartWave;
+                break;
+            case UpgradeCommand u:
+                e.Kind = CommandKind.Upgrade;
+                e.TowerId = u.TowerId;
                 break;
             default:
                 throw new ArgumentException($"Unknown command type {command.GetType().Name}");

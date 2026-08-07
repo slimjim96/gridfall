@@ -8,5 +8,10 @@
   "projectileSpeed": 0.5,
   "targeting": "furthest-along-path",
   "sellValue": 45,
+  "upgrades": [
+    { "cost": 198, "damageMultiplier": 2.0, "rangeMultiplier": 1.0 },
+    { "cost": 432, "damageMultiplier": 4.0, "rangeMultiplier": 1.15 }
+  ],
+  "_upgradeRule": "Rising cost, FALLING damage-per-gold. Building must stay the efficient play while good spots remain, or mazing stops mattering (design spec, The central tension).",
   "_untuned": "Placeholder values. No balance pass has run. See content-data/docs/balance-targets.md."
 }
