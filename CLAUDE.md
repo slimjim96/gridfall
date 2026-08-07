@@ -57,21 +57,21 @@ gridfall/
 | Know how a map got balanced, or why one could not be | `content-data/docs/reports/` (newest first) |
 | Build, test, replay, or run the game | `docs/tech-standards.md` §Commands |
 
-**Run Godot as `godot-mono`**, never `godot` or `godot-4` — those are 4.7 here and the project is
-pinned to 4.6.3 mono (ADR-0005). A non-mono build silently ignores every C# script, which looks like
-a broken game rather than the wrong binary.
+**Run Godot as `godot-mono`**, never `godot` or `godot-4` — those are 4.7 here, and the project is
+pinned to 4.6.3 mono (ADR-0005). A non-mono build silently ignores every C# script: it looks like a
+broken game, not a wrong binary.
 
 ## What Not to Load
 
-Each workspace's `CONTEXT.md` carries a Load/Skip table, and the Skip column is a constraint, not
-advice. Two rules hold everywhere: **never load a workspace you were not routed to** (cross-workspace
-knowledge arrives as a handoff file), and **`docs/` and `_examples/` are load-on-demand only** — load
-the one reference a Scope names, never the folder.
+Each workspace's `CONTEXT.md` carries a Load/Skip table, and Skip is a constraint, not advice. Two
+rules hold everywhere: **never load a workspace you were not routed to** (cross-workspace knowledge
+arrives as a handoff), and **`docs/` and `_examples/` are load-on-demand** — load the one reference a
+Scope names, never the folder.
 
 ## Naming Conventions
 
-One slug follows a slice from requirements to release, so `find_by_slug` returns the whole story.
-The filename is the status; there is no database.
+One slug follows a slice from requirements to release (`find_by_slug` returns the whole story), and
+the filename is the status — there is no database.
 
 | Stage | Pattern | | Type | Pattern |
 |---|---|---|---|---|
