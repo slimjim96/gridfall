@@ -54,6 +54,7 @@ gridfall/
 | Know what a term means | `docs/glossary.md` |
 | Know how grid coords become screen coords | `docs/iso-grid.md` |
 | Add board tiles, or change how one looks | `presentation/tiles/README.md` |
+| Add final tower or creep art | `presentation/units/README.md` |
 | Know where the product is heading | `game-design/docs/board-themes-direction.md` |
 | Know how a map got balanced, or why one could not be | `content-data/docs/reports/` (newest first) |
 | Build, test, replay, or run the game | `docs/tech-standards.md` §Commands |

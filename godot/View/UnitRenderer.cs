@@ -5,6 +5,7 @@ using Gridfall.Core.Content;
 using Gridfall.Core.Events;
 using Gridfall.Core.Math;
 using Gridfall.View.Placeholders;
+using Gridfall.View.Units;
 
 namespace Gridfall.View;
 
@@ -121,7 +122,7 @@ public sealed partial class UnitRenderer : Node3D
             if (!_creeps.TryGetValue(id, out Tracked? tracked))
             {
                 string contentId = content.Enemy(state.CreepDefIndex(slot)).Id;
-                IUnitView view = PlaceholderFactory.CreateCreep(contentId, id);
+                IUnitView view = UnitViewFactory.CreateCreep(contentId, id);
                 AddChild(view.Node);
                 tracked = new Tracked { View = view, Previous = world, Current = world };
                 _creeps[id] = tracked;
@@ -155,7 +156,7 @@ public sealed partial class UnitRenderer : Node3D
             }
 
             string contentId = content.Tower(state.TowerDefIndex(slot)).Id;
-            IUnitView view = PlaceholderFactory.CreateTower(contentId, id);
+            IUnitView view = UnitViewFactory.CreateTower(contentId, id);
             view.SetLevel(state.TowerLevel(slot));
             view.SetHealthFraction(health);
             AddChild(view.Node);

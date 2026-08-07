@@ -8,6 +8,7 @@ using Gridfall.Io;
 using Gridfall.View;
 using Gridfall.View.Hud;
 using Gridfall.View.Placeholders;
+using Gridfall.View.Units;
 
 namespace Gridfall;
 
@@ -53,6 +54,12 @@ public sealed partial class GameplayScene : Node3D
     /// <summary>--theme <id>: draw this map in another palette, for theme captures.</summary>
     private string? _themeOverride;
 
+    /// <summary>
+    /// --units <dir>: read final unit art from somewhere other than
+    /// presentation/units. Verification only -- see UnitAssets.Scan.
+    /// </summary>
+    private string? _unitsOverride;
+
     /// <summary>Cell the shot-mode cursor rests on, when the seed cares.</summary>
     private GridCell? _shotHoverCell;
 
@@ -67,6 +74,7 @@ public sealed partial class GameplayScene : Node3D
         // you played it -- exactly the editor/game divergence the tooling rules
         // exist to prevent.
         TileLibrary.Scan(root);
+        UnitAssets.Scan(root, _unitsOverride);
 
         MapDef map = PlaytestDraft ?? ContentFiles.LoadMap(root, MapId);
         if (_themeOverride is not null)
@@ -311,6 +319,7 @@ public sealed partial class GameplayScene : Node3D
             if (args[i] == "--shot-after" && i + 1 < args.Length && int.TryParse(args[i + 1], out int n))
                 _shotAfterFrames = n;
             if (args[i] == "--theme" && i + 1 < args.Length) _themeOverride = args[i + 1];
+            if (args[i] == "--units" && i + 1 < args.Length) _unitsOverride = args[i + 1];
         }
     }
 
@@ -323,6 +332,7 @@ public sealed partial class GameplayScene : Node3D
     {
         if (_shotSeed == "sappers") { SeedSappers(); return; }
         if (_shotSeed == "repair") { SeedRepair(); return; }
+        if (_shotSeed == "formats") { SeedFormats(); return; }
 
         ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
 
@@ -362,6 +372,56 @@ public sealed partial class GameplayScene : Node3D
                  $"gold={_driver.State.Gold} lives={_driver.State.Lives} " +
                  $"creeps={_driver.State.CreepCount} towers={_driver.State.TowerCount}" +
                  $" levels:{levels}");
+    }
+
+    /// <summary>
+    /// Both asset formats on the board at once, with creeps walking behind them.
+    ///
+    /// `arrow-tower` resolves to a SpriteUnitView and `cannon` to a MeshUnitView
+    /// (see presentation/units/), so one frame checks both halves of ADR-0004.
+    ///
+    /// The claim being checked is **occlusion**, which is the property the whole
+    /// format question turns on. Towers go on row 5 and creeps walk row 4:
+    /// the camera sits at +X+Z, so a larger grid `x + y` is nearer, which puts
+    /// row 5 in FRONT of row 4. If either view fails to write depth, its creeps
+    /// show through it and the frame says so immediately.
+    /// </summary>
+    private void SeedFormats()
+    {
+        ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
+        ushort cannon = _driver.Content.TowerIndexOf("cannon");
+
+        _driver.Enqueue(new BuildCommand(new GridCell(9, 5), arrow));     // 300 -> 250
+        _driver.StepOneTick();
+        _driver.Enqueue(new BuildCommand(new GridCell(10, 5), cannon));   // 250 -> 160
+        _driver.StepOneTick();
+
+        _driver.Enqueue(new StartWaveCommand());
+
+        // Freeze on the board STATE, not on a guessed tick count. A frame taken
+        // while the creeps are still at the spawn would show two towers occluding
+        // nothing and would have verified precisely nothing.
+        int waited = 0;
+        while (waited < 4000 && !CreepIsBehindTheTowers()) { _driver.StepOneTick(); waited++; }
+
+        GD.Print($"shot-state: tick={_driver.TickCount} hash={_driver.Sim.Hash():x16} " +
+                 $"gold={_driver.State.Gold} creeps={_driver.State.CreepCount} " +
+                 $"towers={_driver.State.TowerCount} waited={waited} " +
+                 $"occluded={CreepIsBehindTheTowers()}");
+    }
+
+    /// <summary>A creep on the lane directly behind the two seeded towers.</summary>
+    private bool CreepIsBehindTheTowers()
+    {
+        for (int k = 0; k < _driver.State.CreepCount; k++)
+        {
+            int slot = _driver.State.CreepSlotByOrder(k);
+            int index = _driver.State.CreepCellIndex(slot);
+            int x = index % _driver.Map.Width;
+            int y = index / _driver.Map.Width;
+            if (y == 4 && x is >= 9 and <= 11) return true;
+        }
+        return false;
     }
 
     /// <summary>

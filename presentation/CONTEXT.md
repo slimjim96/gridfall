@@ -9,8 +9,10 @@ never mutates it — a click becomes a queued sim command, not a direct state ch
 Upstream: `game-design`, and `docs/iso-grid.md` as the standing contract. Downstream: `production`.
 
 All art is currently a **placeholder**: procedural C#, minimal detail, built to make the game playable
-today. Finals come from Ludo.ai, run by the human. Both live behind `IUnitView`
-([ADR-0004](../engine-systems/decisions/ADR-0004-view-asset-abstraction.md)).
+today. Finals come from Ludo.ai, run by the human. Placeholder, sprite and mesh all live behind
+`IUnitView` ([ADR-0004](../engine-systems/decisions/ADR-0004-view-asset-abstraction.md)), and **all
+three implementations now exist** — dropping a folder into `units/` is the whole act of shipping a
+final asset. The 2D-vs-3D question itself is still open.
 
 ## What to Load
 
@@ -21,6 +23,7 @@ today. Finals come from Ludo.ai, run by the human. Both live behind `IUnitView`
 | Game feel pass | `docs/art-direction.md`, the sim event list it hooks | balance data, architecture notes |
 | Build a placeholder | `docs/placeholder-standard.md`, `docs/art-direction.md` §Palette | `prompts/**`, `../docs/engine-guide/**` |
 | Add or change terrain tiles | `tiles/README.md` alone — it is the whole contract | `../engine-systems/**`, `../content-data/**`, sim internals |
+| Add or change final unit art | `units/README.md` alone | `../engine-systems/**`, `../content-data/**`, sim internals |
 | Write asset prompts | `docs/ludo-prompt-guide.md`, `prompts/README.md`, the two nearest prompt files | the full prompt catalogue, `../engine-systems/**` |
 | Readability check | `../docs/iso-grid.md`, the wave table's peak density | everything else |
 
@@ -40,7 +43,7 @@ today. Finals come from Ludo.ai, run by the human. Both live behind `IUnitView`
 |--------------|----------------|---------|
 | `dotnet build` | Every change | Validates Godot API usage; the only automated check available here |
 | `./run-game.sh --shot <png> [--shot-seed <name>] --shot-after 40` | Every visual change | **Captures a real frame.** Byte-reproducible; diff against the seed's baseline in `docs/`. Use the launcher, never `godot-mono` directly — it builds the C# first, and Godot otherwise renders the assembly already in `.godot/mono` |
-| A new `--shot-seed` in `GameplayScene` | A slice making a *new* visual claim | One seed per claim, so verifying a new cue never perturbs a committed baseline. Seeds: `upgrades`, `sappers` |
+| A new `--shot-seed` in `GameplayScene` | A slice making a *new* visual claim | One seed per claim, so verifying a new cue never perturbs a committed baseline. Seeds: `upgrades`, `sappers`, `repair`, `formats` |
 | `md5sum` on two captures | Before saying "no visual change" | Your eye is wrong about downscaled frames more often than you think |
 | Ludo.ai | Human-operated, after a prompt set is written | Generates the final asset; you write the prompt, they run it |
 | Human sign-off | Before any presentation slice reaches `06-release` | Agents cannot judge how it looks |

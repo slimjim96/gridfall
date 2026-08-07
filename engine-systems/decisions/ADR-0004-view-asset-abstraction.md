@@ -1,7 +1,16 @@
 # ADR-0004 — Put One View Interface Behind Both Sprite and Mesh Assets
 
-**Status:** accepted
+**Status:** accepted · **implemented 2026-08-07**
 **Date:** 2026-08-06 · **Raised by:** asset pipeline planning
+
+> **Both implementations now exist** (`unit-view-formats`): `SpriteUnitView` and
+> `MeshUnitView`, selected by folder convention under `presentation/units/`. Until then only
+> the placeholder had been built, so the insurance this ADR bought had been decided on and
+> not actually bought.
+>
+> **The format question is still open.** The bake-off that closes it is
+> `presentation/prompts/tower-frost-spire.md`; when it returns an answer, record it here and
+> delete the losing half of the pipeline and of every prompt set.
 
 ## Context
 
