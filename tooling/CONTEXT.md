@@ -40,7 +40,7 @@ reimplementing it.
 
 | Skill / Tool | When (trigger) | Purpose |
 |--------------|----------------|---------|
-| `godot-mono --editor` | Board editor work | The only way to exercise it; agents cannot see the result |
+| `./run-editor.sh <map>` | Board editor work | The only way to exercise it; agents cannot see the result. Use the launcher: it builds the C# first, and Godot otherwise runs the assembly already in `.godot/mono` |
 | `dotnet build` | Every change | Compile gate |
 | Release export check | Any change under `godot/Dev/` | Prove dev tools are absent from a shipped build |
 | Human sign-off | Any UI change | An editor's usability is not agent-verifiable |

@@ -159,4 +159,7 @@ The sub-unit test is the one that catches the real bug. Write it first.
 - [ ] Iterates by ascending id
 - [ ] Emits facts, not visual instructions
 - [ ] Snapshot round-trip passes
+- [ ] Trace re-recorded — **after** diagnosing which tick it diverged at and why
+- [ ] Any new player-visible state has a view cue. Persistent state is a property on `IUnitView`, never
+      a clip: a clip replays on reload and does not survive the view being recreated
 - [ ] Chapter 02 updated

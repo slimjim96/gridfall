@@ -13,7 +13,10 @@ Stable reference. Load it when a term in a spec is doing work you can't pin down
 | **Maze / mazing** | Placing towers to lengthen the path rather than to block it. Gridfall supports it — see the never-fully-blockable rule. |
 | **Dirty grid** | The walkable grid changed this tick, so pathing must recompute. The only trigger for a recompute. |
 | **Flow field** | One pass over the whole grid producing a per-cell "step this way" direction. Replaces per-creep A*. See ADR-0003. |
-| **Acquisition** | A tower choosing its target for the tick. Deterministic: fixed priority rule, ties broken by entity id. |
+| **Acquisition** | Choosing a target for the tick — a tower picking a creep, or a sapper picking a tower. Deterministic: fixed priority rule, ties broken by entity id. |
+| **Structure health** | A tower's `hp`. Towers are destructible; at zero the tower is removed and its cell frees. Large relative to per-hit damage because it is measured against cumulative attack throughput, not one hit. |
+| **Sapper** | The archetype that attacks towers while walking. Shorthand for any enemy with `attackDamage > 0`; `0` is the default, so every other enemy ignores towers. |
+| **Attrition** | Defence lost to destruction rather than spent. The reason *towers built* and *towers standing* are now different numbers. |
 | **Gold curve** | Gold held over time across a run. A balance target, not a knob. |
 | **Time-to-clear** | Ticks from wave start to the last creep of that wave dying or leaking. |
 | **Pressure** | How hard a wave pushes the player's current defense. Design language, measured by leak rate in the sim. |

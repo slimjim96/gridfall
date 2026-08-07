@@ -3,7 +3,7 @@
 A dev-only scene inside the game project for painting maps and immediately playing them.
 
 > **Status 2026-08-06: built.** `godot/Dev/BoardEditor.cs`, launched with
-> `godot-mono --path godot --scene res://Dev/BoardEditor.tscn -- --map <id>`.
+> `./run-editor.sh <id>`.
 > Built and verified in `production/05-verify/board-editor-report.md`.
 > **To actually use it, read [board-editor-guide.md](board-editor-guide.md)** — this file is the spec,
 > not a tutorial.
@@ -19,7 +19,7 @@ two things is out of scope.
 
 ## Where it lives
 
-`godot/Dev/BoardEditor.tscn`, launched from a dev menu or `godot-mono --scene Dev/BoardEditor.tscn`.
+`godot/Dev/BoardEditor.tscn`, launched from a dev menu or `./run-editor.sh <id>`.
 
 A scene in the game project, not a Godot `EditorPlugin` and not a separate app. The reason is single:
 **it reuses the real renderer, the real `IsoGrid` mapping, and the real map loader.** What you paint is

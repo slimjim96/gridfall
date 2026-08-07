@@ -187,7 +187,7 @@ a content decision, not an accident of layout.
 ```json
 {
   "map": "crossroads",
-  "hpGrowth": 1.03,
+  "hpGrowth": 1.08,
   "waves": [
     { "index": 1, "entries": [ { "enemy": "runner", "count": 8, "spacingTicks": 18, "spawn": 0 } ] },
     { "index": 2, "entries": [ { "enemy": "runner", "count": 12, "spacingTicks": 15, "spawn": 0 },

@@ -99,6 +99,7 @@ dotnet run --project Gridfall.Verify -- perf    # tick cost vs the 8ms budget
 ./run-game.sh                                   # play it
 ./run-editor.sh crossroads                      # board editor
 ./run-game.sh --shot /tmp/x.png --shot-after 40 # byte-reproducible capture
+./run-game.sh --shot /tmp/x.png --shot-seed sappers --shot-after 40   # a named board state
 ./run-game.sh --headless --quit                 # scene/resource wiring check
 ```
 
@@ -107,6 +108,19 @@ The mode is a bare word, not a flag — `-- balance`, never `-- --balance`.
 Use the launchers rather than calling Godot directly. They find the pinned 4.6.3 mono binary, put
 engine flags before Godot's `--` and game flags after (an engine flag on the wrong side is silently
 ignored), and report a missing display or binary in one line instead of a page of ALSA noise.
+
+**They also build the C# first, and refuse to launch if it fails.** Godot does not rebuild on run — it
+loads whatever assembly is already in `.godot/mono`, so an edited script silently runs as its previous
+version. That is indistinguishable from a change that had no effect, and it cost three captures of code
+that had never been compiled.
+
+`--shot-seed` picks which board state the capture sets up. Each slice that makes a visual claim owns
+one, so verifying a new cue never perturbs a committed baseline:
+
+| Seed | Board | Baseline |
+|---|---|---|
+| `upgrades` (default) | A level-2 tower beside a level-1 one | `presentation/docs/board-baseline.png` |
+| `sappers` | Wave 7, sappers mid-attack, a tower at 28% health | `presentation/docs/sapper-baseline.png` |
 
 ## C# conventions
 

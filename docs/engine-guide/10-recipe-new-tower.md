@@ -45,6 +45,7 @@ not exist, you are not adding a tower, you are adding a system that happens to h
   "range": 2.5,
   "cooldown": 1.2,
   "damage": 0,
+  "hp": 800,
   "targeting": "furthest-along-path",
   "effects": [
     { "kind": "slow", "amount": 0.35, "durationSeconds": 1.5, "radius": 1.0 }
@@ -54,6 +55,9 @@ not exist, you are not adding a tower, you are adding a system that happens to h
 
 - Seconds here, ticks inside Core — the loader converts once
   ([Chapter 07](07-content-loading.md)).
+- `hp` is structure health; enemies can destroy towers. It defaults to 100, which is almost certainly
+  too low — the shipped towers are 800 and 1440, because tower loss is driven by cumulative attack
+  throughput rather than damage per hit.
 - `0.35` becomes `Fix32` through `FromFraction(35, 100)`. No float exists in that path.
 - The values come from a **balance pass**, not from taste
   ([WF-X1](../../workflows/cross-cutting/content-balance-pass.md)). Ship placeholders if you must, but

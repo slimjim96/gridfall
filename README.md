@@ -52,7 +52,7 @@ workflows/<one workflow>       → the procedure
 | `Gridfall.Core/` | `net8.0` | The simulation. No Godot, no floats, no clock. |
 | `Gridfall.Io/` | `net8.0` | Reads `content-data/` off disk, so Core never touches the filesystem. |
 | `Gridfall.Verify/` | `net10.0` | Determinism harness, balance sim, map and perf reports. |
-| `Gridfall.Tests/` | `net10.0` | 102 tests. |
+| `Gridfall.Tests/` | `net10.0` | 129 tests. |
 | `godot/` | `net8.0` | Godot 4.6.3 project: renderer, HUD, and the board editor under `Dev/`. |
 
 ## The pipeline
@@ -100,7 +100,7 @@ architecture this project uses is documented for humans in
 ## Running it
 
 ```bash
-dotnet build && dotnet test                                    # 102 tests
+dotnet build && dotnet test                                    # 129 tests
 dotnet run --project Gridfall.Verify -- replay                  # determinism: replay recorded traces
 dotnet run --project Gridfall.Verify -c Release -- balance --map crossroads --runs 30
 ./run-game.sh                                                   # play it

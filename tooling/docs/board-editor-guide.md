@@ -23,7 +23,7 @@ display or the binary is missing instead of leaving you to read a page of ALSA n
 ### The raw command, and why it bites
 
 ```bash
-godot-mono --path ~/projects/claude/gridfall/godot --scene res://Dev/BoardEditor.tscn -- --map crossroads
+./run-editor.sh crossroads
 ```
 
 Three ways this goes wrong:
@@ -41,7 +41,7 @@ Three ways this goes wrong:
 
 ### From inside the Godot editor
 
-1. Open the project: `godot-mono --path ~/projects/claude/gridfall/godot --editor`
+1. Open the project: `./run-editor.sh --editor`
 2. In the **FileSystem** dock (bottom left), open `Dev/` and double-click `BoardEditor.tscn`
 3. Press **F6** (*Run Current Scene*), or the ▶ with a clapperboard icon, top right
 

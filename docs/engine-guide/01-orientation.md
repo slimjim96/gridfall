@@ -54,9 +54,15 @@ Gridfall.Core
 └── Events/  SimEvent and its variants
 ```
 
-The rule for `Systems/`: **one file per phase of the tick loop**, named for what it does, in the order
-it runs. If you cannot say which phase your new file belongs to, read [Chapter 02](02-tick-loop.md)
-before writing it.
+The rule for `Systems/`: **every file belongs to exactly one phase of the tick loop**, named for what
+it does, in the order it runs. If you cannot say which phase your new file belongs to, read
+[Chapter 02](02-tick-loop.md) before writing it.
+
+Usually that is one file per phase. Phase 5 is the exception: `TargetingSystem` then
+`EnemyAttackSystem`, because combat runs in both directions and acquiring a target is the same
+operation with the roles swapped. Their order within the phase is fixed and load-bearing
+([ADR-0006](../../engine-systems/decisions/ADR-0006-enemy-attacks-in-phase-five.md)). **Adding a phase
+still requires an ADR; adding a second system to an existing one required this one.**
 
 ## The public surface
 
@@ -101,7 +107,7 @@ dotnet run --project Gridfall.Verify -- --trace path-recompute-baseline --verbos
 # 200 headless runs for balance
 dotnet run --project Gridfall.Verify -- --balance --map crossroads --runs 200 --seed 1
 
-godot-mono --headless --quit                            # scene/resource wiring check, no display needed
+./run-game.sh --headless --quit                         # scene/resource wiring check, no display needed
 ```
 
 The harness needs no Godot and no display. That is the whole reason for the project split, and it is

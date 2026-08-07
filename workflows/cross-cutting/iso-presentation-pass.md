@@ -40,7 +40,7 @@ hooks, or readability at a new wave density.
    comfortable one. Silhouette first, color second.
 8. **[deterministic]** `dotnet build` (0/0), then **capture a frame and look at it**:
    ```bash
-   godot-mono --path godot -- --shot /tmp/shot.png --shot-after 40
+   ./run-game.sh --shot /tmp/shot.png --shot-after 40
    ```
    Shot mode freezes the simulation after a fixed number of deterministic steps and uses a fixed
    frame delta, so the capture is byte-reproducible. Diff it against
@@ -72,7 +72,7 @@ A spec in `presentation/specs/[slug]-render.md` or `[slug]-ui.md`, plus the Godo
 ## Readability
 Checked at density: … · Silhouettes distinct: yes / no
 ## Verified
-`dotnet build` … · `godot-mono --headless --quit` …
+`dotnet build` … · `./run-game.sh --headless --quit` …
 ## What a Human Must Look At
 1. …
 ```

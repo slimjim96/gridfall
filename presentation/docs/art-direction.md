@@ -63,7 +63,7 @@ drown out a leak.
 references. Refresh with:
 
 ```bash
-godot-mono --path godot -- --shot presentation/docs/board-baseline.png --shot-after 40
+./run-game.sh --shot presentation/docs/board-baseline.png --shot-after 40
 ```
 
 Both are current as of 2026-08-06, re-captured after the `tower-upgrades` seed change and verified

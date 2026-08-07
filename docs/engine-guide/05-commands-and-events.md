@@ -72,11 +72,18 @@ contiguous array the renderer walks once.
 | `CreepSpawned` | 3 | Entity id A, def B |
 | `PathRecomputed` | 2 | New field version A |
 | `BuildPlaced` / `BuildRejected` | 1 | Cell, tower def / reject reason |
+| `TowerSold` | 1 | Tower A sold for refund B |
+| `TowerUpgraded` / `UpgradeRejected` | 1 | Tower A, new level B / reject reason A, tower B |
+| `CreepStranded` | 4 | Creep A has no route. Should be impossible — the block check exists to prevent it |
 | `TowerFired` | 5 | Tower A targeted creep B |
-| `CreepDamaged` / `CreepDied` | 7 | Creep A, amount B |
+| `CreepDamaged` / `CreepDied` | 7 | Creep A, amount B / creep A, def B |
+| `TowerDamaged` | 7 | Tower A took B damage from an enemy attack |
+| `TowerDestroyed` | 7 | Tower A destroyed at level B. Its cell is free, but pathing updates **next** tick — phase 2 has already run (ADR-0006) |
 | `CreepLeaked` | 7 | Creep A reached the goal |
 | `GoldChanged` / `LivesChanged` | 8 | New value A, delta B |
+| `GameOver` | 8 | Lives reached zero |
 | `CapacityExceeded` | 3, 6 | A cap was hit |
+| `WaveCleared` | 9 | Wave A has no creeps left alive |
 
 ### Rules for events
 

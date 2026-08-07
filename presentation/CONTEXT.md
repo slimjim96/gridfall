@@ -38,7 +38,8 @@ today. Finals come from Ludo.ai, run by the human. Both live behind `IUnitView`
 | Skill / Tool | When (trigger) | Purpose |
 |--------------|----------------|---------|
 | `dotnet build` | Every change | Validates Godot API usage; the only automated check available here |
-| `godot-mono --path godot -- --shot <png> --shot-after 40` | Every visual change | **Captures a real frame.** Byte-reproducible; diff against `docs/board-baseline.png` |
+| `./run-game.sh --shot <png> [--shot-seed <name>] --shot-after 40` | Every visual change | **Captures a real frame.** Byte-reproducible; diff against the seed's baseline in `docs/`. Use the launcher, never `godot-mono` directly — it builds the C# first, and Godot otherwise renders the assembly already in `.godot/mono` |
+| A new `--shot-seed` in `GameplayScene` | A slice making a *new* visual claim | One seed per claim, so verifying a new cue never perturbs a committed baseline. Seeds: `upgrades`, `sappers` |
 | `md5sum` on two captures | Before saying "no visual change" | Your eye is wrong about downscaled frames more often than you think |
 | Ludo.ai | Human-operated, after a prompt set is written | Generates the final asset; you write the prompt, they run it |
 | Human sign-off | Before any presentation slice reaches `06-release` | Agents cannot judge how it looks |
