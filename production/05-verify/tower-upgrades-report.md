@@ -1,6 +1,6 @@
 # Tower Upgrades — Verification
 
-**Slug:** `tower-upgrades` · **Status:** review · **Verdict:** PASS, with one criterion unverifiable
+**Slug:** `tower-upgrades` · **Status:** review · **Verdict:** PASS — all twelve criteria
 
 ## Gates
 
@@ -9,7 +9,7 @@
 | `dotnet build` (5 projects) | PASS | 0 warnings, 0 errors |
 | `dotnet test` | PASS | **113 passed**, 0 failed (was 102; +11) |
 | Determinism trace | PASS | 30/30 after a deliberate re-record — see below |
-| Visual capture | **UNAVAILABLE** | The X display is gone; see "Visual verification lost" |
+| Visual capture | PASS | Re-captured 2026-08-06 once the RDP session returned |
 
 ## Criteria
 
@@ -20,7 +20,7 @@
 | 3 | Max level refuses further upgrades, visibly | PASS | `AtMaxLevel_FurtherUpgradesAreRefused` — `AlreadyMaxLevel`, no gold spent |
 | 4 | Insufficient gold is refused, nothing spent | PASS | `WithoutEnoughGold_TheUpgradeIsRefusedAndNothingIsSpent` |
 | 5 | Selling accounts for upgrades, never exceeds spend | PASS | `UpgradingThenSelling_IsNeverProfitable` — asserts both bounds |
-| 6 | **Tower level visible on the board** | **NOT VERIFIED** | Implemented (taller + brighter per level) and compiling. **Could not be seen** — see below |
+| 6 | **Tower level visible on the board** | **PASS** | `board-baseline.png`: the level-2 tower is visibly taller and brighter than the level-1 one beside it. Height carries it, so the cue survives greyscale |
 | 7 | Identical inputs still produce identical hashes | PASS | `ScalingDoesNotBreakDeterminism` + the trace gate |
 | 8 | Mutating tower level changes the hash | PASS | `Hash_Covers_TowerLevel` |
 | 9 | Snapshot preserves tower levels | PASS | `Snapshot_PreservesTowerLevels` |
@@ -47,21 +47,31 @@ a late-game gold sink cannot touch it. Waves 6–11 still leak zero.
 
 Upgrades fixed the economy. They did not fix the difficulty curve, and were never going to.
 
-## Visual verification lost
+## Visual verification lost, then regained
 
-Frames could be captured for the last four slices because `DISPLAY=:10` was an **xrdp** session. That
-session has ended, taking its X server with it — `/tmp/.X11-unix` now has only the lightdm console
-`X0`, which refuses authorization.
+Frames can be captured only because `DISPLAY=:10` is an **xrdp** session. Mid-slice that session ended,
+taking its X server with it, and for a while criterion 6 was unverifiable and the committed baseline
+was stale — a stale baseline being worse than none, since it produces a false failure for whoever
+diffs it next.
 
-Consequences, stated rather than worked around:
+Worth keeping as a standing fact: **visual verification on this machine depends on someone being
+connected over RDP.** It is not always available.
 
-- **Criterion 6 is unverified.** The level cue is written and compiles; nobody has seen it.
-- **`presentation/docs/board-baseline.png` is now stale.** The screenshot seed was changed to include
-  an upgraded tower, so the committed baseline no longer matches what shot mode produces. A stale
-  baseline is worse than none — it will produce a false failure for whoever diffs it next. Flagged
-  here and as a follow-up rather than deleted, because the image is still a useful reference.
+**Both closed on 2026-08-06** when the RDP session returned. Baselines re-captured and verified
+byte-reproducible; criterion 6 confirmed.
 
-Both close by reconnecting over RDP and re-running the capture. Follow-up `refresh-baselines`.
+Getting a *useful* capture took four attempts, each a real defect in the screenshot seed rather than in
+the feature:
+
+1. Three towers cost 190 of 200 gold, so the upgrade was correctly refused for insufficient funds and
+   the capture showed no cue at all — it would have "verified" nothing.
+2. Waiting a guessed 55 ticks for the comparison tower missed the 50-gold threshold by two.
+3. The wait loop consumed its whole tick budget, leaving no tick to *apply* the queued build.
+4. Upgrade and build were both queued before either applied, so the gold check read the pre-upgrade
+   150 and skipped the wait entirely.
+
+All four are the same underlying thing: **a command queued is not a command applied.** Phase 1 is next
+tick, and a seed that reads state between an enqueue and its tick sees the past.
 
 ## Trace re-recorded
 
@@ -84,10 +94,9 @@ shape makes upgrade tests pass vacuously in the other direction too. Comment add
 
 | What | Why |
 |---|---|
-| Criterion 6, the level cue | No display. |
 | Any player interaction with upgrades | There is **no input binding** for upgrade in the gameplay scene — the command exists and the policy uses it, but a human cannot upgrade anything yet. Deliberate scope: the slice's purpose was the economy. Follow-up `upgrade-input`. |
 | Whether upgrading *feels* like a real choice | Needs a human playing, and the input to play with. |
 
 ## Branch Resolution
 
-None — PASS. Criterion 6 is unverifiable rather than failed, and recorded as such.
+None — PASS on all twelve criteria.

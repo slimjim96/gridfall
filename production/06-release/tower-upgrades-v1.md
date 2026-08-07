@@ -55,13 +55,12 @@ author who makes upgrades too cheap breaks the build.
 |---|---|---|
 | Input binding so a human can actually upgrade | presentation | `upgrade-input` |
 | **Wave 3 is an economy cliff** — 21.5% leak with 12 gold in hand. Now the single thing between this and a tunable game | content-data | `early-economy` |
-| Refresh the visual baselines; the committed one is stale | presentation | `refresh-baselines` |
 | Branching upgrade paths, if the linear track proves too thin a decision | game-design | `upgrade-branches` |
 
 ## Known Not Verified
 
-- **Tower level is visible on the board** — implemented, compiles, never seen. The X display used for
-  the last four slices was an xrdp session that has since ended.
-- **`presentation/docs/board-baseline.png` is stale** and will produce a false failure if diffed. The
-  screenshot seed now includes an upgraded tower.
-- Whether upgrading *feels* like a real choice. Needs a human, and needs the input first.
+- ~~Tower level is visible on the board~~ — **verified 2026-08-06.** The level-2 tower reads as taller
+  and brighter beside a level-1 one in `board-baseline.png`.
+- ~~Baselines are stale~~ — **re-captured 2026-08-06**, byte-reproducible across two runs.
+- Whether upgrading *feels* like a real choice. Needs a human, and needs the input binding first
+  (`upgrade-input`).

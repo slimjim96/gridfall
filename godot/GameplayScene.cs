@@ -234,28 +234,43 @@ public sealed partial class GameplayScene : Node3D
     private void SeedForScreenshot()
     {
         ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
-        ushort cannon = _driver.Content.TowerIndexOf("cannon");
 
-        _driver.Enqueue(new BuildCommand(new GridCell(2, 3), arrow));
-        _driver.Enqueue(new BuildCommand(new GridCell(6, 5), arrow));
-        _driver.Enqueue(new BuildCommand(new GridCell(9, 3), cannon));
+        // Budgeted deliberately. Starting gold is 200 and a level-2 upgrade costs
+        // 110, so the first attempt at this seed built three towers, had 18 gold
+        // left, and the upgrades were correctly refused -- producing a capture
+        // that showed no level cue at all and "verified" nothing.
+        _driver.Enqueue(new BuildCommand(new GridCell(2, 3), arrow));   // 200 -> 150
+        _driver.StepOneTick();
+
+        int upgraded = _driver.State.TowerId(_driver.State.TowerSlotByOrder(0));
+        _driver.Enqueue(new UpgradeCommand(upgraded));                   // 150 -> 40
+        _driver.StepOneTick();   // apply it before reading gold: a command queued
+                                 // is not a command applied, and checking too
+                                 // early saw 150 and skipped the wait entirely.
         _driver.Enqueue(new StartWaveCommand());
 
-        for (int t = 0; t < 40; t++) _driver.StepOneTick();
+        // Wait for affordability rather than guessing a tick count -- the first
+        // attempt guessed 55 and missed the 50-gold build by two.
+        int waited = 0;
+        while (_driver.State.Gold < 50 && waited < 240) { _driver.StepOneTick(); waited++; }
 
-        // Upgrade one tower twice so the capture shows the level cue -- otherwise
-        // "level is visible on the board" goes unverified.
-        int firstTower = _driver.State.TowerId(_driver.State.TowerSlotByOrder(0));
-        _driver.Enqueue(new UpgradeCommand(firstTower));
-        _driver.StepOneTick();
-        _driver.Enqueue(new UpgradeCommand(firstTower));
-        for (int t = 0; t < 49; t++) _driver.StepOneTick();
+        // A plain neighbour, so the level cue has something to be compared against.
+        // Always leave ticks AFTER the enqueue: the first version spent its whole
+        // budget waiting, then enqueued a command that no tick ever applied.
+        _driver.Enqueue(new BuildCommand(new GridCell(6, 5), arrow));
+        for (int t = 0; t < 30; t++) _driver.StepOneTick();
 
-        // Printed so it can be diffed against a headless run of the same script:
-        // if the renderer is touching simulation state, this is where it shows.
+        var levels = new System.Text.StringBuilder();
+        for (int k = 0; k < _driver.State.TowerCount; k++)
+        {
+            int slot = _driver.State.TowerSlotByOrder(k);
+            levels.Append($" t{_driver.State.TowerId(slot)}=L{_driver.State.TowerLevel(slot)}");
+        }
+
         GD.Print($"shot-state: tick={_driver.TickCount} hash={_driver.Sim.Hash():x16} " +
                  $"gold={_driver.State.Gold} lives={_driver.State.Lives} " +
-                 $"creeps={_driver.State.CreepCount} towers={_driver.State.TowerCount}");
+                 $"creeps={_driver.State.CreepCount} towers={_driver.State.TowerCount}" +
+                 $" levels:{levels}");
     }
 
     private bool _capturing;

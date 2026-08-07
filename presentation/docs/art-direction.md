@@ -66,10 +66,13 @@ references. Refresh with:
 godot-mono --path godot -- --shot presentation/docs/board-baseline.png --shot-after 40
 ```
 
-> **Both are STALE as of 2026-08-06.** The `tower-upgrades` slice changed the screenshot seed to include
-> an upgraded tower, and no display was available to re-capture — the X server they were made on was an
-> xrdp session that has since ended. **Diffing against them right now produces a false failure.**
-> Re-capture over RDP before trusting either. Follow-up `refresh-baselines`.
+Both are current as of 2026-08-06, re-captured after the `tower-upgrades` seed change and verified
+byte-reproducible across two runs. `board-baseline.png` deliberately contains a level-2 tower beside a
+level-1 one, so the upgrade cue has something to be compared against.
+
+> The display on this VM belongs to the **RDP session**. When you disconnect, `DISPLAY=:10` keeps
+> pointing at an X server that no longer exists and captures stop working — the launchers say so in
+> one line rather than leaving you to read Godot's error.
 
 ## What NOT to do
 
