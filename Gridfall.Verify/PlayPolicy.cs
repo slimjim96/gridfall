@@ -22,7 +22,8 @@ namespace Gridfall.Verify;
 ///   4. When there is nowhere useful left to build, upgrade the tower covering
 ///      the most of the route instead. Board saturation is exactly the moment
 ///      upgrades are for.
-///   5. Start the next wave as soon as the board is clear.
+///   5. Spend down BEFORE pulling the next wave, not during it. A real player
+///      with 200 gold in hand does not start wave 1 with one tower.
 ///   6. Never sell, never re-maze deliberately.
 ///
 /// That is a reasonable beginner who understands coverage: clearly better than
@@ -79,10 +80,19 @@ public sealed class PlayPolicy
     {
         SimStateView state = _sim.State;
 
-        // Wave management: clear board, no wave running -> send the next one.
+        // Between waves: spend down first, one purchase per tick, and only pull
+        // the next wave once the gold is committed.
+        //
+        // The previous version made a single build attempt and started the wave
+        // immediately, so the policy entered wave 1 with ONE tower while holding
+        // 200 gold -- four towers' worth. That made the early game look like an
+        // economy problem when it was the policy failing to spend.
         if (!state.WaveActive && state.CreepCount == 0)
         {
-            TryBuild();                       // spend before the wave lands
+            if (_sim.TickCount < _nextBuildTick) return;
+            if (TryBuild()) return;
+            if (TryUpgrade()) return;
+
             _sim.Enqueue(new StartWaveCommand());
             return;
         }
@@ -91,27 +101,27 @@ public sealed class PlayPolicy
         TryBuild();
     }
 
-    private void TryBuild()
+    /// <returns>True if a build was queued this tick.</returns>
+    private bool TryBuild()
     {
         _nextBuildTick = _sim.TickCount + BuildCooldownTicks;
 
         ushort? choice = BestAffordableTower();
-        if (choice is not { } towerIndex) return;
+        if (choice is not { } towerIndex) return false;
 
         int cell = BestPlacement(_sim.Content.Tower(towerIndex));
         if (cell < 0)
         {
-            // Nowhere useful to build. Before this existed the policy simply
-            // stopped spending and gold ran away -- which is the economy hole
-            // upgrades are meant to close.
+            // Nowhere useful to build. Before upgrades existed the policy simply
+            // stopped spending here and gold ran away.
             NoPlacementFound++;
-            TryUpgrade();
-            return;
+            return TryUpgrade();
         }
 
         _sim.Enqueue(new BuildCommand(
             new GridCell(cell % _sim.Map.Width, cell / _sim.Map.Width), towerIndex));
         BuildsPlaced++;
+        return true;
     }
 
     /// <summary>
@@ -121,13 +131,14 @@ public sealed class PlayPolicy
     /// upgrading costs more per point of damage than a new tower, so a player who
     /// upgrades while good spots remain is playing badly.
     /// </summary>
-    private void TryUpgrade()
+    /// <returns>True if an upgrade was queued this tick.</returns>
+    private bool TryUpgrade()
     {
         SimStateView state = _sim.State;
         MapDef map = _sim.Map;
 
         int routeLength = _sim.Path.TraceRoute(map.Index(map.Spawns[0]), _routeBuffer);
-        if (routeLength == 0) return;
+        if (routeLength == 0) return false;
 
         int bestTowerId = -1;
         int bestScore = -1;
@@ -148,10 +159,11 @@ public sealed class PlayPolicy
             bestTowerId = state.TowerId(slot);
         }
 
-        if (bestTowerId < 0) return;
+        if (bestTowerId < 0) return false;
 
         _sim.Enqueue(new UpgradeCommand(bestTowerId));
         UpgradesBought++;
+        return true;
     }
 
     /// <summary>

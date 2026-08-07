@@ -222,13 +222,21 @@ int Balance()
     int totalSpawned = 0, totalLeaked = 0, runsLost = 0, totalBuilds = 0, noPlacement = 0, refused = 0, upgrades = 0;
     var towersStanding = new List<int>();
     var goldAtWave = new List<int>[waveCount];
-    for (int i = 0; i < waveCount; i++) goldAtWave[i] = new List<int>();
+    var towersAtWave = new List<int>[waveCount];
+    var spentByWave = new List<int>[waveCount];
+    for (int i = 0; i < waveCount; i++)
+    {
+        goldAtWave[i] = new List<int>();
+        towersAtWave[i] = new List<int>();
+        spentByWave[i] = new List<int>();
+    }
     var finalLives = new List<int>();
 
     for (int run = 0; run < runs; run++)
     {
         var sim = new Sim(map, content, baseSeed + (uint)run);
         var policy = new PlayPolicy(sim, baseSeed + (uint)run);
+        int earned = 0;
 
         int wave = 0;
         int waveStartTick = 0;
@@ -245,7 +253,15 @@ int Balance()
                 wave = sim.State.WaveIndex - 1;
                 waveStartTick = sim.TickCount;
                 counted = false;
-                if (wave >= 0 && wave < waveCount) goldAtWave[wave].Add(sim.State.Gold);
+                if (wave >= 0 && wave < waveCount)
+                {
+                    goldAtWave[wave].Add(sim.State.Gold);
+                    // Defence actually on the board, and cumulative income --
+                    // the two numbers that separate "the player is poor" from
+                    // "the wave is too strong".
+                    towersAtWave[wave].Add(sim.State.TowerCount);
+                    spentByWave[wave].Add(earned);
+                }
             }
 
             foreach (SimEvent e in sim.Events.Span)
@@ -253,6 +269,7 @@ int Balance()
                 if (wave < 0 || wave >= waveCount) continue;
                 if (e.Kind == EventKind.CreepSpawned) { perWaveSpawned[wave]++; totalSpawned++; }
                 if (e.Kind == EventKind.CreepLeaked) { perWaveLeaked[wave]++; totalLeaked++; }
+                if (e.Kind == EventKind.GoldChanged && e.B > 0) earned += e.B;
                 if (e.Kind == EventKind.WaveCleared && !counted)
                 {
                     perWaveTicks[wave].Add(sim.TickCount - waveStartTick);
@@ -286,7 +303,7 @@ int Balance()
     Console.WriteLine($"  {"runs lost",-22} {lostRate,6:F1}%        15-30% late  {Verdict(lostRate is >= 0 and <= 60)}");
     Console.WriteLine($"  {"lives left (avg)",-22} {finalLives.Average(),6:F1}");
     Console.WriteLine();
-    Console.WriteLine($"  {"wave",-6} {"spawned",-9} {"leaked",-9} {"leak%",-8} {"ticks",-8} {"gold at start",-14}");
+    Console.WriteLine($"  {"wave",-6} {"spawned",-9} {"leaked",-9} {"leak%",-8} {"ticks",-8} {"gold",-7} {"towers",-8} {"earned so far",-14}");
 
     for (int w = 0; w < waveCount; w++)
     {
@@ -294,7 +311,9 @@ int Balance()
         string ticks = perWaveTicks[w].Count > 0 ? $"{perWaveTicks[w].Average():F0}" : "-";
         string gold = goldAtWave[w].Count > 0 ? $"{goldAtWave[w].Average():F0}" : "-";
         string flag = wl > 15.0 ? "  <-- over the 15% per-wave target" : "";
-        Console.WriteLine($"  {w + 1,-6} {perWaveSpawned[w],-9} {perWaveLeaked[w],-9} {wl,-8:F1} {ticks,-8} {gold,-14}{flag}");
+        string towers = towersAtWave[w].Count > 0 ? $"{towersAtWave[w].Average():F1}" : "-";
+        string earnedSo = spentByWave[w].Count > 0 ? $"{spentByWave[w].Average():F0}" : "-";
+        Console.WriteLine($"  {w + 1,-6} {perWaveSpawned[w],-9} {perWaveLeaked[w],-9} {wl,-8:F1} {ticks,-8} {gold,-7} {towers,-8} {earnedSo,-14}{flag}");
     }
 
     Console.WriteLine();
