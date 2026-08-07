@@ -68,9 +68,36 @@ Form: <same silhouette description>
 Palette: <same slot and accent>
 Output: 3D model, glTF (.glb), Y-up, origin at the base center, real-world scale where 1 unit = 1 grid cell
 Topology: low poly, under 1500 triangles, single material, no subdivision
-Textures: 512×512 albedo only, no normal map, no roughness map
+Textures: 1024×1024 albedo only, no normal map, no roughness map
 Negative: ground plane, base pedestal, text, high-frequency surface detail
 ```
+
+### Ludo.ai export settings
+
+Not preferences. Each one falls out of a number in this engine.
+
+| Setting | Use | Why |
+|---|---|---|
+| **File type** | **`.glb`** | `UnitAssets` globs `*.glb` and `MeshUnitView` loads it with `GltfDocument.AppendFromFile`. A `.gltf` with sidecar textures is not found and would not carry its maps. |
+| **Max triangles** | **the 1k floor** | A tower is **25×68 px** on screen at default zoom and **37×100 px** at maximum zoom-in. 1,000 triangles is already more triangles than the silhouette has pixels. |
+| **Adaptive decimation** | **push it hard**, then check | Interior detail is invisible at 37 px wide; silhouette is the whole readability budget. Verify in greyscale against a neighbouring tower — the check that already governs placeholders. |
+| **PBR / Color / None** | **Color** | `MeshUnitView` overwrites roughness, metallic and specular on import to hold the flat-matte art direction. PBR maps would be generated and then discarded. |
+| **Resolution** | **1024** | Already 10× linear oversampling at maximum zoom. 2048 is 20× — bytes and import time for texels no screen ever shows. |
+
+**Why the triangle budget is tight and not fussiness.** Peak density is real: `crossroads` spawns
+**147 creeps at wave 12** and has **76 buildable cells**, so the worst case is order 150 units on
+screen at once. At the 1k floor that is 0.15 M triangles per frame; at the 200k ceiling it is **30 M**,
+which no amount of GPU makes sensible — and the dev machine here renders on `llvmpipe`, in software,
+with no GPU at all.
+
+**Colour, not PBR, has a consequence worth knowing.** With albedo only, any ambient occlusion has to
+be *baked into the albedo*. That is correct here — units are lit by the scene's one directional light
+(terrain is unshaded, units are not), so baked AO plus real-time directional is exactly how the
+placeholders already read.
+
+**A static `.glb` is fine to ship.** `MeshUnitView.PlayClip` ignores a clip the asset does not have,
+per `IUnitView`. So a model with no animation works today and simply does not animate; clips can be
+added later with no code change. Do not hold up the roster waiting for animated export.
 
 - **Origin at the base center, Y-up.** Gridfall places units by grid cell; an origin anywhere else means
   every asset needs a per-asset offset, which is exactly the kind of thing that gets lost.

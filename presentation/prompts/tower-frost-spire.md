@@ -105,9 +105,20 @@ to anything described as ice, and spikes destroy the narrow silhouette this towe
 > Output: 3D model, glTF (.glb), Y-up, origin at the base center, real-world scale where 1 unit =
 > 1 grid cell. The model is 1.60 units tall and 0.52 units wide.
 > Topology: low poly, under 1500 triangles, single material, no subdivision
-> Textures: 512×512 albedo only, no normal map, no roughness map
+> Textures: 1024×1024 albedo only, no normal map, no roughness map
 > Negative: ground plane, base pedestal, text, high-frequency surface detail, motion blur, glossy
 > reflections, snow on the ground, icicles, crystals radiating outward
+
+**Ludo.ai export settings for this run** — `.glb`, max triangles at the **1k floor**, adaptive
+decimation pushed hard, **Color** (not PBR), **1024** resolution. Each falls out of a number in the
+engine rather than a preference; the arithmetic is in
+[`ludo-prompt-guide.md`](../docs/ludo-prompt-guide.md) §Ludo.ai export settings. In short: a tower is
+37×100 px at maximum zoom, peak density is order 150 units on screen, and `MeshUnitView` overwrites
+the PBR channels on import anyway.
+
+**A static model is a valid return.** `PlayClip` ignores clips the asset does not have, so a `.glb`
+with no animation passes every check below except the animation ones — which are not part of the
+bake-off. Do not spend iterations chasing animated export before the format is settled.
 
 ---
 
@@ -141,8 +152,8 @@ Run these on both returns. **Measure; do not eyeball.** Every number here comes 
 |---|---|---|
 | M1 | Origin at base centre, Y-up | Import and drop at the world origin. If it sinks or floats, every asset needs a per-asset offset — the thing that always gets lost. |
 | M2 | Scale is 1 unit = 1 cell | Should arrive **1.60 tall**. Arbitrary scale is the second most common import problem. |
-| M3 | Under 1500 triangles, single material | Check the import report, not the vibe |
-| M4 | Albedo only | A normal map fights the flat-matte direction and costs import time |
+| M3 | Under 1500 triangles, single material | Check the import report, not the vibe. Exported at the 1k floor there is no reason to be near this. |
+| M4 | Albedo only, 1024² | Export as **Color**, not PBR: `MeshUnitView` overwrites roughness/metallic/specular on import, so PBR maps are generated and discarded. Any AO must be baked into the albedo. |
 | M5 | Geometry is clean, not a blob | Photogrammetry-style mush is unusable at this poly budget regardless of how it looks in the preview |
 
 ---
