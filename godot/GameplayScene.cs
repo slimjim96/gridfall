@@ -20,6 +20,14 @@ public sealed partial class GameplayScene : Node3D
 {
     private const string MapId = "crossroads";
 
+    /// <summary>
+    /// Set by the board editor before switching scenes: play THIS map, unsaved.
+    /// Playtesting a map you have not written to disk is the entire point of F5.
+    /// </summary>
+    public static MapDef? PlaytestDraft;
+
+    private bool _fromEditor;
+
     private SimDriver _driver = null!;
     private WorldRenderer _world = null!;
     private UnitRenderer _units = null!;
@@ -41,7 +49,9 @@ public sealed partial class GameplayScene : Node3D
         ParseCommandLine();
 
         string root = ContentFiles.FindRepoRoot();
-        MapDef map = ContentFiles.LoadMap(root, MapId);
+        MapDef map = PlaytestDraft ?? ContentFiles.LoadMap(root, MapId);
+        _fromEditor = PlaytestDraft is not null;
+        PlaytestDraft = null;
         ContentSet content = ContentFiles.LoadContent(root, MapId);
 
         _driver = new SimDriver(map, content, seed: 1);
@@ -111,7 +121,11 @@ public sealed partial class GameplayScene : Node3D
                 case Key.Key1: SelectTower("arrow-tower"); break;
                 case Key.Key2: SelectTower("cannon"); break;
                 case Key.R: _routes.Toggle(); break;
-                case Key.Escape: GetTree().Quit(); break;
+                case Key.Escape:
+                    // Back to the editor with the draft intact, or out of the game.
+                    if (_fromEditor) GetTree().ChangeSceneToFile("res://Dev/BoardEditor.tscn");
+                    else GetTree().Quit();
+                    break;
             }
             return;
         }

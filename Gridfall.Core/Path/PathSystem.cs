@@ -51,7 +51,12 @@ public sealed class PathSystem
         for (int i = 0; i < _cellCount; i++)
             _cost[i] = map.Cells[i] == CellKind.Blocked ? BlockedCost : (byte)1;
 
-        _dirty = true;
+        // Build immediately. A PathSystem that exists but has no field is a trap,
+        // and the alternative -- a public rebuild method -- would hand the view a
+        // mutator right after that boundary was closed.
+        BuildInto(_cost, _flow, _dist);
+        _dirty = false;
+        _version = 1;
     }
 
     /// <summary>Increments on every recompute. Hashed -- it is how the harness

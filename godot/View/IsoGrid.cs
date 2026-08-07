@@ -112,6 +112,10 @@ public static class IsoGrid
     /// Out-of-bounds is a valid answer ("no cell"), not an error.
     /// </summary>
     public static bool TryPick(Camera3D camera, Vector2 screenPoint, MapDef map, out GridCell cell)
+        => TryPick(camera, screenPoint, map.Width, map.Height, out cell);
+
+    /// <summary>Dimensions rather than a MapDef, for the editor's mutable draft.</summary>
+    public static bool TryPick(Camera3D camera, Vector2 screenPoint, int width, int height, out GridCell cell)
     {
         Vector3 origin = camera.ProjectRayOrigin(screenPoint);
         Vector3 direction = camera.ProjectRayNormal(screenPoint);
@@ -125,6 +129,6 @@ public static class IsoGrid
         }
 
         cell = WorldToGrid(hit.Value);
-        return map.InBounds(cell);
+        return cell.X >= 0 && cell.Y >= 0 && cell.X < width && cell.Y < height;
     }
 }

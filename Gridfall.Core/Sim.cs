@@ -44,7 +44,10 @@ public sealed class Sim
 
         _state.Gold = map.StartingGold;
         _state.Lives = map.StartingLives;
-        _path.ForceRebuild();
+        // No rebuild here: the PathSystem constructor builds its own field. Calling
+        // ForceRebuild as well bumps Version to 2 at tick 0, and Version is hashed,
+        // so every hash in every recorded trace shifts. The harness caught exactly
+        // that when the constructor changed.
     }
 
     public int TickCount { get; private set; }

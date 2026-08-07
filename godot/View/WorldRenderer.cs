@@ -15,8 +15,9 @@ public sealed partial class WorldRenderer : Node3D
 {
     private readonly MeshInstance3D _terrain = new();
     private readonly MeshInstance3D _hover = new();
+    private readonly MeshInstance3D _errors = new();
     private MapDef _map = null!;
-    private PathSystem _path = null!;
+    private PathSystem? _path;
     private ushort _builtForVersion = ushort.MaxValue;
 
     public override void _Ready()
@@ -27,19 +28,66 @@ public sealed partial class WorldRenderer : Node3D
         _hover.MaterialOverride = Palette.Matte(Palette.BuildPreviewOk, unshaded: true);
         _hover.Visible = false;
         AddChild(_hover);
+
+        _errors.Visible = false;
+        AddChild(_errors);
     }
 
     public void Initialise(MapDef map, PathSystem path)
     {
         _map = map;
         _path = path;
+        _builtForVersion = ushort.MaxValue;   // force a rebuild: this is a new field
         Rebuild();
+    }
+
+    /// <summary>
+    /// Draw the board with no flow field. The editor's draft is often illegal
+    /// mid-stroke -- no goal yet, a stranded spawn -- and refusing to draw until
+    /// it is legal would make the editor unusable exactly when you need to see
+    /// what you are doing.
+    /// </summary>
+    public void InitialiseGeometryOnly(MapDef map)
+    {
+        _map = map;
+        _path = null;
+        _builtForVersion = ushort.MaxValue;
+        Rebuild();
+    }
+
+    /// <summary>Outline the cells the validator objected to.</summary>
+    public void SetErrorCells(System.Collections.Generic.List<GridCell> cells)
+    {
+        if (cells.Count == 0) { _errors.Visible = false; return; }
+
+        var surface = new SurfaceTool();
+        surface.Begin(Mesh.PrimitiveType.Triangles);
+        foreach (GridCell cell in cells)
+        {
+            Vector3 c = IsoGrid.CellCentre(cell.X, cell.Y, IsoGrid.DecalHeight + 0.006f);
+            const float h = IsoGrid.CellSize * 0.46f;
+            Color colour = Palette.Danger.SrgbToLinear();
+            surface.SetColor(colour);
+            surface.AddVertex(new Vector3(c.X - h, c.Y, c.Z - h));
+            surface.AddVertex(new Vector3(c.X + h, c.Y, c.Z - h));
+            surface.AddVertex(new Vector3(c.X + h, c.Y, c.Z + h));
+            surface.AddVertex(new Vector3(c.X - h, c.Y, c.Z - h));
+            surface.AddVertex(new Vector3(c.X + h, c.Y, c.Z + h));
+            surface.AddVertex(new Vector3(c.X - h, c.Y, c.Z + h));
+        }
+        surface.GenerateNormals();
+        _errors.Mesh = surface.Commit();
+
+        StandardMaterial3D material = Palette.Matte(Colors.White, unshaded: true);
+        material.VertexColorUseAsAlbedo = true;
+        _errors.MaterialOverride = material;
+        _errors.Visible = true;
     }
 
     /// <summary>Cheap to call every frame: it returns immediately unless the grid moved.</summary>
     public void RebuildIfChanged()
     {
-        if (_path.Version == _builtForVersion) return;
+        if (_path is null || _path.Version == _builtForVersion) return;
         Rebuild();
     }
 
@@ -72,7 +120,7 @@ public sealed partial class WorldRenderer : Node3D
 
                 // A tower occupies the cell: raise it so the maze is legible as
                 // shape, not only as colour.
-                bool occupied = _path.IsBlocked(index);
+                bool occupied = _path is not null && _path.IsBlocked(index);
                 Color colour = kind switch
                 {
                     CellKind.Buildable => Palette.TerrainBuildable,
@@ -99,7 +147,7 @@ public sealed partial class WorldRenderer : Node3D
         material.VertexColorUseAsAlbedo = true;   // typed, not Set("...") by string
         _terrain.MaterialOverride = material;
 
-        _builtForVersion = _path.Version;
+        _builtForVersion = _path?.Version ?? ushort.MaxValue;
     }
 
     /// <summary>

@@ -42,6 +42,10 @@ public static class ContentFiles
         return ContentLoader.LoadMap(File.ReadAllText(path), path);
     }
 
+    /// <summary>Where a map lives. The editor writes here; the game reads here.</summary>
+    public static string MapPath(string root, string mapId)
+        => Path.Combine(root, "content-data", "maps", mapId + ".json");
+
     public static IEnumerable<string> MapIds(string root)
         => Directory.EnumerateFiles(Path.Combine(root, "content-data", "maps"), "*.json")
             .Select(Path.GetFileNameWithoutExtension)

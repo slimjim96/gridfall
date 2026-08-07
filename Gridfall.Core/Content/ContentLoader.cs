@@ -299,27 +299,25 @@ public static class ContentLoader
             spawns = glyphSpawns.ToArray();
         }
 
-        var map = new MapDef
+        var draft = new MapDraft
         {
             Id = id,
             Width = width,
             Height = height,
             Cells = cells,
-            Spawns = spawns,
             Goal = glyphGoal,
             StartingGold = r.TryGetProperty("startingGold", out var sg) ? sg.GetInt32() : 200,
             StartingLives = r.TryGetProperty("startingLives", out var sl) ? sl.GetInt32() : 20,
         };
+        draft.Spawns.AddRange(spawns);
 
-        // Hard invariant: every spawn reaches the goal on the empty board. This is
-        // the check the board editor surfaces live -- same code, one verdict.
-        var probe = new PathSystem(map);
-        probe.ForceRebuild();
-        foreach (GridCell spawn in map.Spawns)
-            if (!probe.IsReachable(spawn))
-                throw new ContentException($"{file}: spawn {spawn} cannot reach the goal");
+        // ONE verdict. The board editor calls this same validator live as you
+        // paint, so it can never disagree with the loader about what is legal.
+        foreach (MapFinding finding in MapValidator.Validate(draft))
+            if (finding.Severity == MapSeverity.Error)
+                throw new ContentException($"{file}: {finding}");
 
-        return map;
+        return draft.ToMapDef();
     }
 
     // ---- helpers ----------------------------------------------------------
