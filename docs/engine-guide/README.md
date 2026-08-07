@@ -4,7 +4,7 @@ The manual for working inside `Gridfall.Core`. Written for a developer who has t
 needs to know what will break.
 
 > **Status: chapters 01–08 describe code that exists and passes its tests.** `Gridfall.Core`,
-> `Gridfall.Io`, `Gridfall.Tests` (129 tests), `Gridfall.Verify`, the Godot renderer, and the board
+> `Gridfall.Io`, `Gridfall.Tests` (175 tests), `Gridfall.Verify`, the Godot renderer, and the board
 > editor are all built.
 >
 > Chapters 09 and 10 remain **recipes rather than descriptions**: 09's burning-status example is not

@@ -53,7 +53,8 @@ gridfall/
 | Move a slice through build → verify → release | `production/CONTEXT.md` |
 | Know what a term means | `docs/glossary.md` |
 | Know how grid coords become screen coords | `docs/iso-grid.md` |
-| Know why the game is not balanced yet | `content-data/docs/reports/` (newest first) |
+| Know where the product is heading | `game-design/docs/board-themes-direction.md` |
+| Know how a map got balanced, or why one could not be | `content-data/docs/reports/` (newest first) |
 | Build, test, replay, or run the game | `docs/tech-standards.md` §Commands |
 
 **Run Godot as `godot-mono`**, never `godot` or `godot-4` — those are 4.7 here and the project is

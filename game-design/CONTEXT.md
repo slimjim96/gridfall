@@ -17,6 +17,7 @@ This area names knobs; it does not set their values. `frost-spire slows creeps` 
 | Feature design spec | the requirements file, `docs/pillars.md`, `features/*` for adjacent features | `../docs/iso-grid.md`, `../docs/tech-standards.md`, wave/tower JSON |
 | Reviewing a pillar conflict | `docs/pillars.md` only | everything else — this is a judgment call, not a research task |
 | Answering "is this in scope?" | `docs/pillars.md`, the requirements file | implementation of any kind |
+| Placing a feature in the current direction | `docs/board-themes-direction.md`, `docs/pillars.md` | the reports — direction is intent, not measurement |
 
 ## The Process
 

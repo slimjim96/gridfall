@@ -52,7 +52,7 @@ workflows/<one workflow>       → the procedure
 | `Gridfall.Core/` | `net8.0` | The simulation. No Godot, no floats, no clock. |
 | `Gridfall.Io/` | `net8.0` | Reads `content-data/` off disk, so Core never touches the filesystem. |
 | `Gridfall.Verify/` | `net10.0` | Determinism harness, balance sim, map and perf reports. |
-| `Gridfall.Tests/` | `net10.0` | 129 tests. |
+| `Gridfall.Tests/` | `net10.0` | 175 tests. |
 | `godot/` | `net8.0` | Godot 4.6.3 project: renderer, HUD, and the board editor under `Dev/`. |
 
 ## The pipeline
@@ -79,8 +79,11 @@ spawns and the goal, hit `F5` to play the unsaved map, `Esc` to come back. It va
 the route drawn from the real flow field, and a broken map flagged on the stroke that breaks it. It
 reuses the game's own renderer, picker, loader, and validator, so it cannot disagree with the game about
 what a legal map is: errors are the game's verdict shown earlier, warnings are the balance targets, and
-only errors block a save. Scoped to geometry, playtest, and validation; wave editing is out by decision,
-and `tooling/docs/board-editor-spec.md` says why.
+only errors block a save. Scoped to geometry, theme, playtest, and validation; wave editing is out by
+decision, and `tooling/docs/board-editor-spec.md` says why.
+
+A map also declares a **terrain theme** — `slate`, `forest`, `desert`, `ocean`, `underwater`,
+`mountain`, `space` — cycled with `F4` and saved in the map file. The simulation never reads it.
 
 ## The two rules everything else follows from
 
@@ -100,7 +103,7 @@ architecture this project uses is documented for humans in
 ## Running it
 
 ```bash
-dotnet build && dotnet test                                    # 129 tests
+dotnet build && dotnet test                                    # 175 tests
 dotnet run --project Gridfall.Verify -- replay                  # determinism: replay recorded traces
 dotnet run --project Gridfall.Verify -c Release -- balance --map crossroads --runs 30
 ./run-game.sh                                                   # play it
@@ -113,18 +116,36 @@ byte-reproducible and there are baselines in `presentation/docs/`.
 
 ## Where it actually stands
 
-The engine, the renderer, and the editor exist and are green. **The game is not balanced, and the
-reason is now well understood rather than suspected.**
+The engine, the renderer, and the editor exist and are green: 175 tests, determinism traces replaying,
+and every mechanic below reachable in the running game.
 
-Three balance passes (`content-data/docs/reports/`) converged on the same conclusion from different
-directions: the problem is the economy, not the enemies.
+**crossroads is balanced. It is the only map that is.**
 
-- Difficulty peaks at **wave 3**, when the player is broke, and collapses after — waves 6–11 leak
-  nothing.
-- Late gold runs away (378 → 1090) because **there is no gold sink that scales**. Towers cannot be
-  upgraded, so once the board saturates, bounties pile up with nothing to buy.
-- Per-wave HP scaling exists and was necessary, but it moved the difficulty rather than fixing it.
+| | crossroads |
+|---|---|
+| Leak rate | 1.6% (target ≤ 4%) |
+| Runs lost, waves 1–10 | 3.5% (target 0–5%) |
+| Runs lost, waves 11+ | 21.5% (target 15–30%) |
+| Lost runs end at wave | 10.9 of 12 |
 
-The next slice that would change the game rather than measure it is **tower upgrades**.
+Getting there took eleven balance passes, and the pattern in the last four is worth knowing before
+starting a twelfth: **every failure was invisible to the metric rather than absent from the game.**
 
-Every number in `content-data/` is still a placeholder, marked `_untuned`.
+- `tower-combat` shipped a tuning that hit both targets while the new mechanic did nothing.
+- `tower-repair` deleted tower destruction entirely — at *every legal price* — with both targets green.
+- `salvage-value` deleted it again by a second route the new guard metric could not see.
+- `early-economy-2` found the game was decided by wave 4: the 26% runs-lost everyone read as "ok" was
+  25.5% early and 0.5% late, against two targets that had been in the doc, unmeasured, from the start.
+
+The guard numbers those produced — `gold destroyed`, the runs-lost split, and the spread of lives left —
+are printed by `balance` on every run for that reason. **Read the spread before the mean**: a map whose
+runs all end identically has no difficulty curve, only a threshold.
+
+`gauntlet` is a **documented negative result**, kept as evidence. It was built to satisfy a proposed
+map-density target and cannot be balanced at any growth rate: its route is fixed by its walls, so all
+200 runs finish with exactly 20 lives (sd 0.0) and difficulty steps 0% → 95% on a 0.005 change. Five
+fixes were tried and rejected. The finding generalises — **the way to score well on density is to wall
+the route in, which deletes mazing** — so density must not become a target on its own.
+
+The current direction is board themes, tile art, and a shared tower pool drawn from per-theme subsets:
+`game-design/docs/board-themes-direction.md`.
