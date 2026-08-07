@@ -368,7 +368,14 @@ int Balance()
     Console.WriteLine($"  {"runs lost",-22} {lostRate,6:F1}%        (split below)");
     Console.WriteLine($"  {"  in waves 1-10",-22} {earlyRate,6:F1}%        0-5%         {Verdict(earlyRate <= 5.0)}");
     Console.WriteLine($"  {"  in waves 11+",-22} {lateRate,6:F1}%        15-30%       {Verdict(lateRate is >= 15.0 and <= 30.0)}");
-    Console.WriteLine($"  {"lives left (avg)",-22} {finalLives.Average(),6:F1}");
+    // The SPREAD matters as much as the mean. A map where every run ends with
+    // the same lives has no difficulty curve, only a threshold: when the mean
+    // crosses zero, every run crosses at once. That is what a cliff IS, and the
+    // mean alone cannot show it (gauntlet-cliff).
+    double livesMean = finalLives.Average();
+    double livesSd = System.Math.Sqrt(finalLives.Sum(v => (v - livesMean) * (v - livesMean)) / runs);
+    Console.WriteLine($"  {"lives left (avg)",-22} {livesMean,6:F1}   " +
+                      $"sd {livesSd:F1}, range {finalLives.Min()}-{finalLives.Max()}");
     if (lostAtWave.Count > 0)
         Console.WriteLine($"  {"lost runs died at wave",-22} {lostAtWave.Average(),6:F1} avg " +
                           $"(earliest {lostAtWave.Min()}, latest {lostAtWave.Max()})");

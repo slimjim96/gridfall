@@ -94,6 +94,15 @@ to react to. That fails pillar 4.
 > `Verify maps` but is not yet a `MapTargets` constant — making it one is `map-density-target`.
 > `gauntlet` is at 1.7 and passes; `crossroads` is at 4.0 and does not.
 >
+> **Do not promote it alone (2026-08-07).** The map built to satisfy it cannot be balanced at any growth
+> rate, and the cause is the thing that made it score well: **the way to lower density is to wall the
+> route in, which removes mazing.** A fixed route means one solution, one outcome, and a threshold
+> instead of a curve — `gauntlet` finishes 200 runs with sd 0.0 and a range of 20–20 lives. Every
+> variant tried that restored route freedom moved density straight back out of band. Density measures
+> how much defence a map permits and says nothing about whether the player has a decision; it needs a
+> route-variability companion (`route-variance-metric`).
+> See [gauntlet's cliff](reports/2026-08-07-gauntlet-cliff-balance.md).
+>
 > **But density is not sufficient either** (2026-08-07). `gauntlet` cut tower count by 60% and came out
 > *easier*: a winding route raises coverage per tower, and gold that cannot buy breadth buys depth
 > instead — 1.8 upgrades per tower against 0.77. **Total defence tracks cumulative income, and
@@ -128,14 +137,28 @@ proves nothing.
 
 Maximum mazing above 3× breaks wave timing: waves overlap in ways the tables were never balanced for.
 
-## Not yet measured: difficulty slope
+## Difficulty slope, and the spread that explains it
 
 Two maps can hit identical balance numbers and fail completely differently. `gauntlet` flips from 0% of
-runs lost to 90% on a **0.005** change in `hpGrowth`; `crossroads` degrades smoothly across the same
-range. A cliff fails pillar 4 — a loss you cannot see coming is not explainable — and **nothing here
-currently measures it.**
+runs lost to 95% on a **0.005** change in `hpGrowth`; `crossroads` degrades across a range.
 
-Proposed: sweep `hpGrowth` and report how sharply runs-lost changes. Tracked as `difficulty-slope`.
+**Measured since 2026-08-07:** `balance` reports the standard deviation and range of lives left, not
+just the mean. That is the number that separates the two cases.
+
+| | mean lives | sd | range |
+|---|---|---|---|
+| crossroads | 7.6 | **6.8** | **0–20** |
+| gauntlet | 20.0 | **0.0** | **20–20** |
+
+A mean can cross zero gradually; a distribution with no width crosses it all at once. **That is what a
+cliff is.** Leak rate moves perfectly smoothly across gauntlet's cliff, so no summary of the mean could
+have caught it.
+
+**Read the spread before the mean** when judging whether a map has a difficulty curve at all. A low
+spread means the map has one solution, and a map with one solution cannot be tuned — see
+[gauntlet's cliff](reports/2026-08-07-gauntlet-cliff-balance.md).
+
+Still proposed: sweep `hpGrowth` and report how sharply runs-lost changes (`difficulty-slope`).
 
 ## A target is necessary, not sufficient
 
