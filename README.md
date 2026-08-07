@@ -103,8 +103,8 @@ architecture this project uses is documented for humans in
 dotnet build && dotnet test                                    # 102 tests
 dotnet run --project Gridfall.Verify -- replay                  # determinism: replay recorded traces
 dotnet run --project Gridfall.Verify -c Release -- balance --map crossroads --runs 30
-godot-mono --path godot                                         # play it
-godot-mono --path godot --scene res://Dev/BoardEditor.tscn -- --map crossroads
+./run-game.sh                                                   # play it
+./run-editor.sh crossroads                                      # board editor
 ```
 
 **Godot is pinned to 4.6.3 mono, run as `godot-mono`** — not `godot` or `godot-4`, which are 4.7 here

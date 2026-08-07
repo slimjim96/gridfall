@@ -6,22 +6,38 @@ Step by step. The [spec](board-editor-spec.md) says what it *is* and why; this s
 
 ## 1. Launch it
 
-### From a terminal (recommended)
+### Use the launcher
 
 ```bash
-# a blank 20x12 map
-godot-mono --path ~/projects/claude/gridfall/godot --scene res://Dev/BoardEditor.tscn
+cd ~/projects/claude/gridfall
+./run-editor.sh                 # a blank 20x12 map
+./run-editor.sh crossroads      # edit an existing map
+```
 
-# or open an existing map to edit
+That is the whole command. Use it rather than the raw invocation below — the launcher finds the right
+Godot, puts arguments on the correct side of Godot's `--` separator, and tells you plainly when the
+display or the binary is missing instead of leaving you to read a page of ALSA noise.
+
+`./run-game.sh` does the same for the game.
+
+### The raw command, and why it bites
+
+```bash
 godot-mono --path ~/projects/claude/gridfall/godot --scene res://Dev/BoardEditor.tscn -- --map crossroads
 ```
 
-The `--` matters. Everything before it is for Godot; everything after is for the game. Without it,
-Godot tries to interpret `--map` itself and ignores it.
+Three ways this goes wrong:
 
-`godot-mono`, never `godot` or `godot-4` — those are 4.7 on this machine and the project is pinned to
-4.6.3 (ADR-0005). A **non-mono** build is worse: it loads the project, silently ignores every C#
-script, and shows you an empty window that looks like a broken game.
+1. **It wraps when pasted.** If a newline lands mid-command, bash runs the second half as its own
+   command and you get `Missing scene path, aborting` followed by
+   `res://Dev/BoardEditor.tscn: No such file or directory` — two errors that look unrelated and are
+   both the same paste.
+2. **The `--` matters.** Everything before it is Godot's, everything after is the game's. Engine flags
+   like `--headless` placed *after* it are handed to the game, Godot never sees them, and it opens a
+   window anyway with no warning.
+3. **`godot-mono`, never `godot` or `godot-4`** — those are 4.7 here and the project is pinned to 4.6.3
+   (ADR-0005). A **non-mono** build is worse than a wrong version: it loads the project, silently
+   ignores every C# script, and shows an empty window that looks like a broken game.
 
 ### From inside the Godot editor
 
@@ -186,6 +202,7 @@ dotnet run --project Gridfall.Verify -- maps
 
 | Symptom | Cause |
 |---|---|
+| `Missing scene path, aborting` **and** `res://...: No such file or directory` | The command wrapped onto two lines when pasted. Use `./run-editor.sh`. |
 | `Couldn't load file 'project.binary'` | You pointed `--path` at the repo root. It must be `.../gridfall/godot`. |
 | Window opens, board is blank/black | Scene failed to load. Read the terminal for a C# exception. |
 | Nothing happens, no window, no error | No display. Over SSH you need X forwarding; on this VM, connect over **RDP** first — the display belongs to that session. |

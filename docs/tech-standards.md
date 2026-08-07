@@ -88,12 +88,25 @@ tick only, and it is the reason the flow field exists (see `engine-systems/decis
 ## Commands
 
 ```bash
-dotnet build                              # must be 0 warnings, 0 errors
-dotnet test                               # unit gate
-dotnet run --project Gridfall.Verify      # determinism trace diff
-dotnet run --project Gridfall.Verify -- --balance --map <map> --runs 200
-godot-mono --headless --quit                   # scene/resource wiring check
+dotnet build                                    # must be 0 warnings, 0 errors
+dotnet test                                     # unit gate
+
+dotnet run --project Gridfall.Verify -- replay  # determinism trace diff
+dotnet run --project Gridfall.Verify -c Release -- balance --map crossroads --runs 30
+dotnet run --project Gridfall.Verify -- maps    # map geometry vs MapTargets
+dotnet run --project Gridfall.Verify -- perf    # tick cost vs the 8ms budget
+
+./run-game.sh                                   # play it
+./run-editor.sh crossroads                      # board editor
+./run-game.sh --shot /tmp/x.png --shot-after 40 # byte-reproducible capture
+./run-game.sh --headless --quit                 # scene/resource wiring check
 ```
+
+The mode is a bare word, not a flag — `-- balance`, never `-- --balance`.
+
+Use the launchers rather than calling Godot directly. They find the pinned 4.6.3 mono binary, put
+engine flags before Godot's `--` and game flags after (an engine flag on the wrong side is silently
+ignored), and report a missing display or binary in one line instead of a page of ALSA noise.
 
 ## C# conventions
 
