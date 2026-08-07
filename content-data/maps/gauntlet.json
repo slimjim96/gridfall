@@ -1,0 +1,28 @@
+{
+  "id": "gauntlet",
+  "version": 1,
+  "width": 10,
+  "height": 10,
+  "cells": [
+    "##########",
+    "Sbbbbbbbb#",
+    "#bbbbbbbb#",
+    "########b#",
+    "#bbbbbbbb#",
+    "#bbbbbbbb#",
+    "#b########",
+    "#bbbbbbbb#",
+    "#bbbbbbbG#",
+    "##########"
+  ],
+  "spawns": [{ "x": 0, "y": 1 }],
+  "goal": { "x": 8, "y": 8 },
+  "startingGold": 300,
+  "startingLives": 20,
+  "meta": {
+    "author": "hand-authored",
+    "created": "2026-08-07",
+    "note": "Designed against the density metric rather than the buildable-percentage band. Three two-row chambers joined by single-cell connectors: route 29, buildable 49, 1.7 buildable per route cell. crossroads is 4.0 on the same measure, which is why its late game cannot be threatened -- see reports/2026-08-07-crossroads-enemy-roster-balance.md.",
+    "pinch": "The connectors at (8,3) and (1,6) are single cells on the only route, so building there would seal the lane and the sim refuses it. This is the first shipped map where that refusal is reachable in a real game."
+  }
+}

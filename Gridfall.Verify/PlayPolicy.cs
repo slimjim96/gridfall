@@ -75,6 +75,28 @@ public sealed class PlayPolicy
 
     public int UpgradesBought { get; private set; }
 
+    /// <summary>
+    /// Total route cells covered, summed over every standing tower. Tower COUNT
+    /// turned out not to be the thing that matters -- a winding route lets one
+    /// tower's range reach several legs at once, so a map with a third of the
+    /// towers can field the same defence.
+    /// </summary>
+    public int TotalCoverage()
+    {
+        SimStateView state = _sim.State;
+        MapDef map = _sim.Map;
+        int routeLength = _sim.Path.TraceRoute(map.Index(map.Spawns[0]), _routeBuffer);
+
+        int total = 0;
+        for (int k = 0; k < state.TowerCount; k++)
+        {
+            int slot = state.TowerSlotByOrder(k);
+            TowerDef def = _sim.Content.Tower(state.TowerDefIndex(slot));
+            total += CoverageScore(state.TowerCellIndex(slot), def, routeLength, map);
+        }
+        return total;
+    }
+
     /// <summary>Call once per tick, before Sim.Tick().</summary>
     public void Update()
     {

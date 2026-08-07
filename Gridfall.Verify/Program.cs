@@ -221,6 +221,7 @@ int Balance()
 
     int totalSpawned = 0, totalLeaked = 0, runsLost = 0, totalBuilds = 0, noPlacement = 0, refused = 0, upgrades = 0;
     var towersStanding = new List<int>();
+    var coverage = new List<int>();
     var goldAtWave = new List<int>[waveCount];
     var towersAtWave = new List<int>[waveCount];
     var spentByWave = new List<int>[waveCount];
@@ -282,6 +283,7 @@ int Balance()
 
         totalBuilds += policy.BuildsPlaced;
         towersStanding.Add(sim.State.TowerCount);
+        coverage.Add(policy.TotalCoverage());
         noPlacement += policy.NoPlacementFound;
         refused += policy.BuildsRefused;
         upgrades += policy.UpgradesBought;
@@ -296,6 +298,8 @@ int Balance()
     Console.WriteLine($"  policy          competent-beginner (coverage placement, best dps/gold, no reserve)");
     Console.WriteLine($"  towers built    {totalBuilds / (double)runs:F1} avg per run, {towersStanding.Average():F1} standing at end");
     Console.WriteLine($"  upgrades bought {upgrades / (double)runs:F1} avg per run");
+    Console.WriteLine($"  coverage        {coverage.Average():F0} route-cells covered in total, " +
+                      $"{coverage.Average() / System.Math.Max(1, towersStanding.Average()):F1} per tower");
     Console.WriteLine($"  no placement    {noPlacement / (double)runs:F0} attempts found nowhere to go ({refused / (double)runs:F0} of them blocked by the seal check)");
     Console.WriteLine();
     Console.WriteLine($"  {"metric",-22} {"value",-14} target");
@@ -377,7 +381,7 @@ int Perf()
 
 int MapReport()
 {
-    Console.WriteLine($"{"map",-14} {"size",-8} {"buildable",-11} {"path",-6} {"spawns",-7} verdict");
+    Console.WriteLine($"{"map",-14} {"size",-8} {"buildable",-11} {"path",-6} {"per route",-10} {"spawns",-7} verdict");
     foreach (string mapId in ContentFiles.MapIds(root))
     {
         MapDef map;
@@ -400,8 +404,16 @@ int MapReport()
         if (map.Spawns.Length > MapTargets.MaxLanes)
             warnings.Add($"{map.Spawns.Length} spawns > {MapTargets.MaxLanes}");
 
+        // Buildable cells per route cell. The buildable-percentage band does not
+        // capture this, and crossroads passes that band at 4.0 here -- roughly
+        // three towers per cell of route, which no enemy design survives.
+        // Proposed band 1.5-2.0; reported, not yet enforced (map-density-target).
+        double density = shortest > 0 ? buildable / (double)shortest : 0;
+        if (density > 2.0)
+            warnings.Add($"density {density:F1} buildable/route cell (proposed max 2.0)");
+
         string verdict = warnings.Count == 0 ? "ok" : string.Join("; ", warnings);
-        Console.WriteLine($"{mapId,-14} {map.Width + "x" + map.Height,-8} {pct + "%",-11} {shortest,-6} {map.Spawns.Length,-7} {verdict}");
+        Console.WriteLine($"{mapId,-14} {map.Width + "x" + map.Height,-8} {pct + "%",-11} {shortest,-6} {density,-10:F1} {map.Spawns.Length,-7} {verdict}");
     }
     return 0;
 }

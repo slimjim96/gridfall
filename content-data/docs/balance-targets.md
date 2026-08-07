@@ -73,10 +73,15 @@ to react to. That fails pillar 4.
 > leaks in the late game.
 >
 > A map can pass every current target and still be unwinnable for the attacker. The proposed
-> **1.5–2.0 buildable cells per route cell** is the metric that would have caught it. It is not yet a
-> `MapTargets` constant and not yet enforced — adding it is `map-density-target`, and the number itself
-> needs a decision rather than my guess. See
-> [the roster pass](reports/2026-08-07-crossroads-enemy-roster-balance.md).
+> **1.5–2.0 buildable cells per route cell** is the metric that would have caught it. It is reported by
+> `Verify maps` but is not yet a `MapTargets` constant — making it one is `map-density-target`.
+> `gauntlet` is at 1.7 and passes; `crossroads` is at 4.0 and does not.
+>
+> **But density is not sufficient either** (2026-08-07). `gauntlet` cut tower count by 60% and came out
+> *easier*: a winding route raises coverage per tower, and gold that cannot buy breadth buys depth
+> instead — 1.8 upgrades per tower against 0.77. **Total defence tracks cumulative income, and
+> constraining one sink diverts gold to another.** Six passes have now confirmed that from six
+> directions. See [the tighter-map pass](reports/2026-08-07-gauntlet-tighter-map-balance.md).
 
 The first four are also `MapTargets` constants in code — read by the balance sim's map report and by the
 board editor's live validation panel. **Changing a number here means changing the constant too.** Two

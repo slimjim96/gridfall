@@ -1,0 +1,107 @@
+{
+  "map": "gauntlet",
+  "_untuned": "Placeholder wave table. Waves 1-3 unchanged since the early-economy pass so the numbers stay comparable.",
+  "_roster": "husk enters at wave 5 and mite at wave 4. They ask opposite questions -- husk wants burst, mite wants coverage -- so a board optimised for either is punished by the other. That tension is what a monoculture of arrow towers cannot answer.",
+  "hpGrowth": 1.03,
+  "waves": [
+    {
+      "index": 1,
+      "entries": [
+        { "enemy": "runner", "count": 8, "spacingTicks": 18, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 2,
+      "entries": [
+        { "enemy": "runner", "count": 12, "spacingTicks": 15, "spawn": 0 },
+        { "enemy": "brute", "count": 2, "spacingTicks": 60, "delayTicks": 120, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 3,
+      "entries": [
+        { "enemy": "runner", "count": 16, "spacingTicks": 12, "spawn": 0 },
+        { "enemy": "brute", "count": 4, "spacingTicks": 45, "delayTicks": 90, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 4,
+      "entries": [
+        { "enemy": "runner", "count": 20, "spacingTicks": 11, "spawn": 0 },
+        { "enemy": "brute", "count": 5, "spacingTicks": 40, "delayTicks": 80, "spawn": 0 },
+        { "enemy": "mite", "count": 10, "spacingTicks": 6, "delayTicks": 40, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 5,
+      "entries": [
+        { "enemy": "runner", "count": 24, "spacingTicks": 10, "spawn": 0 },
+        { "enemy": "brute", "count": 7, "spacingTicks": 36, "delayTicks": 70, "spawn": 0 },
+        { "enemy": "husk", "count": 2, "spacingTicks": 70, "delayTicks": 100, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 6,
+      "entries": [
+        { "enemy": "runner", "count": 26, "spacingTicks": 9, "spawn": 0 },
+        { "enemy": "brute", "count": 9, "spacingTicks": 32, "delayTicks": 60, "spawn": 0 },
+        { "enemy": "mite", "count": 16, "spacingTicks": 5, "delayTicks": 30, "spawn": 0 },
+        { "enemy": "husk", "count": 3, "spacingTicks": 60, "delayTicks": 90, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 7,
+      "entries": [
+        { "enemy": "runner", "count": 28, "spacingTicks": 8, "spawn": 0 },
+        { "enemy": "brute", "count": 12, "spacingTicks": 28, "delayTicks": 55, "spawn": 0 },
+        { "enemy": "mite", "count": 20, "spacingTicks": 5, "delayTicks": 25, "spawn": 0 },
+        { "enemy": "husk", "count": 5, "spacingTicks": 55, "delayTicks": 80, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 8,
+      "entries": [
+        { "enemy": "runner", "count": 30, "spacingTicks": 8, "spawn": 0 },
+        { "enemy": "brute", "count": 15, "spacingTicks": 26, "delayTicks": 50, "spawn": 0 },
+        { "enemy": "mite", "count": 24, "spacingTicks": 4, "delayTicks": 25, "spawn": 0 },
+        { "enemy": "husk", "count": 7, "spacingTicks": 50, "delayTicks": 75, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 9,
+      "entries": [
+        { "enemy": "runner", "count": 32, "spacingTicks": 7, "spawn": 0 },
+        { "enemy": "brute", "count": 18, "spacingTicks": 24, "delayTicks": 45, "spawn": 0 },
+        { "enemy": "mite", "count": 28, "spacingTicks": 4, "delayTicks": 20, "spawn": 0 },
+        { "enemy": "husk", "count": 9, "spacingTicks": 45, "delayTicks": 70, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 10,
+      "entries": [
+        { "enemy": "runner", "count": 34, "spacingTicks": 7, "spawn": 0 },
+        { "enemy": "brute", "count": 22, "spacingTicks": 22, "delayTicks": 40, "spawn": 0 },
+        { "enemy": "mite", "count": 32, "spacingTicks": 4, "delayTicks": 20, "spawn": 0 },
+        { "enemy": "husk", "count": 12, "spacingTicks": 40, "delayTicks": 60, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 11,
+      "entries": [
+        { "enemy": "runner", "count": 36, "spacingTicks": 6, "spawn": 0 },
+        { "enemy": "brute", "count": 26, "spacingTicks": 20, "delayTicks": 36, "spawn": 0 },
+        { "enemy": "mite", "count": 36, "spacingTicks": 3, "delayTicks": 18, "spawn": 0 },
+        { "enemy": "husk", "count": 15, "spacingTicks": 36, "delayTicks": 55, "spawn": 0 }
+      ]
+    },
+    {
+      "index": 12,
+      "entries": [
+        { "enemy": "runner", "count": 38, "spacingTicks": 6, "spawn": 0 },
+        { "enemy": "brute", "count": 32, "spacingTicks": 18, "delayTicks": 32, "spawn": 0 },
+        { "enemy": "mite", "count": 42, "spacingTicks": 3, "delayTicks": 15, "spawn": 0 },
+        { "enemy": "husk", "count": 19, "spacingTicks": 32, "delayTicks": 50, "spawn": 0 }
+      ]
+    }
+  ]
+}
