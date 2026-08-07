@@ -35,7 +35,7 @@ Two things make this a good catch:
 |---|---|---|
 | 1 | A map can be created, painted, saved, and loaded with no hand-editing | PASS — `RoundTrip_ThroughJson_PreservesTheMap` proves the editor writes what the loader reads |
 | 2 | `F5` plays the unsaved map, `Esc` returns to it | PASS by construction — `GameplayScene.PlaytestDraft` hands the draft over; Esc routes back. **Not exercised by hand** |
-| 3 | Save refuses an invalid map with the validator's own message | PASS — `Save()` calls `MapValidator` and refuses; the message is the validator's |
+| 3 | Save refuses an invalid map with the validator's own message | **PASS — human sign-off 2026-08-06.** Confirmed by hand: painted a map into an invalid state and the save was refused. This was the one path a scripted capture could not reach |
 | 4 | Editor and game rendering share a code path | PASS — the editor instantiates `WorldRenderer` and `RouteOverlay`, the same classes the game uses |
 | 5 | Warnings never block a save; only errors do | PASS — `Validator_WarnsButDoesNotError_OnTargetMisses` |
 | 6 | The maze estimate is labelled a lower bound wherever it appears | PASS — visible in the capture: "1.2x (greedy lower bound, target <= 3x)" |
@@ -81,7 +81,7 @@ Fixed by numbering the enum from 1 (with a comment saying why), taking a nullabl
 
 | What | Why |
 |---|---|
-| Anything requiring hands | Painting, undo/redo, save, playtest, `Esc` back, the help overlay. All compile and are wired; the capture is scripted. This is the same gap the view layer had, and it needs a human. |
+| Anything requiring hands | **Partly closed.** Human sign-off 2026-08-06 covers painting, live validation, and save refusal — the whole error path end to end. Still unexercised: undo/redo, `F5` playtest and `Esc` back, `F6` maze estimate, the `F1` overlay. |
 | The release export exclusion | No export preset exists. Criterion 9 above. |
 | Stroke-end timing | Argued from the cell count, not measured. |
 | Resize | Implemented in `MapDraft` and tested, but **no UI is wired to it** — the spec's width/height panel does not exist. |
