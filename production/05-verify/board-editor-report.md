@@ -1,6 +1,6 @@
 # Board Editor v1 — Verification
 
-**Slug:** `board-editor-v1` · **Status:** review · **Verdict:** PASS with one requirement unmet
+**Slug:** `board-editor` · **Status:** review · **Verdict:** PASS with one requirement unmet
 
 ## Gates
 

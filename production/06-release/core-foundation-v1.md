@@ -43,7 +43,7 @@ each file says so in an `_untuned` field.
 | Verify determinism on a second machine or runtime — the whole `Fix32` argument is untested across platforms | tooling | `cross-platform-trace` |
 | First balance pass once a play policy exists | content-data | `crossroads-first-balance` |
 | The Godot view layer: `IUnitView`, placeholders, the iso camera | presentation | `view-layer-foundation` |
-| The board editor | tooling | `board-editor-v1` |
+| The board editor | tooling | `board-editor` |
 | Status effects (slow, burn) — the `09-recipe-new-system` example is not implemented | engine-systems | `status-effects` |
 | `FixMath.Sin`/`Cos` via integer CORDIC, when something needs an angle | engine-systems | `fix-trig` |
 

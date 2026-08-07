@@ -3,10 +3,13 @@
 The manual for working inside `Gridfall.Core`. Written for a developer who has to change something and
 needs to know what will break.
 
-> **Status: chapters 01–08 now describe code that exists and passes its tests.** `Gridfall.Core`,
-> `Gridfall.Tests` (70 tests), and `Gridfall.Verify` are built; the Godot view layer and the board
-> editor are not. Chapters 09 and 10 are recipes — 09 uses a burning-status example that is not
-> implemented, and 10 crosses into presentation, which does not exist yet.
+> **Status: chapters 01–08 describe code that exists and passes its tests.** `Gridfall.Core`,
+> `Gridfall.Io`, `Gridfall.Tests` (102 tests), `Gridfall.Verify`, the Godot renderer, and the board
+> editor are all built.
+>
+> Chapters 09 and 10 remain **recipes rather than descriptions**: 09's burning-status example is not
+> implemented, and 10 describes adding a tower end to end, which is accurate in shape but references
+> `frost-spire`, a tower that does not exist. Read them as procedures, not as inventory.
 >
 > Any divergence between this guide and the code is a bug in one of them. Say which one when you
 > find it.

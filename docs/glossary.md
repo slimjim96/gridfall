@@ -32,6 +32,12 @@ Stable reference. Load it when a term in a spec is doing work you can't pin down
 | **`SimRandom`** | The seeded PRNG. The only randomness Core may use, advanced only inside the tick loop. |
 | **`SimEvent`** | An ordered, tick-stamped fact the view can react to ("creep died", "build rejected"). |
 | **Command** | Player intent queued into the sim, applied at phase 1 of the next tick. |
+| **`SimStateView`** | The read-only façade the renderer gets. No setter, no arrays out — the Core/View boundary as a compile-time fact. |
+| **`MutableState`** | The writable state, `internal` to Core, visible only to the test suite and the harness. Never to the view. |
+| **`TraceRoute`** | Walks the flow field from a cell to the goal into a caller-provided span. Drives the route overlay. |
+| **`hpGrowth`** | Per-wave HP multiplier, compounded at load. Without it later waves cannot be harder. |
+| **`MapDraft` / `MapValidator`** | The mutable map being edited, and the single verdict on whether a map is legal — shared by the editor and the loader. |
+| **Play policy** | The scripted "competent beginner" that drives the balance sim. Its numbers are a floor on difficulty, not a verdict. |
 | **Phase** | One of the nine ordered steps inside a tick. Knowing yours is most of knowing you're correct. |
 | **Slot vs. id** | An entity's id is stable for life; its slot is where it currently sits in the arrays and changes on death. Iterate by id. |
 
