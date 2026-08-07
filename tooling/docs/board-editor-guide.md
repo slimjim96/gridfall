@@ -268,6 +268,8 @@ Named honestly so you do not go looking:
 - **No open dialog.** Use `--map <id>` at launch.
 - **No rename.** Save, then rename the file.
 - **No wave editing.** Out of scope by decision — wave tables stay hand-authored JSON.
+- **No camera pan.** The spec's `Middle drag | Pan` row is aspirational. A board wider than
+  ~59 cells of width+height cannot be fully seen. Slug `camera-pan-zoom`.
 - **No per-cell tile choice.** You pick a theme; variants are distributed by coordinate hash. Placing
   *this* bush on *that* cell would need a new layer in the map format.
 - **No tile drawing.** The editor selects tiles. Draw them elsewhere.
