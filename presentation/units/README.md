@@ -1,7 +1,14 @@
 # Unit Assets
 
-Final tower and creep art. **Empty on purpose** — nothing here yet, so every unit still draws its
-procedural placeholder.
+Final tower and creep art. **`arrow-tower` is real; everything else is still a placeholder.**
+
+The first shipped asset is a single-frame WebP idle sprite, `arrow-tower/idle.webp` — 768×768, one
+frame, `frameCells` 1.57. It is the reason five committed baselines were re-recorded on 2026-08-08.
+
+Its alpha is **not** hard-edged — 0.71% of pixels sit at partial alpha, a one-pixel anti-aliased
+fringe. That is survivable *here* because `SpriteUnitView` hardcodes `AlphaScissor` at 0.5 rather than
+choosing a mode per asset, so depth write is never lost and the fringe is simply clipped. It still
+costs a slightly ragged silhouette, and it is worth fixing at the source. See the sprite notes below.
 
 ```
 presentation/units/
@@ -49,11 +56,18 @@ it is; it never says how big the thing is meant to be. It is the world size of o
 cells. There is a default so a bare folder works, but a sprite folder relying on it will render at
 the wrong size — `UnitAssetTests` warns about that too.
 
-**The art must have a hard alpha edge** — every pixel fully opaque or fully transparent. A sprite is
+**The art should have a hard alpha edge** — every pixel fully opaque or fully transparent. A sprite is
 a quad in a 3D scene, and it only hides what is behind it if it writes depth, which requires
-alpha-*scissor* rather than alpha-*blend*. One soft anti-aliased fringe forces blending, blending
-disables depth write, and the tower stops occluding creeps entirely. It cannot be fixed after the
-frames are cut, which is why the prompts ask for it up front.
+alpha-*scissor* rather than alpha-*blend*. The prompts ask for it up front because it cannot be
+restored after the frames are cut.
+
+> **Corrected 2026-08-08.** This section used to say a soft fringe "forces blending, blending disables
+> depth write, and the tower stops occluding creeps entirely". That is what happens in a renderer that
+> picks a transparency mode per asset. It is not what happens here: `SpriteUnitView` hardcodes
+> `AlphaScissor` at 0.5 and nothing switches it, so **occlusion is never at risk** and a soft fringe is
+> merely clipped at the threshold. The shipped `arrow-tower` has 0.71% soft pixels and occludes
+> correctly. The cost is a ragged edge, not a broken one — still worth asking generators for a hard
+> alpha, but it is a quality note, not a correctness one.
 
 Frame count is inferred from the strip's shape (width ÷ height), so frames must be square and there
 is no metadata to drift out of sync with the image.

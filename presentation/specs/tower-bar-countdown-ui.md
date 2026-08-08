@@ -22,6 +22,13 @@ One slot per tower the **board** offers, in roster order, at bottom centre.
         └─────────────────────────┘
 ```
 
+The chip is the unit's **own first idle frame** when it has sprite art, and its palette colour when it
+does not — so `arrow-tower` shows the shipped tower and `cannon` shows a brown square. A flat colour
+was right while every tower was a coloured solid and the swatch matched by construction; once real art
+lands, an orange square beside a board of blue towers is not a missing picture, it is a wrong one.
+Mesh units keep the colour chip: thumbnailing a `.glb` needs a render pass, and that is not worth a
+viewport per slot yet.
+
 | Cue | Meaning |
 |---|---|
 | Bright 2px border | Selected |

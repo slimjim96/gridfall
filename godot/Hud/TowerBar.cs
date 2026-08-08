@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Godot;
 using Gridfall.Core;
 using Gridfall.Core.Content;
+using Gridfall.View.Units;
 
 namespace Gridfall.View.Hud;
 
@@ -34,7 +35,8 @@ public sealed partial class TowerBar : Control
     {
         public required ushort DefIndex;
         public required PanelContainer Frame;
-        public required ColorRect Chip;
+        /// <summary>ColorRect for a placeholder, TextureRect once art exists.</summary>
+        public required Control Chip;
         public required Label Name;
         public required Label Cost;
         public required Label Key;
@@ -108,17 +110,7 @@ public sealed partial class TowerBar : Control
             var frame = new PanelContainer { CustomMinimumSize = new Vector2(SlotSize, SlotSize) };
             frame.AddThemeStyleboxOverride("panel", SlotStyle(active: false));
 
-            // A flat chip in the tower's own palette colour. The placeholder mesh
-            // is a coloured solid too, so the swatch and the thing it builds are
-            // the same colour by construction rather than by a lookup table
-            // somebody has to remember to update.
-            var chip = new ColorRect
-            {
-                Color = Palette.ForTower(def.Id),
-                CustomMinimumSize = new Vector2(SlotSize - 14, SlotSize - 14),
-                SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-                SizeFlagsVertical = SizeFlags.ShrinkCenter,
-            };
+            Control chip = ChipFor(def);
             frame.AddChild(chip);
 
             Label key = Text(11, Faint);
@@ -182,6 +174,59 @@ public sealed partial class TowerBar : Control
     }
 
     // ---- widgets ----------------------------------------------------------
+
+    /// <summary>
+    /// The slot's picture: the unit's own first idle frame if it has art, and its
+    /// palette colour if it does not.
+    ///
+    /// A flat colour chip was right while every tower was a coloured solid — the
+    /// swatch and the thing it built matched by construction. The moment real art
+    /// lands that stops being true, and a bar showing an orange square next to a
+    /// board full of blue towers is worse than no picture: it is a wrong one.
+    ///
+    /// Sprite only. A `.glb` would need a render pass to thumbnail and is not
+    /// worth a viewport per slot — mesh units keep the colour chip until there is
+    /// a reason to do better.
+    /// </summary>
+    private static Control ChipFor(TowerDef def)
+    {
+        var size = new Vector2(SlotSize - 14, SlotSize - 14);
+        UnitAsset? asset = UnitAssets.For(def.Id);
+
+        if (asset?.Format == UnitAssetFormat.Sprite
+            && asset.ClipStrips.TryGetValue("idle", out string? strip))
+        {
+            Image? image = Image.LoadFromFile(strip);
+            if (image is not null)
+            {
+                // Strips are horizontal and frames are square, so the first frame
+                // is the leading height x height block. Whole-strip thumbnails
+                // would shrink a four-frame walk cycle into an unreadable smear.
+                int frame = image.GetHeight();
+                Image first = image.GetRegion(new Rect2I(0, 0, frame, frame));
+
+                return new TextureRect
+                {
+                    Texture = ImageTexture.CreateFromImage(first),
+                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                    TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+                    CustomMinimumSize = size,
+                    SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+                    SizeFlagsVertical = SizeFlags.ShrinkCenter,
+                };
+            }
+            GD.Print($"units: {def.Id} idle strip would not load for the tower bar; using its colour");
+        }
+
+        return new ColorRect
+        {
+            Color = Palette.ForTower(def.Id),
+            CustomMinimumSize = size,
+            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+        };
+    }
 
     private static StyleBoxFlat CardStyle()
     {
