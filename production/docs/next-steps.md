@@ -1,11 +1,16 @@
 # Next Steps
 
-**Written:** 2026-08-08 · **State:** branch `main`, tree clean, `dotnet build` 0/0 · **200 tests** ·
-replay 30/30 · 12/12 maps valid, all twelve selectable, and now all twelve **actually looked at**.
+**Written:** 2026-08-08 · **State:** branch `main`, pushed, tree clean, `dotnet build` 0/0 ·
+**203 tests** · replay 30/30 · `maps` exits 0 · 12/12 maps valid, all twelve selectable, and now all
+twelve **actually looked at**.
 
 A session-crossing handoff. The filename-is-the-status rule still holds everywhere else — this file
 exists only because the open threads span four workspaces and their ordering is not derivable from any
 one folder.
+
+**Two decisions block most of what is left, and both are yours:** the direction doc below, and the
+wave-table length in §2a. §3 is blocked on the latter outright, and §2b and §4 both wait on it for
+their measurements to mean anything. Everything that could be done without them has been.
 
 ---
 
@@ -193,8 +198,10 @@ without doing the arithmetic? A says "yes, slowly"; B says "the question never a
 | Thing | File |
 |---|---|
 | The ten levels, their metrics, what was ruled out, and what a human must still eyeball | `content-data/docs/example-levels.md` |
+| All twelve measured, the knob sweeps, the runway result | `content-data/docs/reports/2026-08-08-example-levels-balance.md` |
 | Bands, cover/useful figures, balance history | `content-data/docs/balance-targets.md` |
 | Product direction (proposed) | `game-design/docs/fulfilment-direction.md` |
+| The three soft-lock options, costed | `game-design/docs/tier2-soft-lock-options.md` |
 | Regenerate maps / schematic atlas / iso atlas | `content-data/maps/make-example-levels.py`, `render-atlas.py`, `capture-iso-atlas.py` |
 | Per-map balance reports, newest first | `content-data/docs/reports/` |
 
