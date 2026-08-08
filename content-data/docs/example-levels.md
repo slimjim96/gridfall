@@ -34,16 +34,16 @@ Wave tables are copied from `crossroads` and not re-tuned. All ten at 150 runs:
 
 | Level | Runs lost | Lives left | sd | |
 |---|---|---|---|---|
-| `spiral` | **100.0%** | 0.0 | 0.0 | **broken — see below** |
 | `comb` | 42.0% | 7.0 | 5.9 | above band |
-| `chambers` | 0.7% | 11.8 | 5.7 | |
-| `braid` | 0.7% | 18.6 | 2.9 | |
-| `switchback` | 0.0% | 16.9 | 4.1 | |
-| `atoll` | 0.0% | 17.9 | 4.1 | |
-| `ringfort` | 0.0% | 19.9 | 0.2 | |
-| `meander` | 0.0% | 20.0 | 0.0 | |
-| `stepwell` | 0.0% | 20.0 | 0.0 | |
-| `driftway` | 0.0% | 20.0 | 0.0 | |
+| `spiral` | 41.3% | 8.4 | 7.6 | above band, **was 100% — see below** |
+| `chambers` | 0.7% | 11.8 | 5.7 | too easy |
+| `braid` | 0.7% | 18.6 | 2.9 | too easy |
+| `switchback` | 0.0% | 16.9 | 4.1 | too easy |
+| `atoll` | 0.0% | 17.9 | 4.1 | too easy |
+| `ringfort` | 0.0% | 19.9 | 0.2 | degenerate |
+| `meander` | 0.0% | 20.0 | 0.0 | degenerate |
+| `stepwell` | 0.0% | 20.0 | 0.0 | degenerate |
+| `driftway` | 0.0% | 20.0 | 0.0 | degenerate |
 
 **Ten maps, every one inside every `MapTargets` band, outcomes from 0% to 100%.**
 
@@ -51,19 +51,23 @@ That is the result worth keeping. The bands are a **legality and shape check, no
 and nothing in them predicts how a map plays. Any new map needs a balance pass; the report cannot
 stand in for one.
 
-### `spiral` is unwinnable, and a new metric now catches it
+### `spiral` was unwinnable, and the cause is corridor width
 
-Every run lost, every life gone, zero variance. Its route is a one-cell corridor around the rim, and
-its 89 buildable cells are an interior courtyard **the creeps never come near** — towers built there
-are out of range of everything.
+It lost **100% of 150 runs** — every life, every time, sd 0.0 — while passing every band.
 
-It passes buildable %, path, spawn-goal, lanes and reachability. `cover` missed it too, because
-`cover` measures the *best* cell.
+The cause is not area, it is **width**. Its route ran down a **one-cell canyon**, so a tower could
+only reach the route from exactly two cells away, at the very limit of arrow range. Each tower
+covered a sliver: **six towers stopped 12% of wave 1, where the same six stop 100% on `meander`.**
 
-`Verify maps` now reports **`useful`**: the share of buildable cells within range of the route at all.
-`spiral` is the only map in the repo below 50%, at 43%, and the only one that loses every run. It is a
-**viability floor, not a difficulty predictor** — the middle of its range does not order by outcome
-(gauntlet is 100% useful and unloseable) but the bottom does.
+Widening the corridors to two cells fixed it outright — 100% → **41.3% lost, sd 7.6**, a hard level
+with real variance instead of a wall.
+
+> **A one-cell-wide route is not a hard level, it is an undefendable one.** Range is measured from
+> cell centres, so a corridor narrower than the tower's reach leaves nowhere to stand. Nothing in
+> `MapTargets` sees this, and neither `cover` nor `useful` predicted it — both read normal on
+> `spiral` while it was losing every run.
+
+The generator now emits two-wide corridors, and refuses any map under 50% `useful`.
 
 ### Two candidates ruled out on the way
 

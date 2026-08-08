@@ -79,9 +79,14 @@ def meander(w=13, h=11):
 
 def spiral(w=13, h=13):
     g = blank(w, h)
-    wall(g, 2, 2, w - 3, 2); wall(g, w - 3, 3, w - 3, h - 3)
-    wall(g, 4, h - 3, w - 3, h - 3); wall(g, 4, 5, 4, h - 4)
-    wall(g, 5, 5, w - 5, 5)
+    # Corridors two cells wide, not one.
+    #
+    # The first version ran the route down a 1-cell canyon: towers could only
+    # reach it from exactly 2 cells away, at the very edge of arrow range, so each
+    # covered a sliver. Six towers stopped 12% of wave 1 where the same six stop
+    # 100% on `meander`, and it lost 100% of 150 runs while passing every band.
+    wall(g, 3, 3, w - 4, 3); wall(g, w - 4, 4, w - 4, h - 4)
+    wall(g, 5, h - 4, w - 4, h - 4); wall(g, 5, 6, 5, h - 5)
     return g, (0, 1), (w - 1, h - 2)
 
 
@@ -185,8 +190,53 @@ def stats(g, spawn, goal):
         "path": dist.get(spawn, -1),
         "buildable_pct": round(100 * buildable / total),
         "density": round(buildable / dist[spawn], 1) if dist.get(spawn) else 0,
+        "useful": 0,
         "floor": abs(spawn[0] - goal[0]) + abs(spawn[1] - goal[1]),
     }
+
+
+def route_of(g, spawn, goal):
+    """The actual shortest route, walked from the spawn down the distance field."""
+    h, w = len(g), len(g[0])
+    walkable = lambda x, y: 0 <= x < w and 0 <= y < h and g[y][x] != "#"
+    dist = {goal: 0}
+    q = deque([goal])
+    while q:
+        x, y = q.popleft()
+        for dx, dy in ((0, -1), (1, 0), (0, 1), (-1, 0)):
+            n = (x + dx, y + dy)
+            if walkable(*n) and n not in dist:
+                dist[n] = dist[(x, y)] + 1
+                q.append(n)
+
+    if spawn not in dist:
+        return []
+    cur, out = spawn, [spawn]
+    while cur != goal:
+        cur = min((n for n in ((cur[0] + dx, cur[1] + dy) for dx, dy in ((0, -1), (1, 0), (0, 1), (-1, 0)))
+                   if walkable(*n) and n in dist), key=lambda n: dist[n])
+        out.append(cur)
+    return out
+
+
+def useful_pct(g, spawn, goal, rng=2.0):
+    """
+    Share of buildable cells within tower range of the route.
+
+    A map can pass every band and still be unwinnable if its buildable area sits
+    away from the path -- `spiral` was 52% buildable, all bands green, and lost
+    100% of 150 runs because 89 of its cells were a courtyard the creeps never
+    approached. Below ~50% here is dead space, not a level.
+    """
+    route = route_of(g, spawn, goal)
+    if not route:
+        return 0
+    build = [(x, y) for y in range(len(g)) for x in range(len(g[0])) if g[y][x] == "b"]
+    if not build:
+        return 0
+    good = sum(1 for bx, by in build
+               if any((bx - rx) ** 2 + (by - ry) ** 2 <= rng * rng for rx, ry in route))
+    return 100 * good // len(build)
 
 
 def thin(g, spawn, goal, target=52, floor_pct=37):
@@ -212,6 +262,23 @@ def thin(g, spawn, goal, target=52, floor_pct=37):
 
     def pct():
         return sum(r.count("b") for r in g) * 100 // (w * h)
+
+    # Pass 0: scenery over cells the route can never be defended from.
+    #
+    # This is the pass that makes a level viable rather than merely legal. Dead
+    # buildable is worse than no buildable -- it reads as somewhere to build and
+    # is not -- so it is the first thing converted, and it costs nothing the
+    # player could have used.
+    for y in range(1, h - 1):
+        for x in range(1, w - 1):
+            if g[y][x] != "b" or pct() <= floor_pct or useful_pct(g, spawn, goal) >= 60:
+                continue
+            route = route_of(g, spawn, goal)
+            if any((x - rx) ** 2 + (y - ry) ** 2 <= 4.0 for rx, ry in route):
+                continue        # within range of the route: genuinely useful
+            g[y][x] = "#"
+            if not stats(g, spawn, goal)["reachable"]:
+                g[y][x] = "b"
 
     for lengthening_only in (True, False):
         for y in range(1, h - 1):
@@ -244,12 +311,14 @@ def build(name, theme):
     g[goal[1]][goal[0]] = "G"
     thin(g, spawn, goal)
     s = stats(g, spawn, goal)
+    s["useful"] = useful_pct(g, spawn, goal)
 
     problems = []
     if not s["reachable"]:                        problems.append("spawn cannot reach goal")
     if not 18 <= s["path"] <= 30:                 problems.append(f"path {s['path']} outside 18-30")
     if not 35 <= s["buildable_pct"] <= 55:        problems.append(f"buildable {s['buildable_pct']}% outside 35-55")
     if s["floor"] > 30:                           problems.append(f"spawn-goal {s['floor']} over 30")
+    if s["useful"] < 50:                          problems.append(f"only {s['useful']}% of buildable is near the route")
 
     doc = {
         "id": name, "theme": theme, "version": 1,
@@ -264,7 +333,7 @@ def build(name, theme):
 
 
 def main():
-    print(f"{'level':11} {'theme':11} {'size':7} {'path':5} {'build%':7} {'density':8} verdict")
+    print(f"{'level':11} {'theme':11} {'size':7} {'path':5} {'build%':7} {'useful':7} {'density':8} verdict")
     ok = 0
     pending = []
     for name, theme in LEVELS:
@@ -274,7 +343,7 @@ def main():
             ok += 1
             pending.append((name, doc))
         print(f"{name:11} {theme:11} {s['w']}x{s['h']:<4} {s['path']:<5} "
-              f"{s['buildable_pct']:<7} {s['density']:<8} {verdict}")
+              f"{s['buildable_pct']:<7} {str(s['useful'])+'%':<7} {s['density']:<8} {verdict}")
     # All or nothing. A partial write leaves the previous run's files on disk
     # beside this one's, and the map report then describes a set that was never
     # generated together.
