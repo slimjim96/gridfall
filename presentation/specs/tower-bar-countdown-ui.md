@@ -22,8 +22,14 @@ One slot per tower the **board** offers, in roster order, at bottom centre.
         └─────────────────────────┘
 ```
 
-The chip is the unit's **own first idle frame** when it has sprite art, and its palette colour when it
-does not — so `arrow-tower` shows the shipped tower and `cannon` shows a brown square. A flat colour
+**Slots are portrait, 46×60, chip 32×46.** Units stand on a cell and are typically far taller than
+they are wide — the shipped arrow tower is 262×662, aspect 0.40 — so a square slot spends its width on
+nothing and renders 12px of tower in a 32px box. Cropping does not fix that: on an asset fitted by
+`fit-sprite.sh` the content already spans the full frame height by construction, so there is no
+vertical margin left to reclaim. A taller box is the only thing that makes a tall silhouette bigger.
+
+The chip is the unit's **own first idle frame, cropped to its silhouette**, when it has sprite art, and
+its palette colour when it does not — so `arrow-tower` shows the shipped tower and `cannon` shows a brown square. A flat colour
 was right while every tower was a coloured solid and the swatch matched by construction; once real art
 lands, an orange square beside a board of blue towers is not a missing picture, it is a wrong one.
 Mesh units keep the colour chip: thumbnailing a `.glb` needs a render pass, and that is not worth a

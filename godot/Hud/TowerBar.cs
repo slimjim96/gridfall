@@ -25,7 +25,15 @@ namespace Gridfall.View.Hud;
 /// </summary>
 public sealed partial class TowerBar : Control
 {
-    private const int SlotSize = 46;
+    // Portrait, not square. Units are drawn standing on a cell and are typically
+    // much taller than they are wide -- the shipped arrow tower is 262x662, an
+    // aspect of 0.40. Fitted into a square box that is 12px of tower in 32px of
+    // slot, and no amount of cropping fixes it: the content already spans the
+    // full frame height, so a square box wastes the width instead. A taller box
+    // is the only thing that makes a tall silhouette bigger.
+    private const int SlotWidth = 46;
+    private const int SlotHeight = 60;
+    private const int ChipInset = 14;
 
     private static readonly Color Ink = new(0.87f, 0.91f, 0.95f);
     private static readonly Color Dim = new(0.56f, 0.63f, 0.70f);
@@ -107,7 +115,7 @@ public sealed partial class TowerBar : Control
             column.AddThemeConstantOverride("separation", 2);
             column.Alignment = BoxContainer.AlignmentMode.Center;
 
-            var frame = new PanelContainer { CustomMinimumSize = new Vector2(SlotSize, SlotSize) };
+            var frame = new PanelContainer { CustomMinimumSize = new Vector2(SlotWidth, SlotHeight) };
             frame.AddThemeStyleboxOverride("panel", SlotStyle(active: false));
 
             Control chip = ChipFor(def);
@@ -190,7 +198,7 @@ public sealed partial class TowerBar : Control
     /// </summary>
     private static Control ChipFor(TowerDef def)
     {
-        var size = new Vector2(SlotSize - 14, SlotSize - 14);
+        var size = new Vector2(SlotWidth - ChipInset, SlotHeight - ChipInset);
         UnitAsset? asset = UnitAssets.For(def.Id);
 
         if (asset?.Format == UnitAssetFormat.Sprite
@@ -204,6 +212,15 @@ public sealed partial class TowerBar : Control
                 // would shrink a four-frame walk cycle into an unreadable smear.
                 int frame = image.GetHeight();
                 Image first = image.GetRegion(new Rect2I(0, 0, frame, frame));
+
+                // Then the silhouette's own bounds, so the slot shows the unit
+                // rather than the unit plus whatever margin the frame needed to
+                // stay square. On an asset already fitted by fit-sprite.sh this
+                // is a no-op vertically -- the content spans the full height by
+                // construction -- but it reclaims the side padding, and it is the
+                // difference between a slot and a stamp on art that is not fitted.
+                Rect2I used = first.GetUsedRect();
+                if (used.Size.X > 0 && used.Size.Y > 0) first = first.GetRegion(used);
 
                 return new TextureRect
                 {
