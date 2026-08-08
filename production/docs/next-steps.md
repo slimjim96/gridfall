@@ -1,16 +1,17 @@
 # Next Steps
 
 **Written:** 2026-08-08 · **State:** branch `main`, pushed, tree clean, `dotnet build` 0/0 ·
-**203 tests** · replay 30/30 · `maps` exits 0 · 12/12 maps valid, all twelve selectable, and now all
-twelve **actually looked at**.
+**212 tests** · replay 30/30 · `maps` exits 0 · 12/12 maps valid, all twelve selectable, all twelve
+**actually looked at**, and `arrow-tower` is real art.
 
 A session-crossing handoff. The filename-is-the-status rule still holds everywhere else — this file
 exists only because the open threads span four workspaces and their ordering is not derivable from any
 one folder.
 
-**Two decisions block most of what is left, and both are yours:** the direction doc below, and the
-wave-table length in §2a. §3 is blocked on the latter outright, and §2b and §4 both wait on it for
-their measurements to mean anything. Everything that could be done without them has been.
+**One decision blocks the rest and it is yours:** the direction doc below. The wave-table question in
+§2a is settled (restated for twelve). §3 is closed as far as measurement can take it — five predictors
+ruled out and a reason none of them can work — so what is left in §2 and §3 is content judgement, not
+analysis. Everything measurable has been measured.
 
 ---
 
@@ -139,7 +140,7 @@ Two rows of the old table were also just wrong — `braid` and `switchback` were
 `tower-range-tiers` and never re-measured. `braid` is degenerate (sd 0.2), not easy, making it five
 degenerate levels rather than four.
 
-### 3. `route-variance-metric` — **unblocked by §2a**, with four predictors ruled out and a measurable target at last
+### 3. `route-variance-metric` — five predictors ruled out, and the reason none can work
 
 `gauntlet` and `ringfort` both lose 0.0% of runs at sd ≈ 0 — the same signature from two independently
 built maps, and **no metric in the repo explains either.**
@@ -152,6 +153,15 @@ Ruled out, do not re-derive:
 | Buildable-share-of-route | `gauntlet` is 96%, same as everything else. Separates nothing. |
 | Legibility of the motif at iso | `ringfort` and `atoll` both read well and are both degenerate. |
 | Seal pressure (placements refused for walling off the route) | `ringfort` is lowest at 14k and degenerate; `crossroads` is next-lowest at 26k and the most varied. Inverts. |
+| **Defence capacity / route** (2026-08-08) | Splits the twelve shipped boards cleanly, then fails the causal test: two `spiral` geometries one capacity point apart, same route and buildable, give 0.0% and 32.7%. |
+
+**Stop looking for a column.** Three independent hunts for a dial on this system have all come back
+knife-edged — `waveClearGold` (25→42%, 35→0%, 45→52%), `comb` composition (242→0%, 244→42%, 246→17%),
+`spiral` geometry (1.09→0%, 1.14→33%). Outcomes are **stable to seed** (`comb` is 42.0/42.0/42.0/41.3
+at seeds 1–4) and **chaotic in inputs**: the policy places greedily, so a one-cell change sends it down
+a different build order, which mazes the route differently. A predictor needs the predicted thing to
+vary smoothly with its inputs, and here it does not. The next attempt should measure a **distribution
+over perturbed boards** rather than one number — or accept that maps are judged by playing them.
 
 **The target variable was wrong, which is the real reason three candidates failed.** The hunt has been
 for a map metric predicting *sd of lives left*. That statistic mixes two unrelated shapes:
@@ -202,18 +212,25 @@ every placement. Across the eleven maps sharing one wave table:
 | 1.03 | `comb` | 42.0% |
 | 0.95 | `spiral` | 25.3% |
 
-**The first candidate that does not invert.** `useful` puts `comb` highest at 82% while it is the
-hardest board; maze multiplier and seal pressure both order backwards. This splits cleanly.
+It was the first candidate that did not invert. **The causal test then refuted it.**
 
-It is still only a **viability threshold, not a difficulty dial** — `comb` at 1.03 loses more than
-`spiral` at 0.95, so it does not rank the two positives — and **n = 2**. Nothing is enforced on it; the
-column is reported and nothing fails, same discipline the maze multiplier got.
+Five geometries of `spiral`, all route length 22, same waves, same seed, only wall positions changed:
 
-**The decisive test is not yet run:** widen `spiral`'s pockets in the generator to lift it above ~1.1,
-change nothing else, and see whether its late losses go to zero. Causal rather than correlational, and
-the only thing that would justify a warning threshold. A before/after on `spiral`'s stranded-cell
-repair was tried and is confounded — capacity and difficulty both fell, but the five sealed cells are
-the known cause of the outcome move.
+| Variant | Capacity | cap/route | Late lost |
+|---|---|---|---|
+| shipped | 21 | 0.95 | 25.3% |
+| **C** | **24** | **1.09** | **0.0%** |
+| **A** | **25** | **1.14** | **32.7%** |
+| D | 32 | 1.45 | 0.0% |
+| B | 37 | 1.68 | 0.0% |
+
+**C and A differ by one point of capacity** — same size, same 47% buildable, same route — and go 0.0%
+against 32.7%. Reproduced. So `cap/route` orders the twelve shipped boards and predicts nothing about a
+board you are editing, which is the only use a map metric has. It joins the ruled-out list; the column
+stays as a diagnostic because it is a real property, and **no threshold is enforced**.
+
+`spiral` is unchanged — every variant ran through the generator and was reverted, and the JSON is
+byte-identical.
 
 Eleven of twelve maps cross at or near the last wave. **The table length has already flattened the
 target variable for all of them**, so no map metric can be validated against it today. Settle §2a,

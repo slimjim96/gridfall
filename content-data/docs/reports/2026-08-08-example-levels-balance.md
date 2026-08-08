@@ -65,7 +65,7 @@ threshold all at once, so there is nothing to interpolate.
 
 ---
 
-## Defence capacity — the first candidate that does not invert
+## Defence capacity — separates the shipped maps, refuted by the causal test
 
 `Verify -- maps` now reports **`capacity`** and **`cap/route`**. Capacity is how many towers a board
 can hold, built the way a competent player builds: take the cell covering the most of the *current*
@@ -91,9 +91,11 @@ is excluded, its table is its own at `hpGrowth` 1.09):
 | **`spiral`** | 21 | **0.95** | **25.3%** |
 
 **Every map at ≥ 1.16 loses nothing late. The only two that lose runs late are the only two at ≤ 1.03.**
-That is a clean split, and it is the first candidate here that does not invert — `useful` puts `comb`
-*highest* at 82% while it is the hardest board, and maze multiplier and seal pressure both order
-backwards.
+A clean split, and the first candidate that did not invert — `useful` puts `comb` *highest* at 82%
+while it is the hardest board, and maze multiplier and seal pressure both order backwards.
+
+**It does not survive the causal test below.** Read this table as a description of the twelve boards as
+they stand, not as a predictor.
 
 ### What it is not
 
@@ -108,13 +110,51 @@ cells are the known cause of the outcome move. It neither confirms nor refutes t
 
 **n = 2 positives.** Nine zeros and two non-zeros is a split, not a law.
 
-### The decisive test, not yet run
+### The decisive test was run, and it refutes the metric
 
-Raise `spiral`'s capacity above ~1.1 by widening its pockets in the generator, change nothing else, and
-see whether its late losses go to zero. That is a causal test rather than a correlation, and it is the
-one thing that would justify turning `cap/route` into a warning. **No threshold is enforced today** —
-the column is reported and nothing fails on it, which is the same discipline the maze multiplier got
-after a 1.15× threshold flagged nine of twelve maps.
+Five geometries of `spiral`, all 13×13, **all with route length 22** (its Manhattan floor, so widening
+cannot shorten it), same wave table, same seed, 150 runs each. Only the wall positions differ:
+
+| Variant | Buildable | Capacity | cap/route | Late runs lost |
+|---|---|---|---|---|
+| shipped | 40% | 21 | 0.95 | 25.3% |
+| **C** | **47%** | **24** | **1.09** | **0.0%** |
+| **A** | **47%** | **25** | **1.14** | **32.7%** |
+| D | 49% | 32 | 1.45 | 0.0% |
+| B | 50% | 37 | 1.68 | 0.0% |
+
+**C and A differ by one point of capacity.** Same size, same buildable share, same route length, same
+waves. One goes to zero; the other is the hardest result the map has ever produced. Re-run and
+reproduced.
+
+So the cross-map split does **not** survive a within-map causal test. `cap/route` orders the twelve
+shipped boards and predicts nothing about a board you are editing, which is precisely the use a map
+metric would be for. **It joins the ruled-out list.**
+
+### What survives, and it is not a metric
+
+Capacity is still worth *reporting* — it is a real property of a board, it is what caps `comb` at 17.8
+standing towers, and it is the honest answer to "how much defence does this board hold". It just does
+not predict outcomes. The column stays; no threshold is enforced and none should be.
+
+The larger finding is the one that keeps recurring. Three independent attempts to find a dial on this
+system have all come back knife-edged:
+
+| Knob | Behaviour |
+|---|---|
+| `waveClearGold` on `comb` | 25→42%, 35→0%, **45→52%**, 60→0% |
+| `comb` wave composition | effective 242→0%, 244→42%, 246→17%, 248→42% |
+| `spiral` geometry | cap/route 0.95→25%, **1.09→0%**, **1.14→33%**, 1.45→0% |
+
+Outcomes are **stable to seed** — `comb` measures 42.0/42.0/42.0/41.3 at seeds 1–4 — and **chaotic in
+inputs**. The policy places greedily, so a one-cell change in the board sends it down a different
+build order, which mazes the route differently, which changes everything downstream. A 150-run figure
+is a precise measurement of one *(map, waves, policy)* triple and not a smooth function of any of them.
+
+**That is why no metric has worked, and it is a stronger claim than any of the individual failures.**
+A predictor requires the thing being predicted to vary smoothly with what you feed it. Here it does
+not. The next attempt should not be another column in `maps`; it should either measure a *distribution*
+over perturbed boards rather than a single number, or accept that maps are judged by playing them.
 
 ---
 
