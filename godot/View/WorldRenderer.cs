@@ -25,6 +25,7 @@ public sealed partial class WorldRenderer : Node3D
 
     private readonly MeshInstance3D _hover = new();
     private readonly MeshInstance3D _errors = new();
+    private readonly MeshInstance3D _range = new();
     private MapDef _map = null!;
     private PathSystem? _path;
     private ushort _builtForVersion = ushort.MaxValue;
@@ -40,6 +41,9 @@ public sealed partial class WorldRenderer : Node3D
 
         _errors.Visible = false;
         AddChild(_errors);
+
+        _range.Visible = false;
+        AddChild(_range);
     }
 
     public void Initialise(MapDef map, PathSystem path)
@@ -110,7 +114,67 @@ public sealed partial class WorldRenderer : Node3D
             legal ? Palette.BuildPreviewOk : Palette.Danger;
     }
 
-    public void HideHover() => _hover.Visible = false;
+    public void HideHover()
+    {
+        _hover.Visible = false;
+        _range.Visible = false;
+    }
+
+    /// <summary>
+    /// The reach of the tower about to be placed, as a ring on the ground.
+    ///
+    /// A ring rather than a filled disc: at the ranges these towers have it
+    /// would cover a third of the board, and the board is the thing the player
+    /// is reading. The outline answers "does this cover the corner?" without
+    /// hiding the corner.
+    ///
+    /// Drawn from the cell centre. TargetingSystem compares grid coordinates
+    /// (tower at `(cellX, cellY)`, creep at its FixVec2), and the renderer adds
+    /// the same half-cell to both — so the relative geometry is preserved and a
+    /// ring centred on the cell is the honest picture of the comparison.
+    /// </summary>
+    public void ShowRange(GridCell cell, float radiusCells, bool legal)
+    {
+        const int Segments = 72;
+        const float Thickness = 0.05f;
+
+        float radius = radiusCells * IsoGrid.CellSize;
+        Vector3 centre = IsoGrid.CellCentre(cell.X, cell.Y, IsoGrid.DecalHeight + 0.004f);
+        Color colour = (legal ? Palette.BuildPreviewOk : Palette.Danger).SrgbToLinear();
+        colour.A = 0.85f;
+
+        var surface = new SurfaceTool();
+        surface.Begin(Mesh.PrimitiveType.Triangles);
+
+        for (int i = 0; i < Segments; i++)
+        {
+            float a0 = Mathf.Tau * i / Segments;
+            float a1 = Mathf.Tau * (i + 1) / Segments;
+
+            Vector3 InnerOuter(float angle, float r) => new(
+                centre.X + Mathf.Cos(angle) * r, centre.Y, centre.Z + Mathf.Sin(angle) * r);
+
+            Vector3 i0 = InnerOuter(a0, radius - Thickness), o0 = InnerOuter(a0, radius + Thickness);
+            Vector3 i1 = InnerOuter(a1, radius - Thickness), o1 = InnerOuter(a1, radius + Thickness);
+
+            surface.SetColor(colour); surface.AddVertex(i0);
+            surface.SetColor(colour); surface.AddVertex(o0);
+            surface.SetColor(colour); surface.AddVertex(o1);
+
+            surface.SetColor(colour); surface.AddVertex(i0);
+            surface.SetColor(colour); surface.AddVertex(o1);
+            surface.SetColor(colour); surface.AddVertex(i1);
+        }
+
+        surface.GenerateNormals();
+        _range.Mesh = surface.Commit();
+
+        StandardMaterial3D material = Palette.Matte(Colors.White, unshaded: true);
+        material.VertexColorUseAsAlbedo = true;
+        material.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+        _range.MaterialOverride = material;
+        _range.Visible = true;
+    }
 
     private void Rebuild()
     {

@@ -337,6 +337,7 @@ public sealed partial class GameplayScene : Node3D
             // visible detour.
             GridCell hovered = _shotHoverCell ?? new GridCell(10, 4);
             _world.ShowHover(hovered, true);
+            _world.ShowRange(hovered, SelectedRangeCells(), true);
             _hud.ShowRepairPrompt(RepairPromptFor(hovered));
             if (_shotHoverCell is null) _routes.ShowPreviewFor(hovered);
             return;
@@ -355,6 +356,12 @@ public sealed partial class GameplayScene : Node3D
         bool buildable = _driver.Map.Cells[index] == CellKind.Buildable
                          && !_driver.Sim.Path.IsBlocked(index);
         _world.ShowHover(cell, buildable);
+
+        // Shown on every hovered cell, not only buildable ones: "how far would
+        // this reach from here" is the question being asked while looking for a
+        // spot, and refusing to answer it on the cell you are considering is the
+        // opposite of helpful. Legality is already carried by the hover colour.
+        _world.ShowRange(cell, SelectedRangeCells(), buildable);
         _hud.ShowRepairPrompt(RepairPromptFor(cell));
 
         // Only preview where a build is actually possible: showing a hypothetical
@@ -362,6 +369,16 @@ public sealed partial class GameplayScene : Node3D
         if (buildable) _routes.ShowPreviewFor(cell);
         else _routes.ClearPreview();
     }
+
+    /// <summary>
+    /// The selected tower's reach in cells, at the level it would be built —
+    /// level 1, since a placement is always a fresh tower.
+    ///
+    /// Read off TowerDef.Range, the same value TargetingSystem compares against,
+    /// so the ring cannot promise a reach the tower does not have.
+    /// </summary>
+    private float SelectedRangeCells()
+        => _driver.Content.Tower(_selectedTower).Range.ToFloat();
 
     private void BuildEnvironment()
     {

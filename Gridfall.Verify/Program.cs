@@ -599,7 +599,7 @@ int WaveReport()
 
 int MapReport()
 {
-    Console.WriteLine($"{"map",-14} {"size",-8} {"buildable",-11} {"path",-6} {"vs floor",-9} {"per route",-10} {"spawns",-7} verdict");
+    Console.WriteLine($"{"map",-14} {"size",-8} {"buildable",-11} {"path",-6} {"vs floor",-9} {"cover",-6} {"per route",-10} {"spawns",-7} verdict");
     foreach (string mapId in ContentFiles.MapIds(root))
     {
         MapDef map;
@@ -621,6 +621,37 @@ int MapReport()
         // supports gets the reason, not the symptom. The band warning would be
         // true and useless -- no layout can satisfy it at that size.
         int floor = Gridfall.Core.Content.MapValidator.GeometricFloor(map.Spawns[0], map.Goal);
+
+        // Route cells one tower can cover, from its best buildable cell.
+        //
+        // Range is fixed in cells while boards are not, so the same tower covers
+        // a shrinking fraction of the route as a board grows. Buildable-per-route
+        // measures how much defence a map PERMITS; this measures how much one
+        // tower BUYS, which is the number wave design actually depends on.
+        ContentSet content = ContentFiles.LoadContent(root, mapId);
+        TowerDef cheapest = content.Towers.OrderBy(x => x.Cost).First();
+        double range = cheapest.Range.ToFloat();
+
+        var route = new List<(int X, int Y)>();
+        for (int i = 0; i < map.Cells.Length; i++)
+            if (path.DistanceAt(i) != Gridfall.Core.Path.PathSystem.NoDistance
+                && map.Cells[i] != CellKind.Blocked)
+                route.Add((i % map.Width, i / map.Width));
+
+        int bestCover = 0;
+        for (int i = 0; i < map.Cells.Length; i++)
+        {
+            if (map.Cells[i] != CellKind.Buildable) continue;
+            int tx = i % map.Width, ty = i / map.Width, covered = 0;
+            foreach ((int rx, int ry) in route)
+            {
+                double dx = rx - tx, dy = ry - ty;
+                if (dx * dx + dy * dy <= range * range) covered++;
+            }
+            if (covered > bestCover) bestCover = covered;
+        }
+
+        string cover = shortest > 0 ? $"{100.0 * bestCover / route.Count:F0}%" : "?";
         if (floor > MapTargets.MaxSpawnGoalDistance)
             warnings.Add($"board too large: spawn-goal {floor} > {MapTargets.MaxSpawnGoalDistance} cap");
         else if (shortest < MapTargets.MinUnmazedPath || shortest > MapTargets.MaxUnmazedPath)
@@ -638,7 +669,7 @@ int MapReport()
 
         string verdict = warnings.Count == 0 ? "ok" : string.Join("; ", warnings);
         string lengthening = Gridfall.Core.Content.MapValidator.Tenths(shortest, floor) + "x";
-        Console.WriteLine($"{mapId,-14} {map.Width + "x" + map.Height,-8} {pct + "%",-11} {shortest,-6} {lengthening,-9} {density,-10:F1} {map.Spawns.Length,-7} {verdict}");
+        Console.WriteLine($"{mapId,-14} {map.Width + "x" + map.Height,-8} {pct + "%",-11} {shortest,-6} {lengthening,-9} {cover,-6} {density,-10:F1} {map.Spawns.Length,-7} {verdict}");
     }
     return 0;
 }

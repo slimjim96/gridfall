@@ -202,6 +202,30 @@ So: **shortening a run means re-authoring the curve, not truncating it.** `hpGro
 waves. `runWaves` is for testing and for deliberately gentle boards, and any use of it in shipped
 content needs a balance run beside it. Re-authoring a short curve is `short-run-curve`.
 
+## Tower coverage — the metric that links range to board size (2026-08-08)
+
+`Verify maps` reports **cover**: the share of the route one cheapest tower reaches from its best
+buildable cell.
+
+| map | size | path | cover |
+|---|---|---|---|
+| `crossroads` | 20×9 | 19 | **22%** |
+| `gauntlet` | 10×10 | 29 | **37%** |
+
+**Tower range is fixed in cells; boards are not.** So the same tower covers a shrinking share of the
+route as a board grows, and a wave tuned on a 20×9 board is a different problem on a 40×40 one — the
+creeps spend proportionally longer outside every tower's reach.
+
+Buildable-per-route-cell measures how much defence a map *permits*. Cover measures how much one tower
+*buys*. Wave design depends on the second, and until now nothing reported it.
+
+**No target band yet, deliberately.** Two maps is not a sample, and the honest next step is to measure
+cover against runs-lost across several boards before drawing a line. Follow-up `coverage-target`.
+
+> This is also the concrete form of the large-board problem. `MaxSpawnGoalDistance` caps boards at a
+> spawn-goal distance of 30 because the combat model was not tuned past it; cover is *why*. A board
+> twice as long does not just take longer, it gives every tower half the job.
+
 ## Map targets
 
 | Property | Target | Scales with board size? |
