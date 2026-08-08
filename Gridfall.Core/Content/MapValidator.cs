@@ -50,6 +50,30 @@ public readonly struct MapFinding
 /// </summary>
 public static class MapValidator
 {
+    /// <summary>
+    /// The shortest route ANY map with this spawn and goal could have.
+    ///
+    /// Manhattan, and exact rather than an approximation, because movement is
+    /// four-way (<see cref="Directions"/>). No amount of painting produces a
+    /// shorter route than this, which is what makes it the right thing to
+    /// measure a board's size against.
+    /// </summary>
+    public static int GeometricFloor(GridCell spawn, GridCell goal)
+        => System.Math.Abs(spawn.X - goal.X) + System.Math.Abs(spawn.Y - goal.Y);
+
+    /// <summary>
+    /// A ratio to one decimal place, as a string, without floats.
+    ///
+    /// Core forbids floating point. Integer tenths are exact and cannot drift
+    /// between machines, which a float formatted for display eventually would.
+    /// </summary>
+    public static string Tenths(int value, int of)
+    {
+        if (of <= 0) return "?";
+        int tenths = 10 * value / of;
+        return $"{tenths / 10}.{tenths % 10}";
+    }
+
     public static List<MapFinding> Validate(MapDraft draft)
     {
         var findings = new List<MapFinding>();
@@ -107,9 +131,23 @@ public static class MapValidator
                 $"buildable {buildablePercent}% is outside {MapTargets.MinBuildablePercent}-{MapTargets.MaxBuildablePercent}%"));
 
         int shortest = path.RouteLength(map.Spawns[0]);
-        if (shortest < MapTargets.MinUnmazedPath || shortest > MapTargets.MaxUnmazedPath)
+        int floor = GeometricFloor(map.Spawns[0], map.Goal);
+
+        if (floor > MapTargets.MaxSpawnGoalDistance)
+        {
+            // Instead of, not as well as, the band warning below. On a board
+            // this size the band warning is true, implied, and unactionable --
+            // it reads as "repaint your map" when no painting can help.
+            findings.Add(new MapFinding(MapSeverity.Warning,
+                $"board too large for the tuned combat model: spawn and goal are {floor} cells apart, " +
+                $"over the {MapTargets.MaxSpawnGoalDistance} cap, so no layout can reach the " +
+                $"{MapTargets.MinUnmazedPath}-{MapTargets.MaxUnmazedPath} path band"));
+        }
+        else if (shortest < MapTargets.MinUnmazedPath || shortest > MapTargets.MaxUnmazedPath)
+        {
             findings.Add(new MapFinding(MapSeverity.Warning,
                 $"unmazed path {shortest} is outside {MapTargets.MinUnmazedPath}-{MapTargets.MaxUnmazedPath}"));
+        }
 
         if (map.Spawns.Length > MapTargets.MaxLanes)
             findings.Add(new MapFinding(MapSeverity.Warning,
@@ -126,7 +164,8 @@ public static class MapValidator
         // ---- info ---------------------------------------------------------
 
         findings.Add(new MapFinding(MapSeverity.Info, $"{map.Width}x{map.Height}, {buildablePercent}% buildable"));
-        findings.Add(new MapFinding(MapSeverity.Info, $"path {shortest}, spawns {map.Spawns.Length}"));
+        findings.Add(new MapFinding(MapSeverity.Info,
+            $"path {shortest}, {Tenths(shortest, floor)}x the {floor}-cell floor, spawns {map.Spawns.Length}"));
 
         return findings;
     }

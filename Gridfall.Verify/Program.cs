@@ -532,7 +532,7 @@ int Perf()
 
 int MapReport()
 {
-    Console.WriteLine($"{"map",-14} {"size",-8} {"buildable",-11} {"path",-6} {"per route",-10} {"spawns",-7} verdict");
+    Console.WriteLine($"{"map",-14} {"size",-8} {"buildable",-11} {"path",-6} {"vs floor",-9} {"per route",-10} {"spawns",-7} verdict");
     foreach (string mapId in ContentFiles.MapIds(root))
     {
         MapDef map;
@@ -550,7 +550,13 @@ int MapReport()
         var warnings = new List<string>();
         if (pct < MapTargets.MinBuildablePercent || pct > MapTargets.MaxBuildablePercent)
             warnings.Add($"buildable {pct}% outside {MapTargets.MinBuildablePercent}-{MapTargets.MaxBuildablePercent}%");
-        if (shortest < MapTargets.MinUnmazedPath || shortest > MapTargets.MaxUnmazedPath)
+        // Same split as MapValidator: a board bigger than the combat model
+        // supports gets the reason, not the symptom. The band warning would be
+        // true and useless -- no layout can satisfy it at that size.
+        int floor = Gridfall.Core.Content.MapValidator.GeometricFloor(map.Spawns[0], map.Goal);
+        if (floor > MapTargets.MaxSpawnGoalDistance)
+            warnings.Add($"board too large: spawn-goal {floor} > {MapTargets.MaxSpawnGoalDistance} cap");
+        else if (shortest < MapTargets.MinUnmazedPath || shortest > MapTargets.MaxUnmazedPath)
             warnings.Add($"path {shortest} outside {MapTargets.MinUnmazedPath}-{MapTargets.MaxUnmazedPath}");
         if (map.Spawns.Length > MapTargets.MaxLanes)
             warnings.Add($"{map.Spawns.Length} spawns > {MapTargets.MaxLanes}");
@@ -564,7 +570,8 @@ int MapReport()
             warnings.Add($"density {density:F1} buildable/route cell (proposed max 2.0)");
 
         string verdict = warnings.Count == 0 ? "ok" : string.Join("; ", warnings);
-        Console.WriteLine($"{mapId,-14} {map.Width + "x" + map.Height,-8} {pct + "%",-11} {shortest,-6} {density,-10:F1} {map.Spawns.Length,-7} {verdict}");
+        string lengthening = Gridfall.Core.Content.MapValidator.Tenths(shortest, floor) + "x";
+        Console.WriteLine($"{mapId,-14} {map.Width + "x" + map.Height,-8} {pct + "%",-11} {shortest,-6} {lengthening,-9} {density,-10:F1} {map.Spawns.Length,-7} {verdict}");
     }
     return 0;
 }

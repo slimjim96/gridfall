@@ -75,13 +75,50 @@ to react to. That fails pillar 4.
 
 ## Map targets
 
-| Property | Target |
-|---|---|
-| Shortest path, unmazed | 18–30 cells |
-| Longest path at maximum mazing | ≤ 3× the unmazed path |
-| Buildable cells | 35–55% of the grid |
-| Lanes | 1–3 |
-| Buildable cells per route cell | **proposed: 1.5–2.0** — see below |
+| Property | Target | Scales with board size? |
+|---|---|---|
+| Shortest path, unmazed | 18–30 cells | **No — and deliberately not.** See below |
+| Spawn-to-goal distance | ≤ 30 cells (`MaxSpawnGoalDistance`) | It *is* the size limit |
+| Longest path at maximum mazing | ≤ 3× the unmazed path | Yes, it is a ratio |
+| Buildable cells | 35–55% of the grid | Yes, it is a percentage |
+| Lanes | 1–3 | No — this is cognitive load, not area |
+| Buildable cells per route cell | **proposed: 1.5–2.0** — see below | Yes, it is a ratio |
+
+### The supported board size, and why the path band does not scale (2026-08-07)
+
+The validator permits boards from 8×8 to 64×64. **The balance targets support a much smaller range
+than that, and the gap is now stated rather than discovered.**
+
+The 18–30 band is about **time under fire** — how many cells a creep is exposed for against tower
+DPS — not about geometry. Scaling it with board size would keep the warning quiet on a 64×64 map
+while silently claiming a combat model that nothing has tested.
+
+So the band stays absolute, and its consequence is named: the **geometric floor** of a map is the
+Manhattan distance from spawn to goal (exact, because movement is four-way), and it is the shortest
+route any map with those endpoints can have. If the floor already exceeds 30, no layout satisfies the
+band and the map reports:
+
+```
+board too large for the tuned combat model: spawn and goal are 63 cells apart,
+over the 30 cap, so no layout can reach the 18-30 path band
+```
+
+rather than the old `unmazed path 63 is outside 18-30`, which was true, implied, and read as
+"repaint your map" when no painting could help.
+
+**Both shipped maps are unaffected** — crossroads' floor is 19 and gauntlet's is 15.
+
+`Verify maps` also now reports **path ÷ floor**, which is the genuinely size-relative quality: how
+much the design lengthens the route beyond the minimum possible. crossroads is `1.0x` — a completely
+straight lane, which is worth reading next to its 4.0 density — and gauntlet is `1.9x`.
+
+> **A correction to the record.** The `camera-pan-zoom` release note claimed a 64×64 board reporting
+> 89% buildable showed the buildable band was size-absolute. It does not: a percentage is already
+> size-relative, and that test board was genuinely almost entirely open. **Only the path band was
+> size-absolute.** Fixing what was actually wrong turned out to be smaller than advertised.
+
+**Raising the cap is a balance question, not a constant.** It needs the sim run at that scale, with
+wave duration and DPS re-checked — `large-board-balance`.
 
 > **Buildable share is the wrong metric, and the enemy-roster pass proved it (2026-08-07).**
 > `crossroads` is 42% buildable — comfortably inside the band — and still permits a defence of 55

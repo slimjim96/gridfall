@@ -81,7 +81,7 @@ playable and editable for the first time.
 
 | Item | Workspace | Slug |
 |---|---|---|
-| `MapTargets` bands are size-absolute and wrong at scale — a 64×64 board reports 89% buildable (target 35–55%) and path 63 (target 18–30) just for being large | content-data | `map-targets-at-scale` |
+| ~~`MapTargets` bands are size-absolute at scale~~ — **done, and narrower than claimed.** Only the *path* band was size-absolute; buildable % is already a percentage and that test board was genuinely 89% open. See `map-targets-at-scale` | content-data | done |
 | Touch / on-screen arrows for mobile | presentation | `mobile-input` |
 | A cue when something happens off-screen — pillar 4 says a loss you never saw is unexplainable | presentation | `offscreen-cues` |
 | Minimap | presentation | — |

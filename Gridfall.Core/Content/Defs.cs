@@ -277,4 +277,21 @@ public static class MapTargets
     public const int MaxLanes = 3;
     /// <summary>Longest mazed path as a multiple of the unmazed path.</summary>
     public const int MaxMazeMultiplier = 3;
+
+    /// <summary>
+    /// The largest spawn-to-goal Manhattan distance the tuned combat model
+    /// supports, and therefore the largest board it supports.
+    ///
+    /// **Why the path band is absolute and not a fraction of the board.** The
+    /// 18-30 band is about time under fire -- how many cells a creep is exposed
+    /// for, against tower DPS -- not about geometry. Scaling it with board size
+    /// would keep the warning quiet on a 64x64 map while quietly claiming a
+    /// combat model nothing has tested.
+    ///
+    /// So the band stays put and this states its consequence out loud: a board
+    /// whose spawn and goal are further apart than this cannot satisfy the band
+    /// no matter how it is painted, because the Manhattan distance IS the
+    /// shortest route any such map can have.
+    /// </summary>
+    public const int MaxSpawnGoalDistance = MaxUnmazedPath;
 }
