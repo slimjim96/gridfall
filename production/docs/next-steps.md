@@ -87,20 +87,33 @@ Two things fell out that need a decision, not more measurement:
 The five ten-second questions for a human are at the bottom of
 [`content-data/docs/example-levels.md`](../../content-data/docs/example-levels.md).
 
-### 2. Eight of the ten are untuned, and four are degenerate
+### 2. The band is measured over two waves, and that has to be settled before any level is tuned
 
-Wave tables are copied from `crossroads` verbatim. At 150 runs (that doc has the table):
+All twelve re-measured at 150 runs:
+[`2026-08-08-example-levels-balance.md`](../../content-data/docs/reports/2026-08-08-example-levels-balance.md).
+The scope call — ten passes, or two or three — turned out to be the wrong question. Three findings,
+in the order they matter:
 
-- `comb` 42.0% lost — above the 15–30% band
-- `spiral` 25.3% — in band, and only after the decoy fix
-- `chambers`, `braid`, `switchback`, `atoll` — 0.0–0.7%, too easy
-- `ringfort`, `meander`, `stepwell`, `driftway` — 0.0% lost at sd ≤ 0.4, **degenerate**
+**a. `balance-targets.md` asks for 15–30% of runs lost in waves 11–20. Every wave table has 12
+waves.** The late window is waves 11 and 12. Over ten waves that band is a gentle per-wave rate; over
+two it needs a single wave to be a coin flip, which no level sits in stably. Either the tables grow to
+20 waves or the band is restated for the 12 that exist. **Nothing else here is worth doing first** —
+tuning towards a two-wave window is how six earlier passes read the number as `ok`.
 
-Still a scope call: a per-level balance pass (ten passes), or pick the two or three that earn a tuning
-budget and mark the rest as generator output. Note that four of the untuned maps are also four that do
-not read (§1) — **tuning a level nobody can parse is the expensive half of a job whose cheap half was
-never done.** `comb` is the strongest candidate: hardest, most legible, the only one whose geometry
-does real work at 2.1× floor.
+**b. `comb` does not tune, and the knobs are not monotone.** Every lost run dies at wave 12 exactly,
+so each global knob is a threshold rather than a dial: `hpGrowthFrom` 6→42%, 7→0%; `waveClearGold`
+25→42%, 35→0%, **45→52%**, 60→0%. `hpGrowth` is already at 1.10, the floor of its band. Landing 15–30%
+here would be luck. `comb` needs wave 12 spread across waves 8–15 — a composition job, after (a).
+
+**c. `crossroads` fails both targets and `spiral` passes both.** The reference board loses 18.7% early
+and 1.3% late — inverted, as recorded on 2026-08-07 and still true. `spiral`, whose wave table is
+still `crossroads`'s copied verbatim, is at 0.0% early and 25.3% late. **The best-balanced board in the
+repo is a generator artefact that got there via a bug fix**, which is worth a moment's suspicion of
+what "tuned" has meant here.
+
+Two rows of the old table were also just wrong — `braid` and `switchback` were measured before
+`tower-range-tiers` and never re-measured. `braid` is degenerate (sd 0.2), not easy, making it five
+degenerate levels rather than four.
 
 ### 3. `route-variance-metric` — open, with three predictors ruled out and one refined
 
@@ -114,16 +127,34 @@ Ruled out, do not re-derive:
 | Maze multiplier (`maze`, editor F6) | `gauntlet` 1.0× vs `crossroads` 1.1× — adjacent, outcomes sd 0.0 vs 7.1. A 1.15× threshold flagged 9 of 12 including a known-good map. |
 | Buildable-share-of-route | `gauntlet` is 96%, same as everything else. Separates nothing. |
 | Legibility of the motif at iso | `ringfort` and `atoll` both read well and are both degenerate. |
+| Seal pressure (placements refused for walling off the route) | `ringfort` is lowest at 14k and degenerate; `crossroads` is next-lowest at 26k and the most varied. Inverts. |
+
+**The target variable was wrong, which is the real reason three candidates failed.** The hunt has been
+for a map metric predicting *sd of lives left*. That statistic mixes two unrelated shapes:
+
+| Map | sd | Lost runs died at wave | Shape |
+|---|---|---|---|
+| `crossroads` | 8.1 | 3.7 avg, **earliest 3, latest 12** | a curve — many waves can kill you |
+| `comb` | 5.9 | 12.0, earliest 12, latest 12 | **a wall** — one wave, pass or fail |
+| `chambers` | 5.7 | 3.0, earliest 3, latest 3 | a wall, early |
+
+`comb` and `crossroads` have near-identical sd and nothing else in common. **No property of a map could
+ever separate those, because the difference lives in the wave table.** Three geometric candidates were
+regressed against a number that was mixing two populations.
+
+**Death-wave spread** (`latest - earliest` over lost runs) separates `crossroads` from all eleven
+others immediately: spread 9 against spread 0 everywhere. But **n = 1** — one board has spread and no
+other has any, which is as consistent with "spread is what tuning produces" as with "spread is what a
+good map permits". Not a metric yet; a better-posed target than sd.
+
+The cheapest next test is §2b: spread `comb`'s wave 12 across waves 8–15 and see whether death-wave
+spread appears. If it does, difficulty spread is a property of **wave tables, not maps**, and
+`route-variance-metric` has been filed in the wrong workspace since it was opened.
 
 **`useful` is no longer a clean miss.** Raising it by *adding* cells near the route did nothing
 (43%→60% on `spiral`, no change). Raising it by *deleting* cells far from the route moved `spiral` 16
-points. Same metric, opposite readings — so it was never measuring a dial to turn up, it was
-undercounting cells that actively mislead. Untested beyond one map.
-
-Suggestion, not a conclusion: the next attempt is probably **simulation-derived** — sample tower
-placements and measure the spread of outcomes — since every purely geometric candidate has failed the
-same way, and the one result that did move a map came from removing bad placements rather than from
-describing the shape.
+points. Same metric, opposite readings — it was never a dial to turn up, it was undercounting cells
+that actively mislead.
 
 ### 4. Tier 2's soft-lock question is unanswered
 

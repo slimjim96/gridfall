@@ -41,20 +41,28 @@ wall is a solid block with height and everything behind it is hidden. `comb`, `r
 
 Wave tables are copied from `crossroads` and not re-tuned. All ten at 150 runs:
 
-| Level | Runs lost | Lives left | sd | |
-|---|---|---|---|---|
-| `comb` | 42.0% | 7.0 | 5.9 | above band |
-| `spiral` | **25.3%** | 7.7 | 6.7 | **in band** — the only one, and by accident; see below |
-| `chambers` | 0.7% | 11.8 | 5.7 | too easy |
-| `braid` | 0.7% | 18.6 | 2.9 | too easy |
-| `switchback` | 0.0% | 16.9 | 4.1 | too easy |
-| `atoll` | 0.0% | 17.9 | 4.1 | too easy |
-| `ringfort` | 0.0% | 19.9 | 0.2 | degenerate |
-| `meander` | 0.0% | 20.0 | 0.0 | degenerate |
-| `stepwell` | 0.0% | 20.0 | 0.0 | degenerate |
-| `driftway` | 0.0% | 19.7 | 0.4 | degenerate |
+Re-measured 2026-08-08, all twelve, 150 runs each — see
+[the balance report](reports/2026-08-08-example-levels-balance.md). Death wave is where lost runs
+died: one number means a wall, a range means a curve.
+
+| Level | Runs lost | Lives left | sd | Death wave | |
+|---|---|---|---|---|---|
+| `comb` | 42.0% | 7.0 | 5.9 | 12 only | above band, and untunable with current knobs |
+| `spiral` | **25.3%** | 7.7 | 6.7 | 12 only | **passes both bands** — the only board that does |
+| `chambers` | 0.7% | 11.8 | 5.7 | 3 only | dies early or not at all |
+| `atoll` | 0.0% | 17.9 | 4.1 | — | too easy |
+| `switchback` | 0.0% | 19.3 | 1.0 | — | too easy *(doc previously said sd 4.1)* |
+| `braid` | 0.0% | 19.9 | 0.2 | — | **degenerate** *(doc previously said 0.7%, sd 2.9)* |
+| `ringfort` | 0.0% | 19.9 | 0.2 | — | degenerate |
+| `meander` | 0.0% | 20.0 | 0.0 | — | degenerate |
+| `stepwell` | 0.0% | 20.0 | 0.0 | — | degenerate |
+| `driftway` | 0.0% | 19.7 | 0.4 | — | degenerate |
 
 **Ten maps, every one inside every `MapTargets` band, outcomes from 0% to 42%.**
+
+Two rows moved for reasons that have nothing to do with this set: `braid` and `switchback` were
+measured before `tower-range-tiers` and never re-measured. `braid` at sd 0.2 is degenerate, not merely
+easy, which makes it five degenerate levels rather than four.
 
 That is the result worth keeping. The bands are a **legality and shape check, not a difficulty check**,
 and nothing in them predicts how a map plays. Any new map needs a balance pass; the report cannot

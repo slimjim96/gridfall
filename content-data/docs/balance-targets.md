@@ -19,6 +19,16 @@ Measured over 200 headless runs per map, fixed seed, competent-play policy.
 | Idle gold at wave 10 | 0–2 tower costs | > 4 (nothing worth buying) |
 | Idle gold at wave 20 | 0–3 tower costs | > 6 |
 
+> **The late band is measured over two waves, not ten (2026-08-08).** "Waves 11–20" is the target;
+> every wave table in `content-data/waves/` has **12 waves**, so `Verify balance` reports it as
+> `in waves 11+` and that window is waves 11 and 12. 15–30% spread over ten waves is a gentle
+> per-wave rate; the same figure over two waves needs one wave to be near a coin flip, which is not
+> something a level can sit in stably. `comb` demonstrates it: every global knob is a cliff around
+> wave 12, and `waveClearGold` is not even monotone — 25→42%, 35→0%, 45→52%, 60→0%.
+> **Either the tables grow to 20 waves or this band is restated for the 12 that exist.** Until then
+> the late figure is not worth tuning towards. See
+> [example-levels balance](reports/2026-08-08-example-levels-balance.md).
+
 > **Both runs-lost targets were carried here for months and only one was ever measured (2026-08-07).**
 > The balance sim printed a single figure, labelled it `15-30% late`, and checked it against a 0-60%
 > band that appears nowhere in this document. Split, the shipped 26.0% was **25.5% early and 0.5%
