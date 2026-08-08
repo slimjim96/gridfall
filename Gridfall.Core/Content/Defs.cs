@@ -197,6 +197,14 @@ public sealed class WaveDef
     /// this existed. See 2026-08-06-crossroads-12-waves-balance.md.
     /// </summary>
     public required Fix32 HpScale { get; init; }
+
+    /// <summary>
+    /// 0-100. How much the wave's start offsets are jittered, from the table's
+    /// `waveVariance`. Zero means the wave plays exactly as authored AND draws
+    /// no random numbers at all -- which is what keeps every recorded trace
+    /// byte-identical while this is off.
+    /// </summary>
+    public int VariancePercent { get; init; }
     /// <summary>
     /// Order is load-bearing: entries are walked in array order each tick, so it
     /// determines entity id order on ties. Reordering changes the run.

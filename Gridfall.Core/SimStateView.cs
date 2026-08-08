@@ -29,6 +29,13 @@ public readonly struct SimStateView
     public int Gold => _state.Gold;
     public int Lives => _state.Lives;
     public int WaveIndex => _state.WaveIndex;
+
+    /// <summary>
+    /// The tick this wave's group `i` next spawns at. Read-only, like everything
+    /// here -- exposed so the view can show an incoming-wave shape, and so wave
+    /// variance is testable as the schedule it actually produces.
+    /// </summary>
+    public int WaveEntryNextTick(int i) => _state.WaveEntryNextTick[i];
     public bool WaveActive => _state.WaveActive;
 
     // ---- creeps -----------------------------------------------------------

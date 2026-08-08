@@ -20,7 +20,8 @@ internal static class CommandSystem
         ContentSet content,
         PathSystem path,
         EventLog events,
-        int tick)
+        int tick,
+        SimRandom random)
     {
         for (int i = 0; i < queue.Count; i++)
         {
@@ -29,7 +30,7 @@ internal static class CommandSystem
             {
                 case CommandKind.Build: Build(state, map, content, path, events, tick, e.Cell, e.TowerDefIndex); break;
                 case CommandKind.Sell: Sell(state, content, path, events, tick, e.TowerId); break;
-                case CommandKind.StartWave: StartWave(state, content, events, tick); break;
+                case CommandKind.StartWave: StartWave(state, content, events, tick, random); break;
                 case CommandKind.Upgrade: Upgrade(state, content, events, tick, e.TowerId); break;
                 case CommandKind.Repair: Repair(state, content, events, tick, e.TowerId); break;
             }
@@ -214,7 +215,7 @@ internal static class CommandSystem
         events.Add(new SimEvent(tick, EventKind.GoldChanged, state.Gold, -cost));
     }
 
-    private static void StartWave(SimState state, ContentSet content, EventLog events, int tick)
+    private static void StartWave(SimState state, ContentSet content, EventLog events, int tick, SimRandom random)
     {
         if (state.WaveActive) return;
         if (state.WaveIndex >= content.Waves.Length) return;
@@ -229,9 +230,33 @@ internal static class CommandSystem
             state.WaveEntryNextTick[i] = int.MaxValue;
         }
         for (int i = 0; i < wave.Entries.Length && i < SimState.MaxWaveEntries; i++)
-            state.WaveEntryNextTick[i] = tick + wave.Entries[i].DelayTicks;
+            state.WaveEntryNextTick[i] = tick + wave.Entries[i].DelayTicks + StartJitter(wave, random);
 
         events.Add(new SimEvent(tick, EventKind.WaveStarted, wave.Index));
+    }
+
+    /// <summary>
+    /// How much later this group starts than authored, in ticks.
+    ///
+    /// The ONLY thing wave variance changes. Shifting start offsets reorders the
+    /// groups and reshapes the pressure without touching which enemies arrive,
+    /// how many, or how fast they follow each other -- so the authored budget is
+    /// preserved exactly, which is what keeps a varied wave fair (pillar 4) and
+    /// keeps the balance curve meaning something.
+    ///
+    /// **Zero variance draws nothing.** Not an optimisation: the RNG state is
+    /// hashed, so a draw taken while the feature is off would change every
+    /// recorded trace for no behaviour.
+    /// </summary>
+    private static int StartJitter(WaveDef wave, SimRandom random)
+    {
+        if (wave.VariancePercent <= 0) return 0;
+
+        // 4 seconds at 30 Hz. Enough to reorder groups that were authored to
+        // start together, small enough that total wave duration barely moves --
+        // the spacing between spawns, which is what sets pressure, is untouched.
+        const int MaxJitterTicks = 120;
+        return random.NextInt(MaxJitterTicks * wave.VariancePercent / 100 + 1);
     }
 
     private static void Reject(EventLog events, int tick, GridCell cell, RejectReason reason)

@@ -282,6 +282,18 @@ public static class ContentLoader
         using JsonDocument doc = Parse(json, file);
         JsonElement wavesEl = RequireProperty(doc.RootElement, "waves", file);
 
+        // waveVariance: how much a wave's start offsets may be jittered, 0-100.
+        // Composition, counts and spacing are untouched -- only WHEN each group
+        // begins -- so the authored difficulty curve survives intact. See
+        // balance-targets.md for the measured cost.
+        int variance = 0;
+        if (doc.RootElement.TryGetProperty("waveVariance", out JsonElement v))
+        {
+            variance = v.GetInt32();
+            if (variance is < 0 or > 100)
+                throw new ContentException($"{file}: waveVariance {variance} is outside 0..100");
+        }
+
         // One authored growth rate, compounded here rather than in the tick loop.
         // The balance targets want 1.10-1.18x wave to wave, so the content states
         // the rate and the loader turns it into a per-wave scalar.
@@ -341,7 +353,7 @@ public static class ContentLoader
             if (w.TryGetProperty("hpScale", out JsonElement explicitScale))
                 scale = ParseFix(explicitScale, file);
 
-            waves.Add(new WaveDef { Index = index, Entries = entries.ToArray(), HpScale = scale });
+            waves.Add(new WaveDef { Index = index, Entries = entries.ToArray(), HpScale = scale, VariancePercent = variance });
         }
 
         waves.Sort((a, b) => a.Index.CompareTo(b.Index));

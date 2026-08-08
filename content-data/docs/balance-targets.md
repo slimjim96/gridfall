@@ -73,6 +73,38 @@ to react to. That fails pillar 4.
 > the enemies alone. See
 > [income vs difficulty](reports/2026-08-07-income-vs-difficulty.md).
 
+## Wave variance — `waveVariance` (2026-08-07)
+
+`"waveVariance": 0-100` on a wave table jitters **when each group of a wave starts**, drawn from the
+run seed. Nothing else: composition, counts and spacing between spawns are untouched, so the authored
+difficulty curve survives and a varied wave stays explicable.
+
+Jitter is a delay of up to `1.2s × variance`, never an advance. Groups authored to start together get
+reordered; the pressure changes shape without the budget changing.
+
+**Default is 0, and at 0 the sim draws no random numbers at all.** That is load-bearing rather than an
+optimisation — `SimRandom`'s state is hashed, so a draw taken while the feature is off would change
+every recorded trace for no behaviour.
+
+### Measured, `crossroads`, 150 runs
+
+| | Runs lost | Lives left |
+|---|---|---|
+| `waveVariance` 0 | 27.3% | 7.8, sd 7.1 |
+| `waveVariance` 100 | 30.0% | 7.1, sd 7.2 |
+
+**+2.7pp against a standard error of ~3.7pp — not distinguishable from noise at this sample size.**
+The direction was consistent across every measurement taken (0 → 50 → 100 rose monotonically at 30
+runs too), and the mechanism is plausible: jitter can overlap two groups that were authored apart, and
+overlap hurts more than a gap helps. Treat it as *approximately* neutral with a possible small
+hardening, not as proven neutral.
+
+> **A caution about run counts.** The same measurement at 30 runs put the baseline at 23.3% and the
+> gap at +6.7pp. At 150 runs the baseline is 27.3% and the gap is +2.7pp. **A 4-point swing in the
+> baseline came from sample size alone.** Thirty runs is enough to separate 0% from 25%; it is not
+> enough to resolve a few points, and numbers in this document quoted from 30-run passes should be
+> read that way.
+
 ## Run length — `runWaves`, and why it is not a length dial (2026-08-07)
 
 A wave table may carry `"runWaves": N` to play only its first N waves. It is **truncation, not

@@ -82,7 +82,7 @@ public sealed class Sim
     {
         _events.Clear();
 
-        CommandSystem.Run(_state, _queue, _map, _content, _path, _events, TickCount);   // 1
+        CommandSystem.Run(_state, _queue, _map, _content, _path, _events, TickCount, _random);   // 1
         if (_path.RecomputeIfDirty())                                                   // 2
             _events.Add(new SimEvent(TickCount, EventKind.PathRecomputed, _path.Version));
         SpawnSystem.Run(_state, _map, _content, _path, _events, TickCount);             // 3
