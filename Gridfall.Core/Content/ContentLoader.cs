@@ -309,6 +309,7 @@ public static class ContentLoader
         int prepTicks = OptionalInt(doc.RootElement, "prepTicks", 0, 0, 3600, file);
         int midWavePercent = OptionalInt(doc.RootElement, "midWaveBuildPercent", 100, 100, 1000, file);
         int earlyCallGold = OptionalInt(doc.RootElement, "earlyCallGoldPerSecond", 0, 0, 100, file);
+        int clearGold = OptionalInt(doc.RootElement, "waveClearGold", 0, 0, 2000, file);
 
         // One authored growth rate, compounded here rather than in the tick loop.
         // The balance targets want 1.10-1.18x wave to wave, so the content states
@@ -369,7 +370,7 @@ public static class ContentLoader
             if (w.TryGetProperty("hpScale", out JsonElement explicitScale))
                 scale = ParseFix(explicitScale, file);
 
-            waves.Add(new WaveDef { Index = index, Entries = entries.ToArray(), HpScale = scale, VariancePercent = variance, PrepTicks = prepTicks, MidWaveBuildPercent = midWavePercent, EarlyCallGoldPerSecond = earlyCallGold });
+            waves.Add(new WaveDef { Index = index, Entries = entries.ToArray(), HpScale = scale, VariancePercent = variance, PrepTicks = prepTicks, MidWaveBuildPercent = midWavePercent, EarlyCallGoldPerSecond = earlyCallGold, ClearGold = clearGold });
         }
 
         waves.Sort((a, b) => a.Index.CompareTo(b.Index));

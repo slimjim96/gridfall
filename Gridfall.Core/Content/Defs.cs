@@ -226,6 +226,15 @@ public sealed class WaveDef
     /// player who has finished building, instead of a countdown they watch.
     /// </summary>
     public int EarlyCallGoldPerSecond { get; init; }
+
+    /// <summary>
+    /// Gold paid for clearing this wave. 0 = bounty only, the original economy.
+    ///
+    /// The prerequisite for a prep window meaning anything. With bounty-only
+    /// income nothing is earned between waves, so a player who has spent down has
+    /// no use for the time and the pause is dead -- measured, not assumed.
+    /// </summary>
+    public int ClearGold { get; init; }
     /// <summary>
     /// Order is load-bearing: entries are walked in array order each tick, so it
     /// determines entity id order on ties. Reordering changes the run.

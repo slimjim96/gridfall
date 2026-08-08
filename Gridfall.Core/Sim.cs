@@ -130,6 +130,15 @@ public sealed class Sim
             // Clearing the last wave alive is the win. Detected on the same
             // transition rather than stored, so no new hashed state and no
             // determinism trace to re-record.
+            // Paid before the prep timer is armed, so the build window opens with
+            // the money in hand -- that ordering IS the feature.
+            WaveDef cleared = _content.Waves[_state.WaveIndex - 1];
+            if (cleared.ClearGold > 0)
+            {
+                _state.Gold += cleared.ClearGold;
+                _events.Add(new SimEvent(TickCount, EventKind.GoldChanged, _state.Gold, cleared.ClearGold));
+            }
+
             if (_state.WaveIndex >= _content.Waves.Length && _state.Lives > 0)
                 _events.Add(new SimEvent(TickCount, EventKind.RunComplete, _state.WaveIndex));
             else

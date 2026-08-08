@@ -103,8 +103,41 @@ is 30 gold a wave, worth **~27 points** of loss rate (63.3% → 36.7% at the sam
 spent-down player always calls early, so there is no cost to weigh against the payment. It only
 becomes a decision once there is something to buy during the prep window — i.e. after fix 1.
 
-**Left off for every shipped map.** The mechanism is sound and the numbers say the design is not
-finished: build wave-clear income first, then re-measure all three together.
+### With `waveClearGold` added, measured together (150 runs)
+
+`waveClearGold` pays on clearing a wave, before the prep timer arms — income that arrives *in the
+gap*, which the table above showed was the missing prerequisite.
+
+| clear | prep | mid % | Runs lost | Lives |
+|---|---|---|---|---|
+| — | — | 100 | 27.3% | 7.8 |
+| 25 | 0 / 30 / 300 | 100 | **4.0% (identical at all three)** | 12.1 |
+| 80 | 0 / 300 | 100 | **0.7% (identical at both)** | 18.4 |
+| 25 | 300 | 115 | **24.0%** | 8.4 |
+| 25 | 300 | 125 | 40.0% | 6.9 |
+| 40 | 300 | 125 | 20.0% | 8.8 |
+
+**`prepTicks` is unmeasurable by the sim, at any value including 0.4 seconds.** The policy spends
+down and *then* calls the wave, so it already has unlimited prep and a timer never binds. Prep time is
+a constraint on how fast a *human* decides, and this harness decides instantly. **It has to be tuned
+by playing.** Every prep row above is byte-identical to its prep-less twin.
+
+**`waveClearGold` is a strong lever.** 25/wave takes 27.3% → 4.0% on its own. Paired against a
+premium it lands back in band: **clear 25 + mid 115 = 24.0%**, inside the 15–30% late target and
+within noise of the 27.3% baseline — but now income arrives in the gap and reacting late costs.
+
+### Why it is still off on crossroads
+
+Enabling `midWaveBuildPercent 115` **broke two verification seeds**: `sappers` and `repair` finished
+at 5 towers and 0 lives instead of 28 towers and 20 lives. Isolated to the premium — with it at 100
+both recover exactly.
+
+The cause is that both seeds build almost entirely *during* waves, so they pay the premium on nearly
+every tower. That is the mechanic working as designed, and it is also a harness that models the one
+playstyle the mechanic exists to discourage.
+
+**So the seeds have to be rewritten to build between waves before the premium can ship.** Small, and
+its own slice — `shot-seed-pacing`. Until then all four knobs stay off and crossroads is unchanged.
 
 ## Wave variance — `waveVariance` (2026-08-07)
 
