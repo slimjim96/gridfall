@@ -94,7 +94,7 @@ Two things fell out that need a decision, not more measurement:
 The five ten-second questions for a human are at the bottom of
 [`content-data/docs/example-levels.md`](../../content-data/docs/example-levels.md).
 
-### 2. The band is measured over two waves, and that has to be settled before any level is tuned
+### 2. The band is restated; `comb` still cannot be tuned, and now we know why
 
 All twelve re-measured at 150 runs:
 [`2026-08-08-example-levels-balance.md`](../../content-data/docs/reports/2026-08-08-example-levels-balance.md).
