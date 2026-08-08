@@ -109,6 +109,12 @@ public sealed class Sim
         {
             _state.WaveActive = false;
             _events.Add(new SimEvent(TickCount, EventKind.WaveCleared, _state.WaveIndex));
+
+            // Clearing the last wave alive is the win. Detected on the same
+            // transition rather than stored, so no new hashed state and no
+            // determinism trace to re-record.
+            if (_state.WaveIndex >= _content.Waves.Length && _state.Lives > 0)
+                _events.Add(new SimEvent(TickCount, EventKind.RunComplete, _state.WaveIndex));
         }
 
         TickCount++;

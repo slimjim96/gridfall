@@ -73,6 +73,29 @@ to react to. That fails pillar 4.
 > the enemies alone. See
 > [income vs difficulty](reports/2026-08-07-income-vs-difficulty.md).
 
+## Run length — `runWaves`, and why it is not a length dial (2026-08-07)
+
+A wave table may carry `"runWaves": N` to play only its first N waves. It is **truncation, not
+re-tuning**: the HP curve is authored per wave index, so a shorter run is the same waves stopping
+earlier.
+
+Measured on `crossroads`, 30 runs, beginner policy:
+
+| `runWaves` | Runs lost | Lives left |
+|---|---|---|
+| 8 | **0.0%** | 18.7, sd 2.8 |
+| 10 | **0.0%** | 18.5, sd 2.9 |
+| 12 (authored) | **23.3%** | 8.7, sd 7.0, range 0–20 |
+
+**Every loss on crossroads happens in waves 11–12.** Truncating to 10 does not shorten the game by
+a sixth — it removes the entire losing condition and produces the `gauntlet` failure: a map that
+cannot be lost, with no spread of outcomes.
+
+So: **shortening a run means re-authoring the curve, not truncating it.** `hpGrowth` and
+`hpGrowthFrom` are the knobs — a steeper rate from an earlier wave reaches the same threat in fewer
+waves. `runWaves` is for testing and for deliberately gentle boards, and any use of it in shipped
+content needs a balance run beside it. Re-authoring a short curve is `short-run-curve`.
+
 ## Map targets
 
 | Property | Target | Scales with board size? |

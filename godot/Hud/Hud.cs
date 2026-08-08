@@ -13,6 +13,7 @@ public sealed partial class Hud : CanvasLayer
     private readonly Label _refusal = new();
     private readonly Label _help = new();
     private readonly Label _repair = new();
+    private readonly Label _runEnd = new();
     private float _refusalRemaining;
 
     private const float RefusalSeconds = 1.6f;
@@ -36,6 +37,16 @@ public sealed partial class Hud : CanvasLayer
                      "space: start wave   1/2: tower   r: routes";
         AddChild(_help);
 
+        // Centred, large, and the only thing on screen that ever stops the game.
+        // A run that ends silently is the same defect as a loss you cannot
+        // explain -- pillar 4 -- so the end state is the loudest thing here.
+        _runEnd.AddThemeFontSizeOverride("font_size", 34);
+        _runEnd.HorizontalAlignment = HorizontalAlignment.Center;
+        _runEnd.VerticalAlignment = VerticalAlignment.Center;
+        _runEnd.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _runEnd.Visible = false;
+        AddChild(_runEnd);
+
         // Sits under the help line, where the eye already is when hovering.
         _repair.Position = new Vector2(16, 92);
         _repair.AddThemeFontSizeOverride("font_size", 16);
@@ -53,6 +64,18 @@ public sealed partial class Hud : CanvasLayer
     /// passes the cost rather than computing it here -- the view must not own a
     /// second copy of the cost formula.
     /// </summary>
+    /// <summary>
+    /// The run is over. `won` picks the colour, and nothing else in the HUD
+    /// changes -- the final board stays readable underneath, because "why did I
+    /// lose" is answered by looking at it.
+    /// </summary>
+    public void ShowRunEnd(string text, bool won)
+    {
+        _runEnd.Text = text;
+        _runEnd.AddThemeColorOverride("font_color", won ? Palette.BuildPreviewOk : Palette.Danger);
+        _runEnd.Visible = true;
+    }
+
     public void ShowRepairPrompt(string? text)
     {
         _repair.Visible = text is not null;

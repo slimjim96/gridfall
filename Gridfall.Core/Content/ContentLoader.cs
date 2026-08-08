@@ -345,6 +345,20 @@ public static class ContentLoader
         }
 
         waves.Sort((a, b) => a.Index.CompareTo(b.Index));
+        // runWaves: play only the first N of the authored table.
+        //
+        // Truncation, not a re-tuning. The HP curve is authored per wave index,
+        // so a shorter run is the SAME waves stopping earlier -- it is easier,
+        // not merely shorter. balance-targets.md carries the measured cost.
+        if (doc.RootElement.TryGetProperty("runWaves", out JsonElement runWaves))
+        {
+            int n = runWaves.GetInt32();
+            if (n < 1 || n > waves.Count)
+                throw new ContentException(
+                    $"{file}: runWaves {n} is outside 1..{waves.Count} authored waves");
+            waves.RemoveRange(n, waves.Count - n);
+        }
+
         return waves.ToArray();
     }
 

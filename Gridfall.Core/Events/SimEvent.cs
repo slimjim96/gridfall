@@ -25,6 +25,15 @@ public enum EventKind : byte
     CapacityExceeded,
     WaveCleared,
     GameOver,
+
+    /// <summary>
+    /// The last wave of the run has been cleared with lives remaining.
+    ///
+    /// Emitted on the same transition as the final WaveCleared, so it needs no
+    /// stored flag and cannot fire twice. Like GameOver, the sim reports it and
+    /// does not stop itself -- ending the run stays the caller's decision.
+    /// </summary>
+    RunComplete,
 }
 
 public enum RejectReason : byte

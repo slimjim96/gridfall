@@ -29,6 +29,9 @@ public sealed partial class GameplayScene : Node3D
 
     private bool _fromEditor;
 
+    /// <summary>Set by GameOver or RunComplete. The sim stops being advanced.</summary>
+    private bool _runEnded;
+
     private SimDriver _driver = null!;
     private WorldRenderer _world = null!;
     private UnitRenderer _units = null!;
@@ -136,7 +139,11 @@ public sealed partial class GameplayScene : Node3D
         // steps, so the captured frame is the same frame every run. Advancing by
         // wall clock here would make the screenshot depend on how fast the
         // machine happened to be, which defeats using it as a visual baseline.
-        if (_shotPath is null) _driver.Advance(dt);
+        // A finished run stops advancing. The sim reports the ending and does
+        // not stop itself (EconomySystem) -- this is the caller that decides,
+        // and until now there was not one: GameOver fired into nothing and the
+        // game kept playing at zero lives forever.
+        if (_shotPath is null && !_runEnded) _driver.Advance(dt);
         _world.RebuildIfChanged();
         _routes.RebuildLiveIfChanged();
 
@@ -148,14 +155,30 @@ public sealed partial class GameplayScene : Node3D
         _units.Render(_shotPath is null ? dt : 1f / 60f);
 
         foreach (SimEvent e in _driver.FrameEvents)
+        {
             if (e.Kind is EventKind.BuildRejected or EventKind.RepairRejected)
                 _hud.ShowRefusal((RejectReason)e.A);
+
+            if (e.Kind == EventKind.GameOver) EndRun(won: false);
+            if (e.Kind == EventKind.RunComplete) EndRun(won: true);
+        }
 
         _rig.Update(dt);
         _hud.Refresh(_driver.State, _selectedTowerName, dt);
         UpdateHover();
 
         if (_shotPath is not null && ++_framesRendered >= _shotAfterFrames) CaptureAndQuit();
+    }
+
+    private void EndRun(bool won)
+    {
+        if (_runEnded) return;
+        _runEnded = true;
+
+        _hud.ShowRunEnd(
+            won ? $"RUN COMPLETE\n{_driver.State.Lives} lives left\n\nesc to quit"
+                : $"OVERRUN\ncleared {_driver.State.WaveIndex - 1} of {_driver.Content.Waves.Length} waves\n\nesc to quit",
+            won);
     }
 
     public override void _UnhandledInput(InputEvent @event)
