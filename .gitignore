@@ -16,6 +16,11 @@ godot/resources/generated/
 # has nothing to check without them, and a trace that only exists on one machine
 # cannot catch a platform divergence, which is most of what it is for.
 
+# Python — the content and tile generators are scripts, but importing one
+# (to reuse its theme parser, say) leaves a cache behind
+__pycache__/
+*.pyc
+
 # OS
 .DS_Store
 Thumbs.db

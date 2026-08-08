@@ -195,6 +195,42 @@ def stats(g, spawn, goal):
     }
 
 
+def stranded(g, goal):
+    """Buildable cells the creeps can never reach, so no tower on them can ever
+    fire. MapValidator warns about these; this script did not check for them at
+    all, which is how spiral, stepwell and driftway shipped with 5, 6 and 2 of
+    them. The game's validator is the authority -- a generator that passes its
+    own weaker checks and then loses to MapValidator in the editor is the same
+    mistake the board editor exists to avoid."""
+    h, w = len(g), len(g[0])
+    walkable = lambda x, y: 0 <= x < w and 0 <= y < h and g[y][x] != "#"
+
+    seen = {goal}
+    q = deque([goal])
+    while q:
+        x, y = q.popleft()
+        for dx, dy in ((0, -1), (1, 0), (0, 1), (-1, 0)):
+            n = (x + dx, y + dy)
+            if walkable(*n) and n not in seen:
+                seen.add(n)
+                q.append(n)
+
+    return [(x, y) for y in range(h) for x in range(w)
+            if g[y][x] == "b" and (x, y) not in seen]
+
+
+def seal_strays(g, goal):
+    """Turn walled-off buildable cells into the scenery they already are.
+
+    Repair, not suppression: the cell is unreachable either way, so the only
+    question is whether the board admits it. Painting it blocked costs a little
+    buildable share and buys a board that says what it means."""
+    strays = stranded(g, goal)
+    for x, y in strays:
+        g[y][x] = "#"
+    return len(strays)
+
+
 def route_of(g, spawn, goal):
     """The actual shortest route, walked from the spawn down the distance field."""
     h, w = len(g), len(g[0])
@@ -310,8 +346,12 @@ def build(name, theme):
     g[spawn[1]][spawn[0]] = "S"
     g[goal[1]][goal[0]] = "G"
     thin(g, spawn, goal)
+    # After thinning, not before: thinning is what walls cells off in the first
+    # place, by blocking the last route into a pocket.
+    s_sealed = seal_strays(g, goal)
     s = stats(g, spawn, goal)
     s["useful"] = useful_pct(g, spawn, goal)
+    s["sealed"] = s_sealed
 
     problems = []
     if not s["reachable"]:                        problems.append("spawn cannot reach goal")
@@ -319,6 +359,10 @@ def build(name, theme):
     if not 35 <= s["buildable_pct"] <= 55:        problems.append(f"buildable {s['buildable_pct']}% outside 35-55")
     if s["floor"] > 30:                           problems.append(f"spawn-goal {s['floor']} over 30")
     if s["useful"] < 50:                          problems.append(f"only {s['useful']}% of buildable is near the route")
+    # Backstop. seal_strays should have emptied this; if it has not, sealing
+    # opened a new pocket and the map must not be written.
+    left_over = stranded(g, goal)
+    if left_over:                                 problems.append(f"{len(left_over)} buildable cells still walled off")
 
     doc = {
         "id": name, "theme": theme, "version": 1,
@@ -339,6 +383,9 @@ def main():
     for name, theme in LEVELS:
         doc, s, problems = build(name, theme)
         verdict = "ok" if not problems else "; ".join(problems)
+        # Say when the map was repaired on the way out. A silent repair is how
+        # the generator and MapValidator drifted apart in the first place.
+        if s["sealed"]: verdict += f"  (sealed {s['sealed']} walled-off cell{'s' * (s['sealed'] != 1)})"
         if not problems:
             ok += 1
             pending.append((name, doc))

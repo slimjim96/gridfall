@@ -44,6 +44,7 @@ public sealed partial class BoardEditor : Node3D
     private string _repoRoot = "";
     private string _mapId = "untitled";
     private bool _dirty;
+    private bool _loadedFromDisk;
 
     // Same capture path as the gameplay scene, so the editor can be verified
     // without a human at the keyboard.
@@ -100,7 +101,9 @@ public sealed partial class BoardEditor : Node3D
 
         ParseShotArgs();
         _rig.Locked = _shotPath is not null;
-        if (_shotPath is not null) SeedForScreenshot();
+        // Blank boards only. Seeding a map that was loaded from disk paints over
+        // the very thing the capture was asked to show -- see SeedForScreenshot.
+        if (_shotPath is not null && !_loadedFromDisk) SeedForScreenshot();
     }
 
     public override void _Process(double delta)
@@ -128,6 +131,11 @@ public sealed partial class BoardEditor : Node3D
     /// exactly two connection masks, so a tileset could have every corner drawn
     /// wrong and the frame would still look correct. Two turns and a junction
     /// put a corner, a tee, and both straights on screen at once.
+    ///
+    /// **Blank boards only.** This ran unconditionally on `--shot` until
+    /// 2026-08-08, so every capture of a real map was a capture of that map with
+    /// a wall and a road painted through it -- quietly, since the result is a
+    /// legal board that still validates. Ten levels went unverified behind it.
     /// </summary>
     private void SeedForScreenshot()
     {
@@ -348,10 +356,14 @@ public sealed partial class BoardEditor : Node3D
 
         try
         {
-            return MapDraft.From(ContentFiles.LoadMap(_repoRoot, mapId));
+            MapDraft draft = MapDraft.From(ContentFiles.LoadMap(_repoRoot, mapId));
+            _loadedFromDisk = true;
+            return draft;
         }
         catch (ContentException ex)
         {
+            // Deliberately still false: a failed load must not be seeded into
+            // something that photographs like a working board.
             GD.PrintErr($"could not load '{mapId}': {ex.Message}");
             return MapDraft.Blank(20, 12);
         }
