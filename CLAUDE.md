@@ -22,7 +22,7 @@ gridfall/
 ├── Gridfall.Core/           ← the simulation. No Godot, no floats, no clock
 ├── Gridfall.Io/             ← reads content-data/; Core never touches disk
 ├── Gridfall.Verify/         ← net10.0 · determinism harness, balance sim, map/perf reports
-├── Gridfall.Tests/          ← net10.0 · 175 tests
+├── Gridfall.Tests/          ← net10.0 · 200 tests
 ├── godot/                   ← Godot 4.6.3 · renderer, HUD, Dev/BoardEditor
 │
 │   ── the workspaces ──
@@ -43,6 +43,7 @@ gridfall/
 
 | Want to... | Go here |
 |------------|---------|
+| **Know what to pick up next** | `production/docs/next-steps.md` |
 | Pick the right workflow for a task | `workflows/README.md` |
 | **Work inside the engine** | `docs/engine-guide/README.md` |
 | Analyze a request into requirements | `game-design/CONTEXT.md` |
