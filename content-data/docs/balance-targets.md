@@ -126,7 +126,7 @@ by playing.** Every prep row above is byte-identical to its prep-less twin.
 premium it lands back in band: **clear 25 + mid 115 = 24.0%**, inside the 15–30% late target and
 within noise of the 27.3% baseline — but now income arrives in the gap and reacting late costs.
 
-### Why it is still off on crossroads
+### Shipped on crossroads (2026-08-08)
 
 Enabling `midWaveBuildPercent 115` **broke two verification seeds**: `sappers` and `repair` finished
 at 5 towers and 0 lives instead of 28 towers and 20 lives. Isolated to the premium — with it at 100
@@ -136,8 +136,16 @@ The cause is that both seeds build almost entirely *during* waves, so they pay t
 every tower. That is the mechanic working as designed, and it is also a harness that models the one
 playstyle the mechanic exists to discourage.
 
-**So the seeds have to be rewritten to build between waves before the premium can ship.** Small, and
-its own slice — `shot-seed-pacing`. Until then all four knobs stay off and crossroads is unchanged.
+**The seeds were rewritten to build between waves**, which is what a premium-aware player does
+anyway, and both recover: 28 towers and 20 lives, with `repair` still holding its `worstHp 59%` case.
+
+`crossroads` now ships `waveClearGold 25`, `midWaveBuildPercent 115`, `prepTicks 300`. Re-measured
+after the change: **24.0% runs lost, 8.4 lives** — unchanged from the tuning pass. Determinism trace
+and all three gameplay baselines re-recorded.
+
+`prepTicks 300` (10s) is a **placeholder**, and the only one of the four the sim cannot judge. It has
+to be set by playing. `earlyCallGoldPerSecond` stays 0 until it is, because a bonus for skipping a
+window nobody is constrained by is just income.
 
 ## Wave variance — `waveVariance` (2026-08-07)
 

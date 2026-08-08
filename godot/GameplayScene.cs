@@ -486,17 +486,32 @@ public sealed partial class GameplayScene : Node3D
 
         for (int t = 0; t < 20_000; t++)
         {
-            if (!_driver.State.WaveActive) _driver.Enqueue(new StartWaveCommand());
-
             // Recomputed rather than cached: every build can move the route, so
             // a list taken once goes stale and starts naming cells nowhere near
             // where the creeps now walk.
-            if (pending < 0 && _driver.State.Gold >= cost
+            // Between waves only. That is the fix AND it keeps the cost simple:
+            // no mid-wave premium ever applies, so def.Cost is the real price.
+            bool between = !_driver.State.WaveActive;
+            bool built = false;
+            if (between && pending < 0 && _driver.State.Gold >= cost
                 && TryNextPlacement(refused, out GridCell spot))
             {
                 pending = _driver.Map.Index(spot);
                 _driver.Enqueue(new BuildCommand(spot, arrow));
+                built = true;
             }
+
+            // Spend first, THEN call the wave -- the order PlayPolicy uses.
+            //
+            // This loop used to start the wave on the tick it went inactive and
+            // build afterwards, so every tower was bought mid-wave. Harmless
+            // while building cost the same either way; the moment
+            // midWaveBuildPercent existed, the seed paid the premium on all 28
+            // towers, could afford 5, and finished the capture at 0 lives. A
+            // verification seed must not model the one playstyle the economy is
+            // designed to discourage.
+            if (between && !built && pending < 0)
+                _driver.Enqueue(new StartWaveCommand());
 
             _driver.StepOneTick();
 
@@ -577,14 +592,24 @@ public sealed partial class GameplayScene : Node3D
             // the shot has to land in the gap between waves, and the only way to
             // reach that gap is to stop asking for the next one.
             bool holding = sappersSeen && AWoundedTowerExists(0.6f);
-            if (!holding && !_driver.State.WaveActive) _driver.Enqueue(new StartWaveCommand());
 
-            if (pending < 0 && _driver.State.Gold >= cost
+            // Between waves only, and spend before calling the next one -- same
+            // fix and same reason as SeedSappers: a seed that buys its towers
+            // mid-wave pays midWaveBuildPercent on every one and finishes the
+            // capture overrun at 5 towers instead of 28.
+            bool between = !_driver.State.WaveActive;
+            bool built = false;
+
+            if (between && pending < 0 && _driver.State.Gold >= cost
                 && TryNextPlacement(refused, out GridCell spot))
             {
                 pending = _driver.Map.Index(spot);
                 _driver.Enqueue(new BuildCommand(spot, arrow));
+                built = true;
             }
+
+            if (!holding && between && !built && pending < 0)
+                _driver.Enqueue(new StartWaveCommand());
 
             _driver.StepOneTick();
 
