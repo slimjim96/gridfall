@@ -9,7 +9,7 @@ presentation/units/
     ├── model.glb            ← mesh format
     │   …or…
     ├── idle.png             ← sprite format: one horizontal strip per clip
-    ├── fire.png
+    ├── fire.webp            ← .png or .webp, mixed freely
     └── unit.json            ← { "frameCells": 1.57 }
 ```
 
@@ -24,8 +24,15 @@ The folder's contents decide, not a config field:
 | Folder holds | View | Notes |
 |---|---|---|
 | a `.glb` | `MeshUnitView` | Wins if both are present, and says so in the console |
-| `idle.png`, `fire.png`, … | `SpriteUnitView` | Strips named for the clip |
+| `idle.png` / `idle.webp`, … | `SpriteUnitView` | Strips named for the clip |
 | neither | placeholder | Unchanged behaviour |
+
+**`.png` and `.webp` are equally first-class**, and a folder may mix them —
+`SpriteUnitView` loads through `Image.LoadFromFile`, which reads both. If one clip
+somehow has both, the `.png` wins and the console says so. Until 2026-08-08 the
+loader globbed `*.png` only, so a `.webp` was not *rejected*, it was **invisible**:
+the folder reported "no .glb and no standard clip strips" exactly as though it
+were empty.
 
 Clip names are fixed — `idle`, `move`, `fire`, `hit`, `death`. A strip named anything else loads but
 can never be triggered, so it is reported and skipped. `idle` and `move` loop; the rest are one-shot
@@ -37,7 +44,7 @@ as far as the loader is concerned. `UnitAssetTests` fails the build instead.
 
 ## Sprites: two things that are not obvious
 
-**`frameCells` in `unit.json` is the one number a PNG cannot carry.** The image says how many pixels
+**`frameCells` in `unit.json` is the one number an image cannot carry.** The image says how many pixels
 it is; it never says how big the thing is meant to be. It is the world size of one square frame, in
 cells. There is a default so a bare folder works, but a sprite folder relying on it will render at
 the wrong size — `UnitAssetTests` warns about that too.

@@ -60,6 +60,15 @@ public class UnitAssetTests
         => Directory.GetFiles(directory, "*.json").OrderBy(f => f, StringComparer.Ordinal)
             .Select(f => (Path.GetFileName(f), File.ReadAllText(f)));
 
+    /// <summary>
+    /// Sprite strips in any format the loader reads. Must stay in step with
+    /// <c>UnitAssets.StripFiles</c> — a test that only looked for `.png` would
+    /// pass a webp-only folder by skipping it, which is the failure these tests
+    /// exist to prevent.
+    /// </summary>
+    private static string[] StripFiles(string dir)
+        => Directory.GetFiles(dir, "*.png").Concat(Directory.GetFiles(dir, "*.webp")).ToArray();
+
     [Fact]
     public void EveryUnitAssetFolderNamesARealContentId()
     {
@@ -87,7 +96,7 @@ public class UnitAssetTests
             string id = Path.GetFileName(dir);
 
             bool hasModel = Directory.GetFiles(dir, "*.glb").Length > 0;
-            bool hasClip = Directory.GetFiles(dir, "*.png")
+            bool hasClip = StripFiles(dir)
                 .Any(f => standardClips.Contains(Path.GetFileNameWithoutExtension(f).ToLowerInvariant()));
 
             Assert.True(hasModel || hasClip,
@@ -106,7 +115,7 @@ public class UnitAssetTests
         foreach (string dir in AssetFolders())
         {
             if (Directory.GetFiles(dir, "*.glb").Length > 0) continue;   // mesh: scale is in the asset
-            if (Directory.GetFiles(dir, "*.png").Length == 0) continue;  // covered by the test above
+            if (StripFiles(dir).Length == 0) continue;                   // covered by the test above
 
             string id = Path.GetFileName(dir);
             Assert.True(File.Exists(Path.Combine(dir, "unit.json")),

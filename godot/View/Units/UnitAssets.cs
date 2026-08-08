@@ -131,6 +131,23 @@ public static class UnitAssets
             : $"units: loaded {string.Join(", ", Assets.Select(a => $"{a.Key} ({a.Value.Format})"))}");
     }
 
+    /// <summary>
+    /// Sprite strips, in a fixed order: every `.png`, then every `.webp`.
+    ///
+    /// `SpriteUnitView` loads through `Image.LoadFromFile`, which reads both, so
+    /// this glob was the only thing making the pipeline PNG-only -- a `.webp`
+    /// dropped in a unit folder was not rejected, it was **invisible**, and the
+    /// folder reported "no .glb and no standard clip strips" as though it were
+    /// empty. Generators emit webp routinely; there is no reason to make someone
+    /// find a converter to try one.
+    ///
+    /// PNG first so the order is stable across filesystems, and so the collision
+    /// message above always names the same winner.
+    /// </summary>
+    private static IEnumerable<string> StripFiles(string directory)
+        => Directory.GetFiles(directory, "*.png").OrderBy(f => f, System.StringComparer.Ordinal)
+            .Concat(Directory.GetFiles(directory, "*.webp").OrderBy(f => f, System.StringComparer.Ordinal));
+
     private static UnitAsset? Load(string directory)
     {
         string id = Path.GetFileName(directory);
@@ -139,12 +156,21 @@ public static class UnitAssets
         System.Array.Sort(models, System.StringComparer.Ordinal);
 
         var strips = new Dictionary<string, string>();
-        foreach (string file in Directory.GetFiles(directory, "*.png").OrderBy(f => f, System.StringComparer.Ordinal))
+        foreach (string file in StripFiles(directory))
         {
             string clip = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
             if (!StandardClips.Contains(clip))
             {
                 GD.Print($"units: {id}/{Path.GetFileName(file)} -- '{clip}' is not a standard clip, ignored");
+                continue;
+            }
+            // Deterministic on a collision, and said out loud. Two files for one
+            // clip is an intermediate someone forgot to delete, and silently
+            // picking one is how you spend an evening editing the wrong file.
+            if (strips.TryGetValue(clip, out string? existing))
+            {
+                GD.Print($"units: {id}/ has {Path.GetFileName(existing)} and "
+                         + $"{Path.GetFileName(file)} for '{clip}'; using {Path.GetFileName(existing)}");
                 continue;
             }
             strips[clip] = file;
