@@ -115,10 +115,17 @@ exactly — 1 killing wave of 12 — so each global knob is a threshold rather t
 floor of its band. Nothing global can widen a single lethal wave, because every knob moves that wave
 through the threshold all at once.
 
-**This is now the top piece of open work**, and (a) no longer blocks it: spread `comb`'s lethality
-across waves 7–12 by composition — lighten wave 12, stiffen 9–11 — and measure against
-`waves that can kill ≥ 3` rather than against the percentage alone. That is also the experiment §3
-needs.
+**Tried, 2026-08-08: fifteen configurations across waves 9–12. It does not work, and the failure is
+the useful part.** Two killing waves is the ceiling and only at 42% — landing in band always cost the
+spread. Worse, it is not monotone: effective 242 → 0.0%, 244 → 42.0%, 246 → 16.7%, 248 → 42.0%.
+Weakening the late waves made the level harder, then trivial, then harder. Any config that lands in
+band is luck, because its neighbour two points away is 42%.
+
+And 42.0% is structural — it recurs across five unrelated configurations and holds at seeds 1–4
+(42.0/42.0/42.0/41.3). **42% of the boards this policy builds on `comb` cannot hold the endgame
+whatever the endgame is made of.** Composition moves which wave kills, not how many runs die.
+
+`comb.json` is unchanged; everything ran against a scratch copy.
 
 **c. `crossroads` fails both targets and `spiral` passes both.** The reference board loses 18.7% early
 and 1.3% late — inverted, as recorded on 2026-08-07 and still true. `spiral`, whose wave table is
@@ -176,11 +183,17 @@ scratch copy: spread goes 0 → 1 → 2 as runway is added, at every ramp tried 
 map cannot show killing waves after the last wave in its table, and `comb`'s difficulty crossing falls
 at wave 12 of 12. `crossroads` has five only because its crossing falls at wave 3.
 
-So the next test is §2b, and it is now a real experiment rather than a blocked one: **spread `comb`'s
-lethality across waves 7–12 by composition and see whether a map's geometry then separates anything.**
-If eleven maps still show one killing wave after their tables are shaped to allow more, the difference
-is geometric and worth measuring. If they all spread once the table lets them, then difficulty spread
-is a property of **wave tables, not maps**, and this item belongs in `content-data`, not here.
+**§2b has now answered this, and the answer is "geometric, but not the geometry anyone measured."**
+`comb` could not be spread by composition at all, and its 42% held across every wave table tried and
+every seed. What does explain it is placement capacity: **17.8 towers standing from 243.7 built, with
+102,682 placements refused by the seal check** — the highest in the set against `crossroads`'s 25,879.
+The teeth that make its route 2.1× the floor also mean nearly every buildable cell would wall the route
+off, so the policy's defence caps out around wave 5 and the rest is decided by which cells it took.
+
+**The candidate to test next is achievable defence capacity** — towers actually placeable without
+sealing, measured by simulation rather than read off the grid. It is the first candidate that is not
+a shape metric, and it is the one number that separates `comb` from `crossroads` in the right
+direction. Ruled-out list above stands; add nothing to it without a measurement.
 
 Eleven of twelve maps cross at or near the last wave. **The table length has already flattened the
 target variable for all of them**, so no map metric can be validated against it today. Settle §2a,

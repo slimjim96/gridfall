@@ -65,6 +65,63 @@ threshold all at once, so there is nothing to interpolate.
 
 ---
 
+## `comb` retuned by composition — it does not work, and the reason matters
+
+Fifteen configurations across waves 9–12, holding wave 9 near its original strength and reshaping the
+top of the curve. Effective strength is `units × hpScale`, which is the number that actually matters —
+`hpGrowth` 1.10 from wave 6 compounds on top of the counts.
+
+| w10 / w11 / w12 (effective) | Late lost | By wave | Killing waves |
+|---|---|---|---|
+| 177 / 223 / 286 *(shipped)* | 42.0% | w12:42% | 1 |
+| 240 / 250 / 258 | 42.0% | w12:42% | 1 |
+| 242 / 244 / 242 | **0.0%** | — | 0 |
+| **244 / 246 / 244** | 42.0% | w11:24% w12:18% | **2** |
+| **246 / 248 / 246** | **16.7%** ok | w12:17% | 1 |
+| 249 / 251 / 249 | 42.0% | w11:23% w12:19% | **2** |
+| 254 / 248 / 240 | 23.3% ok | w12:23% | 1 |
+| 261 / 253 / 244 | 42.0% | w12:42% | 1 |
+| 234 / 250 / 266 | 100% | w11:100% | 1 |
+
+**Never three killing waves.** Two is the ceiling, and only at 42% — out of band. Landing *in* band
+always cost the spread.
+
+### It is not monotone, and not by a little
+
+242 → **0.0%**, 244 → **42.0%**, 246 → **16.7%**, 248 → **42.0%**. Weakening the late waves made the
+level harder, then trivial, then harder again. There is no gradient to follow, so any config that
+lands in band is luck: its neighbour two points away is 42%.
+
+The mechanism is the same one that made `waveClearGold` non-monotone. Wave composition changes what
+the policy can afford and when, which changes where it builds, which changes what it seals, which
+changes the route — and the route is the level. Difficulty is not a dial on this board.
+
+### 42.0% is structural, not noise
+
+That figure recurs across five unrelated configurations and holds across seeds: **42.0, 42.0, 42.0,
+41.3** at seeds 1–4, 150 runs each. Repeat runs are byte-stable.
+
+So it is not the wave table. **42% of the boards this policy builds on `comb` cannot hold the endgame,
+whatever the endgame is made of.** Composition moves *which wave* kills; it does not move *how many
+runs* die.
+
+### Which points back at the map
+
+`comb` stands at **17.8 towers at end from 243.7 built**, with **102,682 placements refused by the seal
+check** — the highest in the set, against `crossroads`'s 25,879. Its interlocking teeth are what make
+the route 2.1× the floor, and the same teeth mean almost every buildable cell would wall the route off.
+The policy runs out of legal places to stand, its defence caps out around wave 5, and from there the
+outcome is decided by which cells it happened to take.
+
+**So `comb`'s problem is geometric after all — just not the geometry anyone was measuring.** Not route
+shape, not maze multiplier, not `useful`: the number that matters is how much defence the board can
+actually hold. `comb` cannot be fixed in `content-data/waves/`. Widening its pockets is a map change.
+
+**Nothing was committed.** `comb.json` is byte-identical to what it was; every configuration above ran
+against a scratch copy.
+
+---
+
 ## 2. The late band was measured over two waves, not ten *(the problem, now fixed)*
 
 The target reads **waves 11–20**. Every wave table in `content-data/waves/` has **12 waves**. So the
