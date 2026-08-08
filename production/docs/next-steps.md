@@ -115,7 +115,7 @@ Two rows of the old table were also just wrong — `braid` and `switchback` were
 `tower-range-tiers` and never re-measured. `braid` is degenerate (sd 0.2), not easy, making it five
 degenerate levels rather than four.
 
-### 3. `route-variance-metric` — open, with three predictors ruled out and one refined
+### 3. `route-variance-metric` — **blocked on §2a**, with four predictors ruled out and one refined
 
 `gauntlet` and `ringfort` both lose 0.0% of runs at sd ≈ 0 — the same signature from two independently
 built maps, and **no metric in the repo explains either.**
@@ -147,9 +147,18 @@ others immediately: spread 9 against spread 0 everywhere. But **n = 1** — one 
 other has any, which is as consistent with "spread is what tuning produces" as with "spread is what a
 good map permits". Not a metric yet; a better-posed target than sd.
 
-The cheapest next test is §2b: spread `comb`'s wave 12 across waves 8–15 and see whether death-wave
-spread appears. If it does, difficulty spread is a property of **wave tables, not maps**, and
-`route-variance-metric` has been filed in the wrong workspace since it was opened.
+**That test has now been run, and it makes this item blocked rather than open.** `comb` extended to 20
+waves on a scratch copy: spread goes 0 → 1 → 2 as runway is added, at every ramp tried including flat
+counts. A map cannot show death-wave spread after the last wave in its table, and `comb`'s difficulty
+crossing falls at wave 12 of 12 — so its spread is 0 *by construction*, not by geometry. `crossroads`
+has spread 9 only because its crossing falls at wave 3, leaving nine waves for outcomes to separate.
+
+Eleven of twelve maps cross at or near the last wave. **The table length has already flattened the
+target variable for all of them**, so no map metric can be validated against it today. Settle §2a,
+then re-measure — the discriminator may be visible then and demonstrably is not now.
+
+Standing-tower count was checked on the way and fails too: `braid` and `ringfort` both hold 37.4 and
+are both degenerate.
 
 **`useful` is no longer a clean miss.** Raising it by *adding* cells near the route did nothing
 (43%→60% on `spiral`, no change). Raising it by *deleting* cells far from the route moved `spiral` 16

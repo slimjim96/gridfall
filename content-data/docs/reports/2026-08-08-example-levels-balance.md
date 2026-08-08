@@ -100,12 +100,39 @@ candidates were ruled out against a target variable that was mixing two populati
 separates `crossroads` from all eleven other maps: spread 9 against spread 0 everywhere else. That is
 the one board anyone has called tuned.
 
-Do not over-read it: **n = 1.** One well-regarded map has spread and no other map has any, which is as
-consistent with "spread is what tuning produces" as with "spread is what tuning requires". It is not
-a metric yet. It is a better-posed target than sd, and the first thing to check is whether spreading
-`comb`'s wave 12 (§3) produces spread — because if difficulty spread is a property of wave tables
-rather than of maps, then `route-variance-metric` has been looking in the wrong workspace the whole
-time.
+### Then the obvious test, run: spread is bounded by runway
+
+If death-wave spread is a wave-table property rather than a map property, extending the table should
+produce spread. `comb` extended to 20 waves, scratch copy, three ramps:
+
+| Waves 13–20 count growth | Late runs lost | Died at wave |
+|---|---|---|
+| — (shipped, 12 waves) | 42.0% | 12.0, **earliest 12, latest 12** — spread 0 |
+| ×1.21/wave (extrapolated) | 100% | 12.6, earliest 12, **latest 13** — spread 1 |
+| ×1.03/wave | 100% | 13.2, earliest 12, **latest 14** — spread 2 |
+| ×1.00/wave (counts flat) | 100% | 13.2, earliest 12, **latest 14** — spread 2 |
+
+Flat counts still kill every run by wave 14, because `hpGrowth` 1.10 compounding from wave 6 reaches
+~3.8× by wave 20 while `comb`'s defence plateaus at 18 standing towers from wave 5. But the shape of
+the answer is clear and it does not depend on the ramp:
+
+> **A map cannot show death-wave spread after the last wave in its table.** `comb`'s difficulty
+> crossing falls at wave 12 of 12, so its spread is 0 *by construction* — there is no runway for the
+> variance to express in. Add runway and spread appears immediately, at 1 then 2.
+
+`crossroads` has spread 9 because its crossing falls at **wave 3**, leaving nine waves for outcomes to
+separate, and because it is recoverable: 41 standing towers and 316 built per run means crossing the
+line is survivable. `comb` caps at 18 standing and dies within two waves of crossing.
+
+**So `route-variance-metric` is blocked on §2, not open on its own.** Every map except `crossroads`
+has its crossing at or near the last wave, which pins death-wave spread at 0 for eleven of twelve maps
+regardless of their geometry — and pins sd to a coin flip on one wave. No map metric can be validated
+against a target that the table length has already flattened. Settle the wave count, then re-measure;
+the discriminator may well be visible then, and is not now.
+
+Standing-tower count was checked as a candidate on the way and does not work either: `braid` and
+`ringfort` both hold 37.4 towers and are both degenerate, while `crossroads` holds 41.3 and `comb`
+17.8 and both have real outcomes.
 
 ---
 
