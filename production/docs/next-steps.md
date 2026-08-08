@@ -165,12 +165,26 @@ are both degenerate.
 points. Same metric, opposite readings — it was never a dial to turn up, it was undercounting cells
 that actively mislead.
 
-### 4. Tier 2's soft-lock question is unanswered
+### 4. Tier 2's soft-lock question — priced, still yours to decide
 
-If a station cannot answer a visitor's question it does nothing, and *"my stations do nothing"* is the
-exact unreadable failure that `DamageSystem`'s floor-at-1 rule exists to prevent. The direction doc
-lists three options (partial progress, waves that only ask answerable questions, unanswered visitors
-slow instead of pass). **Settle it before Tier 2 is scheduled** — it is the whole design.
+The three options are now costed against the engine in
+[`game-design/docs/tier2-soft-lock-options.md`](../../game-design/docs/tier2-soft-lock-options.md).
+They are not close:
+
+- **A · partial progress** is *the same line of code* — `DamageSystem.cs:101` already floors damage at
+  1; a mismatch is a penalty subtracted like armour. No new state, no new hash surface.
+- **B · only-answerable waves** makes `SpawnSystem` read tower state, turning wave tables into
+  generator inputs and changing what a recorded trace means. It lands on determinism and static
+  content, the two things the project protects hardest.
+- **C · unanswered visitors slow** needs a slow mechanic, and **there is none in Core** — new
+  per-creep state, new hash coverage. It also *replaces* the soft-lock with a worse one: a board with
+  no correct station stalls forever, neither failing nor progressing.
+
+Recommendation is A, because it keeps the no-soft-lock invariant rather than rebuilding it, and
+because it makes the question measurable — set the penalty, run `balance`, read runs lost.
+
+**The decision is still yours and it is not technical:** should a child be able to finish a level
+without doing the arithmetic? A says "yes, slowly"; B says "the question never arises"; C says "no".
 
 ---
 
