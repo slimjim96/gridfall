@@ -29,6 +29,7 @@ public readonly struct SimStateView
     public int Gold => _state.Gold;
     public int Lives => _state.Lives;
     public int WaveIndex => _state.WaveIndex;
+    public int PrepTicksRemaining => _state.PrepTicksRemaining;
 
     /// <summary>
     /// The tick this wave's group `i` next spawns at. Read-only, like everything

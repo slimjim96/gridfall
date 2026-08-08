@@ -511,7 +511,12 @@ int Perf()
     for (int t = 0; t < measured; t++)
     {
         long start = System.Diagnostics.Stopwatch.GetTimestamp();
-        if (!sim.State.WaveActive && sim.State.CreepCount == 0) sim.Enqueue(new StartWaveCommand());
+        // Let an armed prep timer run out instead of calling the wave early.
+        // The policy is a reasonable beginner, and a beginner uses the build
+        // window. Calling immediately made the timer invisible to the sim while
+        // still charging the mid-wave premium -- 81% runs lost, all artifact.
+        if (!sim.State.WaveActive && sim.State.CreepCount == 0 && sim.State.PrepTicksRemaining == 0)
+            sim.Enqueue(new StartWaveCommand());
         sim.Tick();
         long elapsed = System.Diagnostics.Stopwatch.GetTimestamp() - start;
         if (elapsed > worstTicks) worstTicks = elapsed;

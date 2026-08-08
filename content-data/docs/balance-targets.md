@@ -73,6 +73,39 @@ to react to. That fails pillar 4.
 > the enemies alone. See
 > [income vs difficulty](reports/2026-08-07-income-vs-difficulty.md).
 
+## Wave pacing — `prepTicks`, `midWaveBuildPercent`, `earlyCallGoldPerSecond` (2026-08-07)
+
+Three knobs on a wave table, **all defaulting to the original behaviour**. Built to make the gap
+between waves a resource. Measured on `crossroads`, 150 runs, and **none of the three does what it
+was meant to yet.**
+
+| prep | mid-wave % | early gold/s | Runs lost | Lives |
+|---|---|---|---|---|
+| — | 100 | — | **27.3%** | 7.8 |
+| 300 | 100 | — | **27.3%** | 7.8 |
+| 300 | 110 | 3 | 16.0% | 9.8 |
+| 300 | 125 | — | 63.3% | 4.5 |
+| 300 | 125 | 3 | 36.7% | 6.7 |
+| 300 | 150 | 3 | 81.3% | 3.1 |
+| — | 150 | — | 86.7% | 2.5 |
+
+**1. A prep window alone changes nothing — byte-identical to baseline.** Income is bounty-only, so
+nothing is earned between waves, and a player who has already spent down has nothing to do with the
+time. The pause is dead time. **Wave-clear income is the missing prerequisite**, not a nicety: until
+gold arrives during the gap, no timer can make the gap matter.
+
+**2. The mid-wave premium is a cliff, not a texture.** 100 → 27%, 125 → 63%, 150 → 87%. A 25% price
+bump more than doubles the loss rate, because the policy builds continuously and pays it on most
+towers. Any shipped value lives between 100 and 125, and wants finer steps than were tested.
+
+**3. The early-call bonus is unconditional income, not a trade.** At 3 gold/second of a 10s window it
+is 30 gold a wave, worth **~27 points** of loss rate (63.3% → 36.7% at the same premium). A
+spent-down player always calls early, so there is no cost to weigh against the payment. It only
+becomes a decision once there is something to buy during the prep window — i.e. after fix 1.
+
+**Left off for every shipped map.** The mechanism is sound and the numbers say the design is not
+finished: build wave-clear income first, then re-measure all three together.
+
 ## Wave variance — `waveVariance` (2026-08-07)
 
 `"waveVariance": 0-100` on a wave table jitters **when each group of a wave starts**, drawn from the

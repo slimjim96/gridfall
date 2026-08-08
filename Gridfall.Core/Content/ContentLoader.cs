@@ -277,6 +277,16 @@ public static class ContentLoader
 
     // ---- waves ------------------------------------------------------------
 
+    /// <summary>An optional int with a documented range. Out of range throws rather than clamps.</summary>
+    private static int OptionalInt(JsonElement root, string name, int fallback, int min, int max, string file)
+    {
+        if (!root.TryGetProperty(name, out JsonElement e)) return fallback;
+        int value = e.GetInt32();
+        if (value < min || value > max)
+            throw new ContentException($"{file}: {name} {value} is outside {min}..{max}");
+        return value;
+    }
+
     public static WaveDef[] LoadWaves(string json, EnemyDef[] enemies, string file)
     {
         using JsonDocument doc = Parse(json, file);
@@ -293,6 +303,12 @@ public static class ContentLoader
             if (variance is < 0 or > 100)
                 throw new ContentException($"{file}: waveVariance {variance} is outside 0..100");
         }
+
+        // Wave pacing. All three default to the original behaviour -- no timer,
+        // no premium, no bonus -- so an existing table plays exactly as before.
+        int prepTicks = OptionalInt(doc.RootElement, "prepTicks", 0, 0, 3600, file);
+        int midWavePercent = OptionalInt(doc.RootElement, "midWaveBuildPercent", 100, 100, 1000, file);
+        int earlyCallGold = OptionalInt(doc.RootElement, "earlyCallGoldPerSecond", 0, 0, 100, file);
 
         // One authored growth rate, compounded here rather than in the tick loop.
         // The balance targets want 1.10-1.18x wave to wave, so the content states
@@ -353,7 +369,7 @@ public static class ContentLoader
             if (w.TryGetProperty("hpScale", out JsonElement explicitScale))
                 scale = ParseFix(explicitScale, file);
 
-            waves.Add(new WaveDef { Index = index, Entries = entries.ToArray(), HpScale = scale, VariancePercent = variance });
+            waves.Add(new WaveDef { Index = index, Entries = entries.ToArray(), HpScale = scale, VariancePercent = variance, PrepTicks = prepTicks, MidWaveBuildPercent = midWavePercent, EarlyCallGoldPerSecond = earlyCallGold });
         }
 
         waves.Sort((a, b) => a.Index.CompareTo(b.Index));

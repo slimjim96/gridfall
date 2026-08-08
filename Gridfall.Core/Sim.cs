@@ -43,6 +43,10 @@ public sealed class Sim
         _path = new PathSystem(map);
         _random = new SimRandom(seed);
 
+        // The window before wave 1 counts too -- 300 gold and nowhere to spend
+        // it under time pressure is the first decision of the run.
+        ArmPrepTimer();
+
         _state.Gold = map.StartingGold;
         _state.Lives = map.StartingLives;
         // No rebuild here: the PathSystem constructor builds its own field. Calling
@@ -103,6 +107,19 @@ public sealed class Sim
         FinalizeTick();                                                                   // 9
     }
 
+    /// <summary>
+    /// Start the build window for the next wave, if that wave asks for one.
+    ///
+    /// Read off the NEXT wave rather than the one just cleared: the prep window
+    /// belongs to what is coming, so a table can give a long breather before its
+    /// finale without lengthening every gap before it.
+    /// </summary>
+    private void ArmPrepTimer()
+    {
+        if (_state.WaveIndex >= _content.Waves.Length) return;
+        _state.PrepTicksRemaining = _content.Waves[_state.WaveIndex].PrepTicks;
+    }
+
     private void FinalizeTick()
     {
         if (_state.WaveActive && SpawnSystem.WaveComplete(_state, _content))
@@ -115,6 +132,17 @@ public sealed class Sim
             // determinism trace to re-record.
             if (_state.WaveIndex >= _content.Waves.Length && _state.Lives > 0)
                 _events.Add(new SimEvent(TickCount, EventKind.RunComplete, _state.WaveIndex));
+            else
+                ArmPrepTimer();
+        }
+
+        // The build window counts down only between waves, and starts the next
+        // one itself when it runs out. A wave that begins on its own is what
+        // makes the gap a resource rather than an intermission.
+        if (!_state.WaveActive && _state.PrepTicksRemaining > 0)
+        {
+            _state.PrepTicksRemaining--;
+            if (_state.PrepTicksRemaining == 0) _queue.Enqueue(new StartWaveCommand());
         }
 
         TickCount++;

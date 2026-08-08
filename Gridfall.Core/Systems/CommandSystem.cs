@@ -66,7 +66,12 @@ internal static class CommandSystem
         }
 
         TowerDef def = content.Tower(defIndex);
-        if (state.Gold < def.Cost)
+        // Building mid-fight costs a premium: the prep window is when towers are
+        // meant to go up, and reacting to a wave in progress should be a
+        // deliberate, expensive choice rather than the default rhythm.
+        int cost = BuildCost(def, state, content);
+
+        if (state.Gold < cost)
         {
             Reject(events, tick, cell, RejectReason.InsufficientGold);
             return;
@@ -86,11 +91,11 @@ internal static class CommandSystem
         }
 
         int id = state.AddTower(defIndex, index, def.Hp);
-        state.Gold -= def.Cost;
+        state.Gold -= cost;
         path.SetBlocked(index, true);   // sets the dirty flag; phase 2 consumes it
 
         events.Add(new SimEvent(tick, EventKind.BuildPlaced, id, defIndex, cell));
-        events.Add(new SimEvent(tick, EventKind.GoldChanged, state.Gold, -def.Cost));
+        events.Add(new SimEvent(tick, EventKind.GoldChanged, state.Gold, -cost));
     }
 
     private static void Sell(
@@ -221,6 +226,20 @@ internal static class CommandSystem
         if (state.WaveIndex >= content.Waves.Length) return;
 
         WaveDef wave = content.Waves[state.WaveIndex];
+
+        // Calling a wave early pays for the prep time given up. Without this the
+        // timer is a countdown a finished builder just watches -- the same dead
+        // time the prep window was added to remove.
+        if (state.PrepTicksRemaining > 0 && wave.EarlyCallGoldPerSecond > 0)
+        {
+            int bonus = state.PrepTicksRemaining / Sim.TicksPerSecond * wave.EarlyCallGoldPerSecond;
+            if (bonus > 0)
+            {
+                state.Gold += bonus;
+                events.Add(new SimEvent(tick, EventKind.GoldChanged, state.Gold, bonus));
+            }
+        }
+        state.PrepTicksRemaining = 0;
         state.WaveIndex++;
         state.WaveActive = true;
 
@@ -248,6 +267,18 @@ internal static class CommandSystem
     /// hashed, so a draw taken while the feature is off would change every
     /// recorded trace for no behaviour.
     /// </summary>
+    /// <summary>A tower's price now, including the mid-wave premium if one applies.</summary>
+    public static int BuildCost(TowerDef def, SimState state, ContentSet content)
+    {
+        if (!state.WaveActive) return def.Cost;
+
+        int percent = state.WaveIndex >= 1 && state.WaveIndex <= content.Waves.Length
+            ? content.Waves[state.WaveIndex - 1].MidWaveBuildPercent
+            : 100;
+
+        return def.Cost * percent / 100;
+    }
+
     private static int StartJitter(WaveDef wave, SimRandom random)
     {
         if (wave.VariancePercent <= 0) return 0;

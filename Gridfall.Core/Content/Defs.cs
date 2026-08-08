@@ -205,6 +205,27 @@ public sealed class WaveDef
     /// byte-identical while this is off.
     /// </summary>
     public int VariancePercent { get; init; }
+
+    /// <summary>
+    /// Ticks of build time before this wave starts on its own. 0 = no timer,
+    /// the wave waits for the player, which is the original behaviour.
+    /// </summary>
+    public int PrepTicks { get; init; }
+
+    /// <summary>
+    /// What a tower costs while a wave is running, as a percent of its price.
+    /// 100 = no premium. Above 100 makes reacting mid-fight a real decision
+    /// rather than the default, and doubles as the scaling gold sink the
+    /// economy reports asked for.
+    /// </summary>
+    public int MidWaveBuildPercent { get; init; } = 100;
+
+    /// <summary>
+    /// Gold awarded per whole second of prep time skipped by calling the wave
+    /// early. 0 = no bonus. This is what keeps the prep window a decision for a
+    /// player who has finished building, instead of a countdown they watch.
+    /// </summary>
+    public int EarlyCallGoldPerSecond { get; init; }
     /// <summary>
     /// Order is load-bearing: entries are walked in array order each tick, so it
     /// determines entity id order on ties. Reordering changes the run.

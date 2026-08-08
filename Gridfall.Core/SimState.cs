@@ -61,6 +61,15 @@ public sealed class SimState
     public int Lives;
     public int WaveIndex;          // 0 == no wave has started
     public bool WaveActive;
+
+    /// <summary>
+    /// Ticks until the next wave starts on its own. 0 = no timer running.
+    ///
+    /// This is what turns the gap between waves from dead time into a resource.
+    /// Hashed and snapshotted like everything else -- it decides when spawning
+    /// begins, so it is simulation state, not presentation.
+    /// </summary>
+    public int PrepTicksRemaining;
     public int NextEntityId = 1;
 
     /// <summary>Per active-wave-entry spawn progress. State, therefore hashed.</summary>
@@ -221,6 +230,7 @@ public sealed class SimState
         ulong h = FnvHash.Init();
         h = FnvHash.Combine(h, tickCount);
         h = FnvHash.Combine(h, Gold, Lives, WaveIndex);
+        h = FnvHash.Combine(h, PrepTicksRemaining);
         h = FnvHash.Combine(h, WaveActive ? 1 : 0);
         h = FnvHash.Combine(h, NextEntityId);
         h = FnvHash.Combine(h, random.RawState);
@@ -313,6 +323,7 @@ public sealed class SimState
         other.Gold = Gold;
         other.Lives = Lives;
         other.WaveIndex = WaveIndex;
+        other.PrepTicksRemaining = PrepTicksRemaining;
         other.WaveActive = WaveActive;
         other.NextEntityId = NextEntityId;
         Array.Copy(WaveEntrySpawned, other.WaveEntrySpawned, MaxWaveEntries);
