@@ -28,6 +28,7 @@ return mode switch
     "record" => Record(),
     "balance" => Balance(),
     "maps" => MapReport(),
+    "waves" => WaveReport(),
     "perf" => Perf(),
     "curve" => Curve(),
     _ => Usage(),
@@ -59,6 +60,7 @@ int Usage()
                                    profitable again (salvage-value).
 
       maps                         Geometry report for every map against MapTargets.
+      waves [--map <id>]           Cadence sheet: when each group spawns, wave by wave.
 
       curve --map <id> [--growth N] [--bounty N]
                                    Income against enemy strength, wave by wave.
@@ -528,6 +530,66 @@ int Perf()
     Console.WriteLine("  written for 64x64 with 300 creeps and 60 towers. Not the same test.");
 
     return worstMs <= 8.0 ? 0 : 1;
+}
+
+/// <summary>
+/// The cadence sheet for a wave table: what spawns, when, and what shape that
+/// makes.
+///
+/// Waves are authored as groups with a delay and a spacing, and the SHAPE that
+/// produces is invisible in the JSON -- crossroads wave 12 fires 92 of its
+/// spawns in the first quarter and 8 in the last, which nobody chose and nobody
+/// could see. This prints it, so a wave can be composed and then read back.
+/// </summary>
+int WaveReport()
+{
+    string root = ContentFiles.FindRepoRoot();
+    string? only = Opt("map");
+
+    foreach (string file in Directory.GetFiles(Path.Combine(root, "content-data", "waves"), "*.json")
+                                     .OrderBy(f => f, StringComparer.Ordinal))
+    {
+        string mapId = Path.GetFileNameWithoutExtension(file);
+        if (only is not null && mapId != only) continue;
+
+        ContentSet content = ContentFiles.LoadContent(root, mapId);
+        Console.WriteLine($"\n{mapId} -- {content.Waves.Length} waves\n");
+        Console.WriteLine($"{"wave",-5} {"secs",-6} {"spawns",-7} {"cadence",-31} {"Q1:Q4",-8} shape");
+
+        foreach (WaveDef wave in content.Waves)
+        {
+            var times = new List<int>();
+            foreach (WaveEntry e in wave.Entries)
+            {
+                int at = e.DelayTicks;
+                for (int i = 0; i < e.Count; i++) { times.Add(at); at += e.SpacingTicks; }
+            }
+            if (times.Count == 0) continue;
+
+            int end = times.Max() + 1;
+
+            // Drawn, not tabulated. Reading a shape off a row of numbers is
+            // precisely the thing nobody does, which is how every wave came to
+            // fade out without anyone noticing.
+            const int Cols = 30;
+            var bucket = new int[Cols];
+            foreach (int at in times) bucket[Math.Min(Cols - 1, at * Cols / end)]++;
+            int peak = bucket.Max();
+            string bars = string.Concat(bucket.Select(b =>
+                " .:-=+*#"[peak == 0 ? 0 : Math.Min(7, b * 7 / peak)]));
+
+            var q = new int[4];
+            foreach (int at in times) q[Math.Min(3, at * 4 / end)]++;
+
+            string ratio = q[3] == 0 ? $"{q[0]}:0" : $"{(double)q[0] / q[3]:F1}:1";
+            string shape = q[0] > 2 * q[3] ? "FRONT-LOADED" : q[3] > q[0] ? "crescendo" : "even";
+
+            Console.WriteLine($"{wave.Index,-5} {end / 30.0,-6:F1} {times.Count,-7} {bars,-31} {ratio,-8} {shape}");
+        }
+    }
+
+    Console.WriteLine("\nQ1:Q4 is first quarter vs last. A wave should not end on its lightest.");
+    return 0;
 }
 
 int MapReport()

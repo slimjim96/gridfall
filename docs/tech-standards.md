@@ -94,6 +94,7 @@ dotnet test                                     # unit gate
 dotnet run --project Gridfall.Verify -- replay  # determinism trace diff
 dotnet run --project Gridfall.Verify -c Release -- balance --map crossroads --runs 30
 dotnet run --project Gridfall.Verify -- maps    # map geometry vs MapTargets
+dotnet run --project Gridfall.Verify -- waves   # wave cadence sheet, per wave
 dotnet run --project Gridfall.Verify -- perf    # tick cost vs the 8ms budget
 
 ./run-game.sh                                   # play it
