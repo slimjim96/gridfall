@@ -207,10 +207,23 @@ content needs a balance run beside it. Re-authoring a short curve is `short-run-
 `Verify maps` reports **cover**: the share of the route one cheapest tower reaches from its best
 buildable cell.
 
-| map | size | path | cover (before → after the 2026-08-08 range change) |
-|---|---|---|---|
-| `crossroads` | 20×9 | 19 | 22% → **11%** |
-| `gauntlet` | 10×10 | 29 | 37% → **18%** |
+| map | size | path | cover | useful |
+|---|---|---|---|---|
+| `crossroads` | 20×9 | 19 | 25% | 73% |
+| `gauntlet` | 10×10 | 29 | 20% | 100% |
+
+> **Correction (2026-08-08).** The `cover` figures published earlier that day — crossroads 22% → 11%,
+> gauntlet 37% → 18% — were computed against **every walkable cell rather than the actual route**, so
+> they measured coverage of the whole board. `Verify maps` now walks the route down the distance field
+> and the numbers above are the corrected ones. The *conclusion* the old figures supported still holds
+> (halving range halves coverage) but the values themselves were wrong. The bug surfaced only because
+> a second metric built on the same list read 100% everywhere, which was obviously impossible.
+
+**`useful`** is the share of buildable cells within range of the route at all. It is a **viability
+floor, not a difficulty predictor**: across twelve maps the middle of its range does not order by
+outcome, but the bottom does. `spiral` sits at 43% — 89 buildable cells forming a courtyard the creeps
+never approach — passes every other band, and lost **100% of 150 runs**. Nothing else in the repo
+would have caught that.
 
 **What halving cover cost.** `arrow-tower` range 3.0 → 2.0 (area scales with r², so ~55% less
 reach) took `crossroads` from **24.0% runs lost to 80.7%** at an unchanged wave table. Recovered with

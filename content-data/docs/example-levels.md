@@ -28,30 +28,56 @@ python3 content-data/maps/render-atlas.py          # top-down contact sheet, no 
 `marsh` — were added so every level gets its own palette; their tiles were generated automatically
 from the ramp, since the tile script reads the registry.
 
-## They are NOT balanced, and one is broken
+## They are NOT balanced, and the spread is the finding
 
-Wave tables are copied from `crossroads` and not re-tuned. Routes differ, so the curve that lands
-`crossroads` at 20.0% lands elsewhere here. Two sampled at 150 runs:
+Wave tables are copied from `crossroads` and not re-tuned. All ten at 150 runs:
 
-| Level | Runs lost | Lives | |
-|---|---|---|---|
-| `comb` | **42.0%** | 7.0, sd 5.9 | above the 15–30% band — hardest route in the set at 30 |
-| `ringfort` | **0.0%** | 19.9, **sd 0.2** | unloseable |
+| Level | Runs lost | Lives left | sd | |
+|---|---|---|---|---|
+| `spiral` | **100.0%** | 0.0 | 0.0 | **broken — see below** |
+| `comb` | 42.0% | 7.0 | 5.9 | above band |
+| `chambers` | 0.7% | 11.8 | 5.7 | |
+| `braid` | 0.7% | 18.6 | 2.9 | |
+| `switchback` | 0.0% | 16.9 | 4.1 | |
+| `atoll` | 0.0% | 17.9 | 4.1 | |
+| `ringfort` | 0.0% | 19.9 | 0.2 | |
+| `meander` | 0.0% | 20.0 | 0.0 | |
+| `stepwell` | 0.0% | 20.0 | 0.0 | |
+| `driftway` | 0.0% | 20.0 | 0.0 | |
 
-**`ringfort` reproduces `gauntlet`'s failure exactly, and that is the interesting part.**
+**Ten maps, every one inside every `MapTargets` band, outcomes from 0% to 100%.**
 
-They are the only two maps in the repo built with **path-only corridors** — a forced route rather than
-one the player shapes. Both come out unloseable with essentially zero variance (`gauntlet` sd 0.0,
-`ringfort` sd 0.2), from completely independent layouts.
+That is the result worth keeping. The bands are a **legality and shape check, not a difficulty check**,
+and nothing in them predicts how a map plays. Any new map needs a balance pass; the report cannot
+stand in for one.
 
-> **Two independent designs, same corridor technique, same degenerate outcome.** That is a second
-> data point for the thesis in [gauntlet's cliff](reports/2026-08-07-gauntlet-cliff-balance.md): the
-> problem is not tuning, it is that a forced route leaves the player no decision to get wrong. It
-> also means `lane()` in the generator is a trap, and the other nine motifs deliberately use scenery
-> instead.
+### `spiral` is unwinnable, and a new metric now catches it
 
-`route-variance-metric` should be scheduled before any of these are tuned — tuning a map with zero
-variance just moves where the flat line sits.
+Every run lost, every life gone, zero variance. Its route is a one-cell corridor around the rim, and
+its 89 buildable cells are an interior courtyard **the creeps never come near** — towers built there
+are out of range of everything.
+
+It passes buildable %, path, spawn-goal, lanes and reachability. `cover` missed it too, because
+`cover` measures the *best* cell.
+
+`Verify maps` now reports **`useful`**: the share of buildable cells within range of the route at all.
+`spiral` is the only map in the repo below 50%, at 43%, and the only one that loses every run. It is a
+**viability floor, not a difficulty predictor** — the middle of its range does not order by outcome
+(gauntlet is 100% useful and unloseable) but the bottom does.
+
+### Two candidates ruled out on the way
+
+Recorded so nobody spends the evening again:
+
+- **Maze multiplier** (`maze` column, the editor's F6 estimate) does not measure route variance.
+  `gauntlet` is 1.0× and `crossroads` 1.1× — adjacent — while their outcome spread is sd 0.0 against
+  sd 7.1. A threshold at 1.15× flagged nine of twelve maps including a known-good one. The column is
+  kept as information; the warning was removed.
+- **Buildable-share-of-route** does not either. `gauntlet` is 96% buildable-on-route, the same as
+  every other map, so "can you build on the path" separates nothing.
+
+`ringfort` still reproduces `gauntlet`'s signature — 0.0% lost, sd 0.2 — and both remain unexplained by
+any metric here. That is still open: `route-variance-metric`.
 
 ## How the generator satisfies bands that fight each other
 

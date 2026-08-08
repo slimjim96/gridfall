@@ -599,7 +599,7 @@ int WaveReport()
 
 int MapReport()
 {
-    Console.WriteLine($"{"map",-14} {"size",-8} {"buildable",-11} {"path",-6} {"vs floor",-9} {"cover",-6} {"per route",-10} {"spawns",-7} verdict");
+    Console.WriteLine($"{"map",-14} {"size",-8} {"buildable",-11} {"path",-6} {"vs floor",-9} {"cover",-6} {"useful",-7} {"maze",-6} {"per route",-10} {"spawns",-7} verdict");
     foreach (string mapId in ContentFiles.MapIds(root))
     {
         MapDef map;
@@ -632,11 +632,33 @@ int MapReport()
         TowerDef cheapest = content.Towers.OrderBy(x => x.Cost).First();
         double range = cheapest.Range.ToFloat();
 
+        // The ACTUAL route, walked from the spawn down the distance field.
+        //
+        // This was every walkable cell, which made both `cover` and `useful`
+        // measure coverage of the whole board instead of the path -- `useful`
+        // read 100% everywhere, which is what exposed it. Numbers published
+        // before 2026-08-08 from the `cover` column were measuring the wrong set.
         var route = new List<(int X, int Y)>();
-        for (int i = 0; i < map.Cells.Length; i++)
-            if (path.DistanceAt(i) != Gridfall.Core.Path.PathSystem.NoDistance
-                && map.Cells[i] != CellKind.Blocked)
-                route.Add((i % map.Width, i / map.Width));
+        {
+            int at = map.Index(map.Spawns[0]);
+            var seen = new HashSet<int>();
+            while (at >= 0 && seen.Add(at))
+            {
+                route.Add((at % map.Width, at / map.Width));
+                if (at == map.Index(map.Goal)) break;
+
+                int here = path.DistanceAt(at), next = -1;
+                foreach ((int dx, int dy) in new[] { (0, -1), (1, 0), (0, 1), (-1, 0) })
+                {
+                    int nx = at % map.Width + dx, ny = at / map.Width + dy;
+                    if (nx < 0 || ny < 0 || nx >= map.Width || ny >= map.Height) continue;
+                    int ni = map.Index(nx, ny);
+                    int d = path.DistanceAt(ni);
+                    if (d != Gridfall.Core.Path.PathSystem.NoDistance && d < here) { next = ni; break; }
+                }
+                at = next;
+            }
+        }
 
         int bestCover = 0;
         for (int i = 0; i < map.Cells.Length; i++)
@@ -652,6 +674,45 @@ int MapReport()
         }
 
         string cover = shortest > 0 ? $"{100.0 * bestCover / route.Count:F0}%" : "?";
+
+        // Share of buildable cells that are within range of the route at all.
+        //
+        // `cover` measures the BEST cell; this measures how many cells are worth
+        // anything. A map can pass every band and still be unwinnable if its
+        // buildable area sits away from the route -- `spiral` is 52% buildable,
+        // inside the band, and 89 of its cells are a courtyard the creeps never
+        // come near. It lost 100% of 150 runs.
+        //
+        // A viability floor, NOT a difficulty predictor: across twelve maps the
+        // middle of this range does not order by outcome. Only the bottom does.
+        int reachableBuild = 0, usefulBuild = 0;
+        for (int i = 0; i < map.Cells.Length; i++)
+        {
+            if (map.Cells[i] != CellKind.Buildable) continue;
+            reachableBuild++;
+            int bx = i % map.Width, by = i / map.Width;
+            foreach ((int rx, int ry) in route)
+            {
+                double dx = rx - bx, dy = ry - by;
+                if (dx * dx + dy * dy <= range * range) { usefulBuild++; break; }
+            }
+        }
+        int usefulPct = reachableBuild > 0 ? 100 * usefulBuild / reachableBuild : 0;
+        if (usefulPct < 50)
+            warnings.Add($"only {usefulPct}% of buildable is within range of the route -- "
+                         + "the rest is dead space and the map may be unwinnable");
+
+        // How much the route can be lengthened by legal building -- the greedy
+        // lower bound the board editor's F6 uses.
+        //
+        // Reported, NOT warned on. It was tried as the route-variance metric and
+        // it does not work: gauntlet measures 1.0x and crossroads 1.1x, yet their
+        // outcome spread over 150 runs is sd 0.0 against sd 7.1. A threshold that
+        // separates them does not exist here, and one set at 1.15x flagged nine of
+        // twelve maps including a known-good one. See example-levels.md.
+        int mazed = Gridfall.Core.Content.MapValidator.EstimateMaxMazedPath(map);
+        string maze = Gridfall.Core.Content.MapValidator.Tenths(mazed, shortest) + "x";
+
         if (floor > MapTargets.MaxSpawnGoalDistance)
             warnings.Add($"board too large: spawn-goal {floor} > {MapTargets.MaxSpawnGoalDistance} cap");
         else if (shortest < MapTargets.MinUnmazedPath || shortest > MapTargets.MaxUnmazedPath)
@@ -669,7 +730,7 @@ int MapReport()
 
         string verdict = warnings.Count == 0 ? "ok" : string.Join("; ", warnings);
         string lengthening = Gridfall.Core.Content.MapValidator.Tenths(shortest, floor) + "x";
-        Console.WriteLine($"{mapId,-14} {map.Width + "x" + map.Height,-8} {pct + "%",-11} {shortest,-6} {lengthening,-9} {cover,-6} {density,-10:F1} {map.Spawns.Length,-7} {verdict}");
+        Console.WriteLine($"{mapId,-14} {map.Width + "x" + map.Height,-8} {pct + "%",-11} {shortest,-6} {lengthening,-9} {cover,-6} {usefulPct + "%",-7} {maze,-6} {density,-10:F1} {map.Spawns.Length,-7} {verdict}");
     }
     return 0;
 }
