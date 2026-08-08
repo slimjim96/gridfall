@@ -34,6 +34,13 @@ public sealed class MapDraft
 
     public GridCell Goal = GridCell.Invalid;
 
+    /// <summary>
+    /// Tower ids this board offers, in toolbar order. Empty means all of them --
+    /// see MapDef.TowerIds. Carried through From/ToMapDef/ToJson so the editor
+    /// cannot silently strip a roster off a map somebody opens and saves.
+    /// </summary>
+    public readonly List<string> TowerIds = new();
+
     public int Index(int x, int y) => y * Width + x;
     public int Index(GridCell c) => c.Y * Width + c.X;
     public bool InBounds(int x, int y) => x >= 0 && y >= 0 && x < Width && y < Height;
@@ -77,6 +84,7 @@ public sealed class MapDraft
             Goal = map.Goal,
         };
         draft.Spawns.AddRange(map.Spawns);
+        draft.TowerIds.AddRange(map.TowerIds);
         return draft;
     }
 
@@ -95,6 +103,7 @@ public sealed class MapDraft
         Goal = Goal,
         StartingGold = StartingGold,
         StartingLives = StartingLives,
+        TowerIds = TowerIds.ToArray(),
     };
 
     /// <summary>
@@ -193,6 +202,11 @@ public sealed class MapDraft
         sb.AppendLine($"  \"goal\": {{ \"x\": {Goal.X}, \"y\": {Goal.Y} }},");
         sb.AppendLine($"  \"startingGold\": {StartingGold},");
         sb.AppendLine($"  \"startingLives\": {StartingLives},");
+        // Omitted entirely when empty, because "" and "every tower" are different
+        // statements -- writing `"towers": []` would turn "all of them" into "none
+        // of them" the next time this file is read.
+        if (TowerIds.Count > 0)
+            sb.AppendLine($"  \"towers\": [{string.Join(", ", TowerIds.Select(t => $"\"{t}\""))}],");
         sb.AppendLine("  \"meta\": { \"author\": \"board-editor\" }");
         sb.AppendLine("}");
         return sb.ToString();

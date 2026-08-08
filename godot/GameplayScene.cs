@@ -47,6 +47,8 @@ public sealed partial class GameplayScene : Node3D
     private UnitRenderer _units = null!;
     private RouteOverlay _routes = null!;
     private Hud _hud = null!;
+    private TowerBar _towerBar = null!;
+    private WaveCountdown _countdown = null!;
     private BoardSelect _boards = null!;
     private Camera3D _camera = null!;
     private CameraRig _rig = null!;
@@ -109,7 +111,10 @@ public sealed partial class GameplayScene : Node3D
         ContentSet content = ContentFiles.LoadContent(root, _mapId);
 
         _driver = new SimDriver(map, content, seed: 1);
-        _selectedTower = content.TowerIndexOf("arrow-tower");
+        // Set properly from the board's roster once the bar is built. Hardcoding
+        // "arrow-tower" here would start a board that does not offer it with a
+        // selection the sim refuses on every click.
+        _selectedTower = 0;
         _selectedTowerName = content.Tower(_selectedTower).Name;
 
         BuildEnvironment();
@@ -142,6 +147,16 @@ public sealed partial class GameplayScene : Node3D
 
         _hud = new Hud();
         AddChild(_hud);
+
+        // Both live inside the HUD's CanvasLayer so they scale and sort with the
+        // rest of the overlay rather than needing a layer of their own.
+        _towerBar = new TowerBar();
+        _hud.AddChild(_towerBar);
+        _towerBar.Populate(map, content);
+        SelectSlot(0);
+
+        _countdown = new WaveCountdown();
+        _hud.AddChild(_countdown);
 
         _boards = new BoardSelect { Visible = false };
         AddChild(_boards);
@@ -186,8 +201,19 @@ public sealed partial class GameplayScene : Node3D
         // a HUD that quotes a different number than the one charged is worse
         // than no HUD.
         int cost = _driver.SelectedTowerCost(_selectedTower);
-        _hud.Refresh(_driver.State, _selectedTowerName, cost,
-                     cost != _driver.Content.Tower(_selectedTower).Cost, dt);
+        bool premium = cost != _driver.Content.Tower(_selectedTower).Cost;
+        _hud.Refresh(_driver.State, _selectedTowerName, cost, premium, dt);
+        _towerBar.Refresh(_driver.State, _selectedTower, _driver.SelectedTowerCost, premium);
+
+        // The window the CURRENT wave was armed with -- the ring's denominator.
+        // Read from the wave def rather than remembered, so calling a wave early
+        // cannot leave the next window starting part-drained.
+        int waveIndex = _driver.State.WaveIndex;
+        int prepTicks = waveIndex < _driver.Content.Waves.Length
+            ? _driver.Content.Waves[waveIndex].PrepTicks
+            : 0;
+        _countdown.Refresh(_driver.State, prepTicks, Sim.TicksPerSecond, dt);
+
         UpdateHover();
 
         if (_shotPath is not null && ++_framesRendered >= _shotAfterFrames) CaptureAndQuit();
@@ -236,8 +262,12 @@ public sealed partial class GameplayScene : Node3D
             switch (key.Keycode)
             {
                 case Key.Space: _driver.Enqueue(new StartWaveCommand()); break;
-                case Key.Key1: SelectTower("arrow-tower"); break;
-                case Key.Key2: SelectTower("cannon"); break;
+                // Slots, not tower ids: the number key selects the nth thing the
+                // board offers, so a roster of one has no dead 2 key and a roster
+                // that omits the arrow tower still starts at 1.
+                case >= Key.Key1 and <= Key.Key9:
+                    SelectSlot((int)(key.Keycode - Key.Key1));
+                    break;
                 case Key.R: _routes.Toggle(); break;
                 case Key.Escape:
                     // Back to the editor with the draft intact, or out of the game.
@@ -319,9 +349,15 @@ public sealed partial class GameplayScene : Node3D
         return null;
     }
 
-    private void SelectTower(string id)
+    /// <summary>
+    /// Select the nth tower this board offers. Out-of-range is ignored rather
+    /// than clamped: pressing 3 on a two-tower board should do nothing, not
+    /// quietly select the cannon.
+    /// </summary>
+    private void SelectSlot(int slot)
     {
-        _selectedTower = _driver.Content.TowerIndexOf(id);
+        if (slot < 0 || slot >= _towerBar.Order.Count) return;
+        _selectedTower = _towerBar.Order[slot];
         _selectedTowerName = _driver.Content.Tower(_selectedTower).Name;
     }
 
@@ -423,11 +459,41 @@ public sealed partial class GameplayScene : Node3D
     /// wave, stepped deterministically rather than by wall clock so the capture
     /// is the same frame every time.
     /// </summary>
+    /// <summary>
+    /// The prep window, partly spent, with a tower or two already up.
+    ///
+    /// Its own seed because the default one starts a wave immediately and the
+    /// countdown is only ever on screen when a wave is NOT running -- the two
+    /// claims cannot share a frame, and neither should perturb the other's
+    /// committed baseline.
+    ///
+    /// Ticks a fixed distance into the window rather than capturing at tick 0:
+    /// a full ring proves the widget draws, and a partly-drained one proves it
+    /// is reading the counter.
+    /// </summary>
+    private void SeedCountdown()
+    {
+        ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
+        _driver.Enqueue(new BuildCommand(new GridCell(2, 3), arrow));
+        _driver.StepOneTick();
+        _driver.Enqueue(new BuildCommand(new GridCell(6, 5), arrow));
+        _driver.StepOneTick();
+
+        // No StartWaveCommand: the window before wave 1 is armed by the Sim
+        // constructor, so the countdown is already running and spending ticks is
+        // the whole seed. 120 of 300 leaves the ring visibly past halfway.
+        for (int t = 0; t < 120; t++) _driver.StepOneTick();
+
+        GD.Print($"countdown seed: prep {_driver.State.PrepTicksRemaining} ticks left, "
+                 + $"wave active {_driver.State.WaveActive}");
+    }
+
     private void SeedForScreenshot()
     {
         if (_shotSeed == "sappers") { SeedSappers(); return; }
         if (_shotSeed == "repair") { SeedRepair(); return; }
         if (_shotSeed == "formats") { SeedFormats(); return; }
+        if (_shotSeed == "countdown") { SeedCountdown(); return; }
 
         ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
 

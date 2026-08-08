@@ -269,6 +269,34 @@ public sealed class MapDef
     public required int StartingGold { get; init; }
     public required int StartingLives { get; init; }
 
+    /// <summary>
+    /// Which towers this board offers, in the order the toolbar shows them, or
+    /// **empty for "all of them"**.
+    ///
+    /// Empty is the back-compatible default and it is not the same statement as
+    /// listing every tower: a map that says nothing keeps whatever the content
+    /// set grows to, while a map that lists two keeps exactly those two when a
+    /// third is added. Boards that mean "these and only these" must say so.
+    ///
+    /// This IS simulation input, not decoration -- `CommandSystem` refuses a
+    /// build that is not on the list, so the toolbar is a view of a rule rather
+    /// than a suggestion. It needs no place in the state hash because it never
+    /// changes: it is part of the map, like which cells are buildable.
+    /// </summary>
+    public string[] TowerIds { get; init; } = [];
+
+    /// <summary>
+    /// Whether this board offers this tower. Empty roster means all of them.
+    ///
+    /// Lives here, on the data, because two callers need the same answer and they
+    /// sit on opposite sides of the Core boundary: `CommandSystem` enforces it,
+    /// and the view's tower bar draws it. A copy in the renderer is how a toolbar
+    /// starts offering a tower the sim refuses to build.
+    /// </summary>
+    public bool Offers(ContentSet content, ushort defIndex)
+        => TowerIds.Length == 0
+           || System.Array.IndexOf(TowerIds, content.Tower(defIndex).Id) >= 0;
+
     public int Index(GridCell c) => c.Y * Width + c.X;
     public int Index(int x, int y) => y * Width + x;
     public bool InBounds(int x, int y) => x >= 0 && y >= 0 && x < Width && y < Height;

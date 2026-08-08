@@ -33,8 +33,11 @@ public sealed partial class Hud : CanvasLayer
         _help.Position = new Vector2(16, 70);
         _help.AddThemeFontSizeOverride("font_size", 14);
         _help.Modulate = new Color(1, 1, 1, 0.55f);
+        // "1-9" rather than "1/2": the number keys select the nth tower the BOARD
+        // offers, and a board may offer one or five. The bar itself shows which
+        // key is which, so this line only has to say that keys are how you pick.
         _help.Text = "left click: build   right click: sell   middle click: repair   " +
-                     "space: start wave   1/2: tower   r: routes";
+                     "space: start wave   1-9: tower   r: routes";
         AddChild(_help);
 
         // Centred, large, and the only thing on screen that ever stops the game.

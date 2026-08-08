@@ -43,6 +43,22 @@ LEVELS = [
     ("driftway",  "space"),
 ]
 
+# Which towers a board offers, for boards that restrict. Absent means every
+# tower -- and that is NOT the same as listing them all, because a board with no
+# entry here keeps whatever the tower set grows to, while a listed board keeps
+# exactly what it names. See MapDef.TowerIds.
+#
+# Lives in the generator so a roster survives regeneration. Setting it only in
+# the JSON would work until the next `make-example-levels.py`, which is the kind
+# of loss nobody notices until a board quietly offers a tower again.
+ROSTERS = {
+    # The gentlest board in the set, and the one a player meets first: one tool,
+    # so the first thing learned is placement rather than shopping. It was also
+    # the most degenerate board measured -- 0.0% of runs lost at sd 0.0 -- so
+    # there is nothing here for a second tower to make more interesting.
+    "meander": ["arrow-tower"],
+}
+
 
 def blank(w, h):
     """Walled rectangle, buildable interior."""
@@ -373,6 +389,10 @@ def build(name, theme):
         "startingGold": 300, "startingLives": 20,
         "meta": {"author": "make-example-levels", "motif": name},
     }
+    # Omitted when the board offers everything: an absent field and a full list
+    # are different statements once a third tower exists.
+    if name in ROSTERS:
+        doc["towers"] = ROSTERS[name]
     return doc, s, problems
 
 

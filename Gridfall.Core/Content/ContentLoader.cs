@@ -484,6 +484,31 @@ public static class ContentLoader
         };
         draft.Spawns.AddRange(spawns);
 
+        // Absent means "every tower", which is why this is not defaulted to the
+        // full list here -- see MapDef.TowerIds. An empty array in the file is
+        // rejected rather than silently read as "all": a board that offers
+        // nothing is a typo every time, and it would present as an empty toolbar
+        // with no explanation.
+        if (r.TryGetProperty("towers", out var tw))
+        {
+            if (tw.ValueKind != JsonValueKind.Array)
+                throw new ContentException($"{file}: \"towers\" must be an array of tower ids");
+
+            foreach (JsonElement t in tw.EnumerateArray())
+            {
+                string towerId = t.GetString()
+                    ?? throw new ContentException($"{file}: \"towers\" contains a non-string entry");
+                if (draft.TowerIds.Contains(towerId))
+                    throw new ContentException($"{file}: \"towers\" lists '{towerId}' twice");
+                draft.TowerIds.Add(towerId);
+            }
+
+            if (draft.TowerIds.Count == 0)
+                throw new ContentException(
+                    $"{file}: \"towers\" is empty -- omit the field for every tower, "
+                    + "or list the ones this board offers");
+        }
+
         // ONE verdict. The board editor calls this same validator live as you
         // paint, so it can never disagree with the loader about what is legal.
         foreach (MapFinding finding in MapValidator.Validate(draft))

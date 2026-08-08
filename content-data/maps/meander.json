@@ -32,5 +32,8 @@
   "meta": {
     "author": "make-example-levels",
     "motif": "meander"
-  }
+  },
+  "towers": [
+    "arrow-tower"
+  ]
 }

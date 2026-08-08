@@ -43,6 +43,16 @@ public sealed class Sim
         _path = new PathSystem(map);
         _random = new SimRandom(seed);
 
+        // The map file and the tower files are loaded independently, so this is
+        // the first moment both are in hand -- and the last moment a typo in a
+        // roster is cheap. Left unchecked it would present as a tower that is
+        // missing from the toolbar for no stated reason, on one board.
+        foreach (string towerId in map.TowerIds)
+            if (!content.Towers.Any(t => t.Id == towerId))
+                throw new Content.ContentException(
+                    $"map '{map.Id}' offers tower '{towerId}', which does not exist. "
+                    + $"Known: {string.Join(", ", content.Towers.Select(t => t.Id))}");
+
         // The window before wave 1 counts too -- 300 gold and nowhere to spend
         // it under time pressure is the first decision of the run.
         ArmPrepTimer();

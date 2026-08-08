@@ -50,6 +50,12 @@ public enum RejectReason : byte
     NoSuchTower = 9,
     NotDamaged = 10,
     WaveInProgress = 11,
+    /// <summary>
+    /// The tower exists, but this board does not offer it. Distinct from
+    /// UnknownTower on purpose: "no such tower" is a bug in the caller, and
+    /// "not on this board" is a rule the player is allowed to be told about.
+    /// </summary>
+    TowerNotOnThisBoard = 12,
 }
 
 /// <summary>

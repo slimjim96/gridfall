@@ -330,6 +330,13 @@ public sealed class PlayPolicy
 
         for (ushort i = 0; i < _sim.Content.Towers.Length; i++)
         {
+            // The board's roster, from the same method CommandSystem enforces it
+            // with. Skipping it here would not cheat -- the build would simply be
+            // refused -- but the policy would burn its turn choosing a tower it
+            // cannot place, and the balance figures for a restricted board would
+            // describe a player who never builds anything.
+            if (!_sim.Map.Offers(_sim.Content, i)) continue;
+
             TowerDef def = _sim.Content.Tower(i);
             if (def.Cost > gold || def.Damage <= 0 || def.CooldownTicks <= 0) continue;
 

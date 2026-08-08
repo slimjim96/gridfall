@@ -52,6 +52,15 @@ internal static class CommandSystem
             Reject(events, tick, cell, RejectReason.UnknownTower);
             return;
         }
+        // The board's roster is a rule, not a toolbar hint. Checked here so the
+        // headless balance sim plays under the same restriction a player does --
+        // a roster the policy could ignore would make every balance number on a
+        // restricted board describe a game nobody can play.
+        if (!map.Offers(content, defIndex))
+        {
+            Reject(events, tick, cell, RejectReason.TowerNotOnThisBoard);
+            return;
+        }
 
         int index = map.Index(cell);
         if (map.Cells[index] != CellKind.Buildable)
