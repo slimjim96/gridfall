@@ -1,0 +1,37 @@
+{
+  "id": "braid",
+  "theme": "marsh",
+  "version": 1,
+  "width": 15,
+  "height": 12,
+  "cells": [
+    "###############",
+    "#############b#",
+    "Sbbbbbb#bbbbbb#",
+    "#bbbbbb#bbbbbb#",
+    "#bbbbbbbbbbbbb#",
+    "#bb#########bb#",
+    "#bb#########bb#",
+    "#bbbbbbbbbbbbb#",
+    "#bbbbbb#bbbbbb#",
+    "#bbbbbb#bbbbbbG",
+    "#bbbbbb#bbbbbb#",
+    "###############"
+  ],
+  "spawns": [
+    {
+      "x": 0,
+      "y": 2
+    }
+  ],
+  "goal": {
+    "x": 14,
+    "y": 9
+  },
+  "startingGold": 300,
+  "startingLives": 20,
+  "meta": {
+    "author": "make-example-levels",
+    "motif": "braid"
+  }
+}

@@ -1,0 +1,391 @@
+{
+  "map": "chambers",
+  "_growth": "Re-tuned 2026-08-08 after arrow-tower range went 3.0 -> 2.0. That halved one tower's route coverage (22% -> 11%) and took runs lost from 24.0% to 80.7%; 1.10 from wave 6 brings it back to 20.0%, inside the 15-30% late target. Rate stays inside the documented 1.10-1.18 band -- the delay to wave 6 did the work, not a rate below band.",
+  "_growthFrom": "Do not lower this to 1 'for consistency'. Waves 1-4 being flat is what lets the late rate be 1.14 instead of 1.08 -- the opening is where the player has no gold and no board, and it cannot absorb a ramp.",
+  "hpGrowth": 1.1,
+  "hpGrowthFrom": 6,
+  "waves": [
+    {
+      "index": 1,
+      "entries": [
+        {
+          "enemy": "runner",
+          "count": 8,
+          "spacingTicks": 18,
+          "spawn": 0
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "entries": [
+        {
+          "enemy": "runner",
+          "count": 12,
+          "spacingTicks": 15,
+          "spawn": 0
+        },
+        {
+          "enemy": "brute",
+          "count": 2,
+          "spacingTicks": 60,
+          "delayTicks": 120,
+          "spawn": 0
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "entries": [
+        {
+          "enemy": "runner",
+          "count": 16,
+          "spacingTicks": 12,
+          "spawn": 0
+        },
+        {
+          "enemy": "brute",
+          "count": 4,
+          "spacingTicks": 45,
+          "delayTicks": 90,
+          "spawn": 0
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "entries": [
+        {
+          "enemy": "runner",
+          "count": 20,
+          "spacingTicks": 11,
+          "spawn": 0
+        },
+        {
+          "enemy": "brute",
+          "count": 5,
+          "spacingTicks": 40,
+          "delayTicks": 80,
+          "spawn": 0
+        },
+        {
+          "enemy": "mite",
+          "count": 10,
+          "spacingTicks": 6,
+          "delayTicks": 40,
+          "spawn": 0
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "entries": [
+        {
+          "enemy": "runner",
+          "count": 24,
+          "spacingTicks": 10,
+          "spawn": 0
+        },
+        {
+          "enemy": "brute",
+          "count": 7,
+          "spacingTicks": 36,
+          "delayTicks": 70,
+          "spawn": 0
+        },
+        {
+          "enemy": "husk",
+          "count": 2,
+          "spacingTicks": 70,
+          "delayTicks": 100,
+          "spawn": 0
+        },
+        {
+          "enemy": "sapper",
+          "count": 2,
+          "spacingTicks": 45,
+          "delayTicks": 110,
+          "spawn": 0
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "entries": [
+        {
+          "enemy": "runner",
+          "count": 26,
+          "spacingTicks": 9,
+          "spawn": 0
+        },
+        {
+          "enemy": "brute",
+          "count": 9,
+          "spacingTicks": 32,
+          "delayTicks": 60,
+          "spawn": 0
+        },
+        {
+          "enemy": "mite",
+          "count": 16,
+          "spacingTicks": 5,
+          "delayTicks": 30,
+          "spawn": 0
+        },
+        {
+          "enemy": "husk",
+          "count": 3,
+          "spacingTicks": 60,
+          "delayTicks": 90,
+          "spawn": 0
+        },
+        {
+          "enemy": "sapper",
+          "count": 3,
+          "spacingTicks": 45,
+          "delayTicks": 110,
+          "spawn": 0
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "entries": [
+        {
+          "enemy": "runner",
+          "count": 28,
+          "spacingTicks": 8,
+          "spawn": 0
+        },
+        {
+          "enemy": "brute",
+          "count": 12,
+          "spacingTicks": 28,
+          "delayTicks": 55,
+          "spawn": 0
+        },
+        {
+          "enemy": "mite",
+          "count": 20,
+          "spacingTicks": 5,
+          "delayTicks": 25,
+          "spawn": 0
+        },
+        {
+          "enemy": "husk",
+          "count": 5,
+          "spacingTicks": 55,
+          "delayTicks": 80,
+          "spawn": 0
+        },
+        {
+          "enemy": "sapper",
+          "count": 4,
+          "spacingTicks": 45,
+          "delayTicks": 110,
+          "spawn": 0
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "entries": [
+        {
+          "enemy": "runner",
+          "count": 30,
+          "spacingTicks": 8,
+          "spawn": 0
+        },
+        {
+          "enemy": "brute",
+          "count": 15,
+          "spacingTicks": 26,
+          "delayTicks": 50,
+          "spawn": 0
+        },
+        {
+          "enemy": "mite",
+          "count": 24,
+          "spacingTicks": 4,
+          "delayTicks": 25,
+          "spawn": 0
+        },
+        {
+          "enemy": "husk",
+          "count": 7,
+          "spacingTicks": 50,
+          "delayTicks": 75,
+          "spawn": 0
+        },
+        {
+          "enemy": "sapper",
+          "count": 6,
+          "spacingTicks": 45,
+          "delayTicks": 110,
+          "spawn": 0
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "entries": [
+        {
+          "enemy": "runner",
+          "count": 32,
+          "spacingTicks": 7,
+          "spawn": 0
+        },
+        {
+          "enemy": "brute",
+          "count": 18,
+          "spacingTicks": 24,
+          "delayTicks": 45,
+          "spawn": 0
+        },
+        {
+          "enemy": "mite",
+          "count": 28,
+          "spacingTicks": 4,
+          "delayTicks": 20,
+          "spawn": 0
+        },
+        {
+          "enemy": "husk",
+          "count": 9,
+          "spacingTicks": 45,
+          "delayTicks": 70,
+          "spawn": 0
+        },
+        {
+          "enemy": "sapper",
+          "count": 8,
+          "spacingTicks": 45,
+          "delayTicks": 110,
+          "spawn": 0
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "entries": [
+        {
+          "enemy": "runner",
+          "count": 34,
+          "spacingTicks": 7,
+          "spawn": 0
+        },
+        {
+          "enemy": "brute",
+          "count": 22,
+          "spacingTicks": 22,
+          "delayTicks": 40,
+          "spawn": 0
+        },
+        {
+          "enemy": "mite",
+          "count": 32,
+          "spacingTicks": 4,
+          "delayTicks": 20,
+          "spawn": 0
+        },
+        {
+          "enemy": "husk",
+          "count": 12,
+          "spacingTicks": 40,
+          "delayTicks": 60,
+          "spawn": 0
+        },
+        {
+          "enemy": "sapper",
+          "count": 10,
+          "spacingTicks": 45,
+          "delayTicks": 110,
+          "spawn": 0
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "entries": [
+        {
+          "enemy": "runner",
+          "count": 36,
+          "spacingTicks": 6,
+          "spawn": 0
+        },
+        {
+          "enemy": "brute",
+          "count": 26,
+          "spacingTicks": 20,
+          "delayTicks": 36,
+          "spawn": 0
+        },
+        {
+          "enemy": "mite",
+          "count": 36,
+          "spacingTicks": 3,
+          "delayTicks": 18,
+          "spawn": 0
+        },
+        {
+          "enemy": "husk",
+          "count": 15,
+          "spacingTicks": 36,
+          "delayTicks": 55,
+          "spawn": 0
+        },
+        {
+          "enemy": "sapper",
+          "count": 13,
+          "spacingTicks": 45,
+          "delayTicks": 110,
+          "spawn": 0
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "entries": [
+        {
+          "enemy": "runner",
+          "count": 38,
+          "spacingTicks": 6,
+          "spawn": 0
+        },
+        {
+          "enemy": "brute",
+          "count": 32,
+          "spacingTicks": 18,
+          "delayTicks": 32,
+          "spawn": 0
+        },
+        {
+          "enemy": "mite",
+          "count": 42,
+          "spacingTicks": 3,
+          "delayTicks": 15,
+          "spawn": 0
+        },
+        {
+          "enemy": "husk",
+          "count": 19,
+          "spacingTicks": 32,
+          "delayTicks": 50,
+          "spawn": 0
+        },
+        {
+          "enemy": "sapper",
+          "count": 16,
+          "spacingTicks": 45,
+          "delayTicks": 110,
+          "spawn": 0
+        }
+      ]
+    }
+  ],
+  "_pacing": "Tuned together at 150 runs; see balance-targets.md. waveClearGold puts income in the gap so the prep window has something to spend; midWaveBuildPercent takes it back if you react late. The pair lands 24.0% runs lost against a 27.3% baseline -- inside the 15-30% late target and within noise of before. prepTicks is a FEEL knob the sim cannot measure at any value: the policy spends down then calls the wave, so no timer ever binds. 300 (10s) is a placeholder to be tuned by playing. earlyCallGoldPerSecond stays 0 until prepTicks is tuned, or it is just free gold.",
+  "waveClearGold": 25,
+  "midWaveBuildPercent": 115,
+  "prepTicks": 300,
+  "_unbalanced": "Copied from crossroads and NOT re-balanced -- these are example levels for looking at, and each has a different route length, so the curve that lands crossroads at 20.0% runs lost will land somewhere else here. Run `Verify balance --map <id>` before treating any of these as tuned. The pacing knobs are carried over unchanged for the same reason."
+}

@@ -1,0 +1,36 @@
+{
+  "id": "switchback",
+  "theme": "slate",
+  "version": 1,
+  "width": 12,
+  "height": 11,
+  "cells": [
+    "############",
+    "Sb##########",
+    "#bbbbbbbbbb#",
+    "#bbbbbbbbbb#",
+    "##########b#",
+    "#bbbbbbbbbb#",
+    "#bbbbbbbbb##",
+    "#bbbbbbbb#b#",
+    "#bbbbbbb#bb#",
+    "#bbbbbbbbbbG",
+    "############"
+  ],
+  "spawns": [
+    {
+      "x": 0,
+      "y": 1
+    }
+  ],
+  "goal": {
+    "x": 11,
+    "y": 9
+  },
+  "startingGold": 300,
+  "startingLives": 20,
+  "meta": {
+    "author": "make-example-levels",
+    "motif": "switchback"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "id": "atoll",
+  "theme": "tundra",
+  "version": 1,
+  "width": 14,
+  "height": 12,
+  "cells": [
+    "##############",
+    "Sbbbb##bbbbbb#",
+    "#bb##bbb##b#b#",
+    "#bb##bbb##b#b#",
+    "#bbbbbbbbbbbb#",
+    "#b#bb##bbb##b#",
+    "#b#bb##bbb##b#",
+    "#bbbbbbbbbbbb#",
+    "#bb##bbb##bbb#",
+    "#bb##bbb##bbb#",
+    "#bbbb##bbbbbbG",
+    "##############"
+  ],
+  "spawns": [
+    {
+      "x": 0,
+      "y": 1
+    }
+  ],
+  "goal": {
+    "x": 13,
+    "y": 10
+  },
+  "startingGold": 300,
+  "startingLives": 20,
+  "meta": {
+    "author": "make-example-levels",
+    "motif": "atoll"
+  }
+}

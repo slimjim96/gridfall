@@ -111,6 +111,36 @@ public readonly struct TerrainTheme
         // Hull plating against a void. The darkest ramp -- and the one to re-check
         // first if the board background colour ever changes, since it has the least
         // room between blocked terrain and the empty scene behind it.
+        // Pale cold ground. The LIGHTEST ramp in the set, and the one to re-check
+        // if a creep is ever added above the runner's mint in value -- a light
+        // terrain is where a light unit disappears.
+        ["tundra"] = new TerrainTheme
+        {
+            Blocked = Color.FromHtml("2b333a"),
+            PathOnly = Color.FromHtml("4a5763"),
+            Buildable = Color.FromHtml("6e7f8c"),
+        },
+
+        // Neutral dark grey. Deliberately the only ramp with no hue at all, so it
+        // is the safe backdrop: nothing in the roster can collide with a colour
+        // that is not there.
+        ["ash"] = new TerrainTheme
+        {
+            Blocked = Color.FromHtml("17181a"),
+            PathOnly = Color.FromHtml("2f3134"),
+            Buildable = Color.FromHtml("4c4f53"),
+        },
+
+        // Standing water over peat. Teal rather than green so it separates from
+        // `forest`, and darker than `ocean` so it separates from that too --
+        // the two neighbours it would otherwise be confused with.
+        ["marsh"] = new TerrainTheme
+        {
+            Blocked = Color.FromHtml("141f1e"),
+            PathOnly = Color.FromHtml("263a38"),
+            Buildable = Color.FromHtml("3f5a58"),
+        },
+
         ["space"] = new TerrainTheme
         {
             Blocked = Color.FromHtml("0f0f18"),

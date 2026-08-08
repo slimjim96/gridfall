@@ -1,0 +1,38 @@
+{
+  "id": "ringfort",
+  "theme": "ash",
+  "version": 1,
+  "width": 13,
+  "height": 13,
+  "cells": [
+    "#############",
+    "Sbbbbbbbbbbb#",
+    "#b.........b#",
+    "#b.bbbbbbb.b#",
+    "#b.b#####b.b#",
+    "#b.b#####b.b#",
+    "#b.b#####b.b#",
+    "#b.b#####b.b#",
+    "#b.b#####b.b#",
+    "#b.bbbbbbb.b#",
+    "#b.........b#",
+    "#bbbbbbbbbbbG",
+    "#############"
+  ],
+  "spawns": [
+    {
+      "x": 0,
+      "y": 1
+    }
+  ],
+  "goal": {
+    "x": 12,
+    "y": 11
+  },
+  "startingGold": 300,
+  "startingLives": 20,
+  "meta": {
+    "author": "make-example-levels",
+    "motif": "ringfort"
+  }
+}
