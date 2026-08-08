@@ -14,13 +14,15 @@ public static class PlaceholderFactory
 {
     public static IUnitView CreateTower(string contentId, int entityId) => contentId switch
     {
-        // Tall and thin: precision and reach.
+        // Short and thin: the cheap starter, and the shortest reach on the board.
+        // Height reads as RANGE across the roster -- see placeholder-standard.md.
         "arrow-tower" => new PlaceholderUnitView(
-            Shapes.TallPrism(0.30f, 1.45f), Palette.ForTower(contentId), 0.72f, bobs: false, entityId),
+            Shapes.TallPrism(0.30f, 0.85f), Palette.ForTower(contentId), 0.42f, bobs: false, entityId),
 
-        // Squat and wide: bulk and area. Unmistakable next to the arrow tower.
+        // Tall and wide: the expensive one that reaches furthest and hits hardest.
+        // Still unmistakable beside the arrow tower -- thin vs broad, short vs tall.
         "cannon" => new PlaceholderUnitView(
-            Shapes.SquatCylinder(0.36f, 0.62f), Palette.ForTower(contentId), 0.31f, bobs: false, entityId),
+            Shapes.SquatCylinder(0.40f, 1.55f), Palette.ForTower(contentId), 0.78f, bobs: false, entityId),
 
         // Tapered hex spire: cold and still. Taller and thinner than either.
         "frost-spire" => new PlaceholderUnitView(

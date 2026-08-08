@@ -49,10 +49,15 @@ thing worth caring about.
 
 Practical vocabulary, cheap to build and easy to tell apart:
 
+**Height means range (2026-08-08).** Across the tower roster, a taller silhouette reaches further —
+one rule, learnable in a single game. It replaced an inconsistent vocabulary where the *cheap starter*
+was the tallest thing on the board and also had the longest reach, which read as "this covers
+everything" and led to under-building. Cost tracks it too: taller, dearer, further.
+
 | Shape | Suggests | Used for |
 |---|---|---|
-| Tall thin prism | Precision, reach | Long-range towers |
-| Squat wide cylinder | Bulk, area | Splash towers |
+| Short thin prism | Cheap, close in | The starter tower |
+| Tall wide cylinder | Bulk, and the longest reach | Expensive damage towers |
 | Tapered hex prism | Cold, still | Support / slow towers |
 | Low sphere | Speed | Fast creeps |
 | Broad box | Toughness | Armored creeps |

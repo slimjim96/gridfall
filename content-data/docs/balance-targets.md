@@ -207,10 +207,20 @@ content needs a balance run beside it. Re-authoring a short curve is `short-run-
 `Verify maps` reports **cover**: the share of the route one cheapest tower reaches from its best
 buildable cell.
 
-| map | size | path | cover |
+| map | size | path | cover (before → after the 2026-08-08 range change) |
 |---|---|---|---|
-| `crossroads` | 20×9 | 19 | **22%** |
-| `gauntlet` | 10×10 | 29 | **37%** |
+| `crossroads` | 20×9 | 19 | 22% → **11%** |
+| `gauntlet` | 10×10 | 29 | 37% → **18%** |
+
+**What halving cover cost.** `arrow-tower` range 3.0 → 2.0 (area scales with r², so ~55% less
+reach) took `crossroads` from **24.0% runs lost to 80.7%** at an unchanged wave table. Recovered with
+`hpGrowth 1.10 from wave 6` → **20.0%**, in band. The rate stays inside the documented 1.10–1.18
+band; delaying the ramp to wave 6 did the work, not a rate below band.
+
+`gauntlet` was **unaffected: still 0.0% lost, sd 0.2.** Halving every tower's reach did not make a
+walled-in route interesting, which is the clearest evidence yet that its problem is route freedom and
+not tuning — see [gauntlet's cliff](reports/2026-08-07-gauntlet-cliff-balance.md) and
+`route-variance-metric`.
 
 **Tower range is fixed in cells; boards are not.** So the same tower covers a shrinking share of the
 route as a board grows, and a wave tuned on a 20×9 board is a different problem on a 40×40 one — the

@@ -1,9 +1,9 @@
 {
   "map": "crossroads",
-  "_growth": "Flat through wave 4, then 1.14 per wave. TWO numbers, because one could not shape this curve: hpGrowth applies from wave 1, so any rate that threatened wave 12 also inflated waves 2-4 -- and waves 2-4 are where the player is broke. Six passes pushed the single scalar and each had to pick between a lethal opening and a trivial ending. See docs/reports/2026-08-07-early-economy-2-balance.md.",
+  "_growth": "Re-tuned 2026-08-08 after arrow-tower range went 3.0 -> 2.0. That halved one tower's route coverage (22% -> 11%) and took runs lost from 24.0% to 80.7%; 1.10 from wave 6 brings it back to 20.0%, inside the 15-30% late target. Rate stays inside the documented 1.10-1.18 band -- the delay to wave 6 did the work, not a rate below band.",
   "_growthFrom": "Do not lower this to 1 'for consistency'. Waves 1-4 being flat is what lets the late rate be 1.14 instead of 1.08 -- the opening is where the player has no gold and no board, and it cannot absorb a ramp.",
-  "hpGrowth": 1.14,
-  "hpGrowthFrom": 4,
+  "hpGrowth": 1.1,
+  "hpGrowthFrom": 6,
   "waves": [
     {
       "index": 1,
