@@ -44,6 +44,15 @@ public sealed class SimDriver
     public SimStateView State => _sim.State;
     public MapDef Map => _sim.Map;
     public ContentSet Content => _sim.Content;
+
+    /// <summary>
+    /// What a tower costs right now, premium included.
+    ///
+    /// Delegates to CommandSystem.BuildCost -- the same function that charges
+    /// the gold -- so the HUD cannot quote a price the sim does not honour.
+    /// </summary>
+    public int SelectedTowerCost(ushort towerIndex)
+        => _sim.BuildCostOf(towerIndex);
     public int TickCount => _sim.TickCount;
 
     /// <summary>How far between the last tick and the next, in [0,1). Rendering only.</summary>

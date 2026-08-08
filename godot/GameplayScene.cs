@@ -19,7 +19,17 @@ namespace Gridfall;
 /// </summary>
 public sealed partial class GameplayScene : Node3D
 {
-    private const string MapId = "crossroads";
+    private const string DefaultMapId = "crossroads";
+
+    /// <summary>
+    /// Board chosen from the selector, carried across a scene reload. Same
+    /// mechanism as PlaytestDraft: a static survives ReloadCurrentScene, and the
+    /// alternative is a menu scene this game does not need.
+    /// </summary>
+    public static string? PendingMapId;
+
+    private string _mapId = DefaultMapId;
+    private string _repoRoot = "";
 
     /// <summary>
     /// Set by the board editor before switching scenes: play THIS map, unsaved.
@@ -37,6 +47,7 @@ public sealed partial class GameplayScene : Node3D
     private UnitRenderer _units = null!;
     private RouteOverlay _routes = null!;
     private Hud _hud = null!;
+    private BoardSelect _boards = null!;
     private Camera3D _camera = null!;
     private CameraRig _rig = null!;
 
@@ -70,7 +81,7 @@ public sealed partial class GameplayScene : Node3D
     {
         ParseCommandLine();
 
-        string root = ContentFiles.FindRepoRoot();
+        string root = _repoRoot = ContentFiles.FindRepoRoot();
 
         // The game reads the same tile folders the editor does. If it did not,
         // a board would look one way while you painted it and another way when
@@ -79,7 +90,11 @@ public sealed partial class GameplayScene : Node3D
         TileLibrary.Scan(root);
         UnitAssets.Scan(root, _unitsOverride);
 
-        MapDef map = PlaytestDraft ?? ContentFiles.LoadMap(root, MapId);
+        // --map wins, then a selector choice, then the default.
+        _mapId = ParseMapArg() ?? PendingMapId ?? DefaultMapId;
+        PendingMapId = null;
+
+        MapDef map = PlaytestDraft ?? ContentFiles.LoadMap(root, _mapId);
         if (_themeOverride is not null)
         {
             // Round-trip through the draft rather than adding a setter: MapDef is
@@ -91,7 +106,7 @@ public sealed partial class GameplayScene : Node3D
         }
         _fromEditor = PlaytestDraft is not null;
         PlaytestDraft = null;
-        ContentSet content = ContentFiles.LoadContent(root, MapId);
+        ContentSet content = ContentFiles.LoadContent(root, _mapId);
 
         _driver = new SimDriver(map, content, seed: 1);
         _selectedTower = content.TowerIndexOf("arrow-tower");
@@ -127,6 +142,9 @@ public sealed partial class GameplayScene : Node3D
 
         _hud = new Hud();
         AddChild(_hud);
+
+        _boards = new BoardSelect { Visible = false };
+        AddChild(_boards);
 
         if (_shotPath is not null) SeedForScreenshot();
     }
@@ -164,10 +182,24 @@ public sealed partial class GameplayScene : Node3D
         }
 
         _rig.Update(dt);
-        _hud.Refresh(_driver.State, _selectedTowerName, dt);
+        // Priced by the sim's own function, never a second copy of the rule --
+        // a HUD that quotes a different number than the one charged is worse
+        // than no HUD.
+        int cost = _driver.SelectedTowerCost(_selectedTower);
+        _hud.Refresh(_driver.State, _selectedTowerName, cost,
+                     cost != _driver.Content.Tower(_selectedTower).Cost, dt);
         UpdateHover();
 
         if (_shotPath is not null && ++_framesRendered >= _shotAfterFrames) CaptureAndQuit();
+    }
+
+    /// <summary>--map &lt;id&gt;: play a specific board. Used by captures and by the launcher.</summary>
+    private static string? ParseMapArg()
+    {
+        string[] args = OS.GetCmdlineUserArgs();
+        for (int i = 0; i < args.Length - 1; i++)
+            if (args[i] == "--map") return args[i + 1];
+        return null;
     }
 
     private void EndRun(bool won)
@@ -175,10 +207,11 @@ public sealed partial class GameplayScene : Node3D
         if (_runEnded) return;
         _runEnded = true;
 
-        _hud.ShowRunEnd(
-            won ? $"RUN COMPLETE\n{_driver.State.Lives} lives left\n\nesc to quit"
-                : $"OVERRUN\ncleared {_driver.State.WaveIndex - 1} of {_driver.Content.Waves.Length} waves\n\nesc to quit",
-            won);
+        // Straight into the next choice. A run that ends on a dead screen is
+        // the same dead time the prep window was added to remove.
+        _boards.Open(_repoRoot,
+            won ? $"RUN COMPLETE  --  {_mapId}, {_driver.State.Lives} lives left"
+                : $"OVERRUN  --  {_mapId}, cleared {_driver.State.WaveIndex - 1} of {_driver.Content.Waves.Length} waves");
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -189,6 +222,17 @@ public sealed partial class GameplayScene : Node3D
 
         if (@event is InputEventKey { Pressed: true } key)
         {
+            if (_boards.Visible)
+            {
+                if (_boards.HandleKey(key))
+                {
+                    PendingMapId = _boards.Chosen;
+                    GetTree().ReloadCurrentScene();
+                }
+                else if (key.Keycode == Key.Escape) GetTree().Quit();
+                return;
+            }
+
             switch (key.Keycode)
             {
                 case Key.Space: _driver.Enqueue(new StartWaveCommand()); break;

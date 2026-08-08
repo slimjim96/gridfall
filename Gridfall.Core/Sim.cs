@@ -64,6 +64,13 @@ public sealed class Sim
     public SimStateView State => new(_state);
 
     /// <summary>
+    /// A tower's current price, mid-wave premium included. Read-only: the view
+    /// needs the number to display and must not re-derive it.
+    /// </summary>
+    public int BuildCostOf(ushort towerIndex)
+        => Systems.CommandSystem.BuildCost(_content.Tower(towerIndex), _state, _content);
+
+    /// <summary>
     /// The mutable state, for first-party tooling only: the test suite proving
     /// hash coverage, and the perf harness setting up a board. Not visible to
     /// the Godot project, which is the point.

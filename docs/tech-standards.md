@@ -98,6 +98,7 @@ dotnet run --project Gridfall.Verify -- waves   # wave cadence sheet, per wave
 dotnet run --project Gridfall.Verify -- perf    # tick cost vs the 8ms budget
 
 ./run-game.sh                                   # play it
+./run-game.sh --map gauntlet                    # play a specific board (else pick one on screen)
 ./run-editor.sh crossroads                      # board editor
 ./run-game.sh --shot /tmp/x.png --shot-after 40 # byte-reproducible capture
 ./run-game.sh --shot /tmp/x.png --shot-seed sappers --shot-after 40   # a named board state

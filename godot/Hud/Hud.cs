@@ -82,10 +82,25 @@ public sealed partial class Hud : CanvasLayer
         if (text is not null) _repair.Text = text;
     }
 
-    public void Refresh(SimStateView state, string towerName, float delta)
+    /// <summary>
+    /// `cost` is the price right now, premium included, and `premium` is true
+    /// while a wave is running and that price is inflated.
+    ///
+    /// A price that silently changes is indistinguishable from a bug. The
+    /// mid-wave premium exists to make reacting late a decision, and a decision
+    /// the player cannot see the cost of is just a surprise -- pillar 4.
+    /// </summary>
+    public void Refresh(SimStateView state, string towerName, int cost, bool premium, float delta)
     {
+        string price = premium ? $"{cost} +premium" : cost.ToString();
+
         _stats.Text = $"gold {state.Gold}    lives {state.Lives}    wave {state.WaveIndex}    " +
-                      $"creeps {state.CreepCount}    towers {state.TowerCount}    [{towerName}]";
+                      $"creeps {state.CreepCount}    towers {state.TowerCount}    " +
+                      $"[{towerName} {price}]";
+
+        // Amber, the "an offer, not a warning" slot -- the premium is a price to
+        // weigh, not a refusal. Danger is reserved and would misread.
+        _stats.AddThemeColorOverride("font_color", premium ? Palette.Hint : Colors.White);
 
         if (_refusalRemaining <= 0f) return;
         _refusalRemaining -= delta;
