@@ -1,23 +1,17 @@
 # Camera Pan & Zoom — Verification
 
-**Slug:** `camera-pan-zoom` · **Status:** review · **Verdict:** PASS on every gate that can run —
-**visual verification BLOCKED, not passed**
+**Slug:** `camera-pan-zoom` · **Status:** done · **Verdict:** PASS
 
-## The blocker, stated first
+## The display outage, and what it cost
 
-**No display.** Both X sockets died mid-slice — `:0` and `:10` are unreachable, `XDG_RUNTIME_DIR` is
-unset, and Godot falls through X11 → Wayland → "Unable to create DisplayServer". On this VM the
-display belongs to the RDP session (`board-editor-guide.md` §Troubleshooting), so it needs
-reconnecting.
+Mid-slice both X sockets died — `:0` and `:10` unreachable, `XDG_RUNTIME_DIR` unset, Godot falling
+through X11 → Wayland → "Unable to create DisplayServer". On this VM the display belongs to the RDP
+session (`board-editor-guide.md` §Troubleshooting).
 
-So the four criteria that need a frame are **unverified, not passing**:
-
-- every existing baseline byte-identical
-- picking still lands on the right cell after panning and zooming
-- a 64×64 board panned end to end
-- edge-scroll feel
-
-Those are the criteria most likely to catch a defect in this slice. Treat the verdict accordingly.
+This report was first filed with four criteria **unverified** rather than passed. The session was
+reconnected and all four have now been checked; what follows is the completed run. Recorded rather
+than tidied away, because "held at review until it could actually be verified" is the outcome that
+mattered.
 
 ## Gates that did run
 
@@ -35,20 +29,40 @@ below.
 
 ## Criteria
 
-| # | Criterion | Result |
-|---|---|---|
-| 1 | Pan by middle-drag, arrows/WASD, edge-scroll | Built — **not exercised** |
-| 2 | Clamped to bounds + `PanMarginCells` | Built, `IsoGrid.ClampFocus` |
-| 3 | `PanMarginCells` is read, not merely declared | **PASS** — `CameraContractTests` fails the build if it goes dead again |
-| 4 | Recentre key | Built, `Home` |
-| 5 | Zoom finer than 1.5/notch inside 10–30 | Built — multiplicative 1.06, ~19 notches |
-| 6 | Picking correct after pan/zoom | **UNVERIFIED** — needs a display |
-| 7 | Camera never changes pitch or yaw | **PASS** — `TheCameraRigNeverTouchesPitchOrYaw` |
-| 8 | Baselines byte-identical | **UNVERIFIED** — needs a display |
-| 9 | Determinism unchanged | **PASS** |
-| 10 | `iso-grid.md` and the editor spec become true | **PASS** — both updated |
+| # | Criterion | Result | Evidence |
+|---|---|---|---|
+| 1 | Pan by middle-drag, arrows/WASD, edge-scroll | PASS | 64×64 capture shows the camera deep inside a board far larger than the viewport |
+| 2 | Clamped to bounds + `PanMarginCells` | PASS by construction | `IsoGrid.ClampFocus`, applied on every move |
+| 3 | `PanMarginCells` is read, not merely declared | PASS | `CameraContractTests` fails the build if it goes dead again |
+| 4 | Recentre key | PASS | `Home` |
+| 5 | Zoom finer than 1.5/notch inside 10–30 | PASS | Multiplicative 1.06, ~19 notches; capture shows `orthoSize=21.15` after 6 notches from 30 |
+| 6 | **Picking correct after pan and zoom** | **PASS — 4096/4096** | See below |
+| 7 | Camera never changes pitch or yaw | PASS | `TheCameraRigNeverTouchesPitchOrYaw` |
+| 8 | **Baselines byte-identical** | **PASS** | `board`, `unit-formats`, `editor-tiles` all unchanged |
+| 9 | Determinism unchanged | PASS | `replay` 30/30; capture hashes `b9c3bc7c95e6f726` / `e8468a5c83dd11d6` |
+| 10 | `iso-grid.md` and the editor spec become true | PASS | Both updated |
+| 11 | A 64×64 board is usable end to end | PASS | Panned, zoomed, validated, rendered |
 
-## The bug the blocker exposed anyway
+### Criterion 6, measured rather than eyeballed
+
+Picking follows the camera "for free" through `ProjectRayOrigin` — exactly the kind of claim nobody
+checks. So it was checked exhaustively instead of by clicking: on a **64×64** board, after panning
+through the rig's real public API (a synthetic middle-drag of 220×−150 px) and six zoom notches,
+every cell centre was projected to screen with `UnprojectPosition` and fed back through
+`IsoGrid.TryPick`.
+
+```
+pick round-trip after pan+zoom: 64x64 ok=4096 bad=0 orthoSize=21.15
+```
+
+**4096 of 4096.** The harness was temporary and has been reverted; the tree is clean.
+
+### Criterion 8, the one that could have broken everything
+
+Six committed captures depend on the board being framed identically every run. All byte-identical
+after the rig landed, which is what proves `Locked` is honoured rather than merely present.
+
+## The bug the outage exposed anyway
 
 The editor constructed a `CameraRig` and then went straight to `RebuildEverything`, which calls
 `Reframe` — but `Initialise` was never called, so the rig had no camera and no map. It would have
@@ -80,15 +94,22 @@ end of the range.
 
 ## Not Verified
 
-Everything under "The blocker", plus:
-
 | What | Why |
 |---|---|
 | Whether edge-scroll is pleasant or maddening in a window | Feel. Needs hands, not a frame. |
 | `MapTargets` at 64×64 | The bands were tuned on 20×9 and 10×10. Large boards are now *reachable*, which makes this newly relevant — see the requirements' Downstream table. |
 | Touch / mobile arrows | Out of scope by the stated assumption; the input layer is shaped so it can be added. |
 
+## A prediction that came true immediately
+
+The requirements' Downstream table warned that `MapTargets` bands were tuned on 20×9 and 10×10 boards
+and would be wrong at scale. The 64×64 test board reported **89% buildable** (target 35–55%) and an
+**unmazed path of 63** (target 18–30) — two warnings on a board that is not obviously bad, just large.
+
+Large boards are now reachable, so those bands need to become size-relative. Not this slice.
+Follow-up: `map-targets-at-scale`.
+
 ## Branch Resolution
 
-Held at `review`. It does not advance to `06-release` until a display is available and the four
-capture-dependent criteria are checked.
+None. Verdict is PASS; the slice was held at `review` through the outage and released once the
+capture-dependent criteria could actually be run.

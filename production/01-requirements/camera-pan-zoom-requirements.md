@@ -1,6 +1,6 @@
 # Camera Pan & Zoom — Requirements
 
-**Slug:** `camera-pan-zoom` · **Status:** review · **Owner:** design-lead
+**Slug:** `camera-pan-zoom` · **Status:** done · **Owner:** design-lead
 
 ## In One Sentence
 
