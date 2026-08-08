@@ -1,7 +1,7 @@
 # Next Steps
 
-**Written:** 2026-08-08 · **State:** branch `ten-example-levels` @ `a98c373`, tree clean,
-`dotnet build` 0/0 · **200 tests** · replay 30/30 · 12/12 maps valid.
+**Written:** 2026-08-08 · **State:** branch `ten-example-levels`, tree clean, `dotnet build` 0/0 ·
+**200 tests** · replay 30/30 · 12/12 maps valid and all twelve selectable.
 
 A session-crossing handoff. The filename-is-the-status rule still holds everywhere else — this file
 exists only because the open threads span four workspaces and their ordering is not derivable from any
@@ -23,22 +23,16 @@ green.
 
 ---
 
-## Ordered, and the first one is small
+## Fixed already
 
-### 1. Three of the ten levels are unreachable in the game
+**Board select could only reach nine maps, and there are twelve.** `spiral`, `stepwell` and
+`switchback` were unreachable — silently, because the list simply stopped. Slots now run `1`–`9` then
+`a`–`z`, bounded by one number in one place instead of the two disagreeing literals that caused it, and
+anything past the thirty-fifth is counted on screen rather than dropped. All twelve are playable.
 
-`BoardSelect` scans `content-data/maps/` and shows the first nine, ordinal-sorted, keyed `1`–`9`:
+## Ordered
 
-- `godot/Hud/BoardSelect.cs:54` — display loop, `i < 9`
-- `godot/Hud/BoardSelect.cs:82` — key handling, `index > 8`
-
-There are now **twelve** maps. Ordinal order cuts `spiral`, `stepwell` and `switchback`. This was
-correct when it shipped and became wrong the moment the ten landed; the "filesystem is the map manager"
-promise in that file's own doc comment is currently false.
-
-Fix is paging or letter keys past `9`. It blocks step 2, so do it first.
-
-### 2. Nobody has seen these levels at the iso angle
+### 1. Nobody has seen these levels at the iso angle
 
 The display was down when they were generated, so
 [`presentation/docs/level-atlas.png`](../../presentation/docs/level-atlas.png) is a **top-down schematic
@@ -52,7 +46,7 @@ rendered from JSON**, not a screenshot. Every claim about how these boards *read
 This also gates the three new palettes — `tundra`, `ash`, `marsh` — whose 75 tiles were generated from
 the ramp registry and have never been looked at.
 
-### 3. Eight of the ten are untuned, and four are degenerate
+### 2. Eight of the ten are untuned, and four are degenerate
 
 Wave tables are copied from `crossroads` verbatim. At 150 runs
 ([`content-data/docs/example-levels.md`](../../content-data/docs/example-levels.md) has the table):
@@ -65,7 +59,7 @@ Two ways forward, and it is a scope call: a per-level balance pass (ten passes),
 three that earn a tuning budget and mark the rest as generator output. `crossroads` remains the only
 tuned board in the repo.
 
-### 4. `route-variance-metric` — open, with three predictors ruled out
+### 3. `route-variance-metric` — open, with three predictors ruled out
 
 `gauntlet` and `ringfort` both lose 0.0% of runs at sd ≈ 0 — no variance at all, the same signature
 from two independently built maps, and **no metric in the repo explains either**. Both were built with
@@ -87,14 +81,14 @@ Suggestion, not a conclusion: the next attempt is probably **simulation-derived*
 — sample tower placements and measure the spread of outcomes — since every geometric candidate so far
 has failed the same way.
 
-### 5. Tier 2's soft-lock question is unanswered
+### 4. Tier 2's soft-lock question is unanswered
 
 If a station cannot answer a visitor's question it does nothing, and *"my stations do nothing"* is the
 exact unreadable failure that `DamageSystem`'s floor-at-1 rule exists to prevent. The direction doc
 lists three options (partial progress, waves that only ask answerable questions, unanswered visitors
 slow instead of pass). **Settle it before Tier 2 is scheduled** — it is the whole design.
 
-### 6. Nothing is pushed
+### 5. Nothing is pushed
 
 `main` is 1 ahead of `origin/main`; `ten-example-levels` is 3 ahead of `main`. Merge and push, or say
 why not.
