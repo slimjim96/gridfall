@@ -600,11 +600,19 @@ int WaveReport()
 int MapReport()
 {
     Console.WriteLine($"{"map",-14} {"size",-8} {"buildable",-11} {"path",-6} {"vs floor",-9} {"cover",-6} {"useful",-7} {"maze",-6} {"per route",-10} {"spawns",-7} verdict");
+    bool anyErrors = false;
     foreach (string mapId in ContentFiles.MapIds(root))
     {
         MapDef map;
         try { map = ContentFiles.LoadMap(root, mapId); }
-        catch (ContentException ex) { Console.WriteLine($"{mapId,-14} ERROR: {ex.Message}"); continue; }
+        catch (ContentException ex)
+        {
+            // A map that will not load is the worst verdict this verb can reach,
+            // so it has to fail the run too -- it used to print ERROR and exit 0.
+            Console.WriteLine($"{mapId,-14} ERROR: {ex.Message}");
+            anyErrors = true;
+            continue;
+        }
 
         int cells = map.Width * map.Height;
         int buildable = map.Cells.Count(c => c == CellKind.Buildable);
@@ -614,12 +622,26 @@ int MapReport()
         path.ForceRebuild();
         int shortest = path.DistanceAt(map.Spawns[0]);
 
-        var warnings = new List<string>();
-        if (pct < MapTargets.MinBuildablePercent || pct > MapTargets.MaxBuildablePercent)
-            warnings.Add($"buildable {pct}% outside {MapTargets.MinBuildablePercent}-{MapTargets.MaxBuildablePercent}%");
-        // Same split as MapValidator: a board bigger than the combat model
-        // supports gets the reason, not the symptom. The band warning would be
-        // true and useless -- no layout can satisfy it at that size.
+        // The game's verdict first, verbatim. This report used to re-implement
+        // the buildable band, the path/floor split and the lane cap -- three
+        // rules kept in two places -- and it did not carry MapValidator's
+        // stranded-cell check at all. So it printed a clean sheet for spiral,
+        // stepwell and driftway while all three were warning in the editor, and
+        // an entire level set was signed off on the strength of it.
+        //
+        // Everything below this line is analysis the validator does not do
+        // (cover, useful, maze, density). Anything that is a *rule* belongs in
+        // MapValidator, where the loader and the editor will see it too.
+        var findings = Gridfall.Core.Content.MapValidator.Validate(
+            Gridfall.Core.Content.MapDraft.From(map));
+        bool broken = Gridfall.Core.Content.MapValidator.HasErrors(findings);
+        anyErrors |= broken;
+
+        var warnings = findings
+            .Where(f => f.Severity is MapSeverity.Error or MapSeverity.Warning)
+            .Select(f => f.Severity == MapSeverity.Error ? $"ERROR: {f}" : f.ToString())
+            .ToList();
+
         int floor = Gridfall.Core.Content.MapValidator.GeometricFloor(map.Spawns[0], map.Goal);
 
         // Route cells one tower can cover, from its best buildable cell.
@@ -713,13 +735,6 @@ int MapReport()
         int mazed = Gridfall.Core.Content.MapValidator.EstimateMaxMazedPath(map);
         string maze = Gridfall.Core.Content.MapValidator.Tenths(mazed, shortest) + "x";
 
-        if (floor > MapTargets.MaxSpawnGoalDistance)
-            warnings.Add($"board too large: spawn-goal {floor} > {MapTargets.MaxSpawnGoalDistance} cap");
-        else if (shortest < MapTargets.MinUnmazedPath || shortest > MapTargets.MaxUnmazedPath)
-            warnings.Add($"path {shortest} outside {MapTargets.MinUnmazedPath}-{MapTargets.MaxUnmazedPath}");
-        if (map.Spawns.Length > MapTargets.MaxLanes)
-            warnings.Add($"{map.Spawns.Length} spawns > {MapTargets.MaxLanes}");
-
         // Buildable cells per route cell. The buildable-percentage band does not
         // capture this, and crossroads passes that band at 4.0 here -- roughly
         // three towers per cell of route, which no enemy design survives.
@@ -732,5 +747,10 @@ int MapReport()
         string lengthening = Gridfall.Core.Content.MapValidator.Tenths(shortest, floor) + "x";
         Console.WriteLine($"{mapId,-14} {map.Width + "x" + map.Height,-8} {pct + "%",-11} {shortest,-6} {lengthening,-9} {cover,-6} {usefulPct + "%",-7} {maze,-6} {density,-10:F1} {map.Spawns.Length,-7} {verdict}");
     }
-    return 0;
+
+    // Errors fail the run; warnings do not. Every map in the repo carries the
+    // density warning today and it is explicitly not enforced yet, so failing on
+    // warnings would make the verb useless as a gate on the day it was added.
+    if (anyErrors) Console.WriteLine("\nAt least one map has an ERROR: the game will refuse to load it.");
+    return anyErrors ? 1 : 0;
 }

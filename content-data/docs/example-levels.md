@@ -143,8 +143,13 @@ The cause is that `make-example-levels.py` **re-implemented the validator instea
 `problems` list checked reachability, path band, buildable band, spawn-goal distance and `useful` — and
 not stranded cells, which is a check `MapValidator` does make. So the generator passed its own weaker
 exam and printed `ok`, and the only thing that would have disagreed was the editor, which nobody could
-run. `Gridfall.Verify -- maps` did not catch it either: **it reports geometry and never calls
-`MapValidator` at all.**
+run. `Gridfall.Verify -- maps` did not catch it either: it reported geometry and never called
+`MapValidator` at all — while separately re-implementing three of its rules.
+
+**Both holes are closed.** `maps` now calls `MapValidator` and prints its findings verbatim, keeping
+only the analysis the validator does not do (`cover`, `useful`, `maze`, density); it exits 1 on any
+error. `ShippedMapValidityTests` puts every file in `content-data/maps/` through the same validator in
+CI, so the generator, the report and the editor can no longer disagree about what a legal map is.
 
 This is precisely what the board editor's own header warns against — *"it contributes no rules of its
 own, so it cannot disagree with the game about what a legal map is"*. The generator did contribute its

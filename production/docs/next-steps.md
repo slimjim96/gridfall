@@ -43,6 +43,14 @@ ran disagreed. The generator now seals stranded cells and refuses to write a map
 lost** on five cells. A walled-off buildable cell is a *decoy*: the policy builds there, the tower never
 fires, the run is down a tower. `spiral` is now the only generated level inside the 15–30% band.
 
+**`Verify -- maps` now calls `MapValidator`.** It was a geometry report that had separately
+re-implemented the buildable band, the path/floor split and the lane cap — three rules in two places —
+and carried no stranded-cell check at all, which is how it printed a clean sheet for three warning
+maps. It now prints the validator's findings verbatim and keeps only what the validator does not do
+(`cover`, `useful`, `maze`, density), and **exits 1 on any error** rather than always 0.
+`ShippedMapValidityTests` runs the same validator over every map in CI, so the generator, the report
+and the editor cannot drift apart again. 203 tests.
+
 **`editor-baseline.png` was stale and is re-recorded.** It diverged in one 191×15 box of HUD text:
 `MapValidator`'s info line gained the `vs floor` clause after the baseline was taken, so it read
 `path 19, spawns 1` where the build now prints `path 19, 1.0x the 19-cell floor, spawns 1`. Every
@@ -123,13 +131,6 @@ If a station cannot answer a visitor's question it does nothing, and *"my statio
 exact unreadable failure that `DamageSystem`'s floor-at-1 rule exists to prevent. The direction doc
 lists three options (partial progress, waves that only ask answerable questions, unanswered visitors
 slow instead of pass). **Settle it before Tier 2 is scheduled** — it is the whole design.
-
-### 5. `Verify -- maps` does not run the validator
-
-Geometry report only. It printed a clean sheet for three maps carrying warnings. Either it should call
-`MapValidator` and surface findings, or something in CI should — right now the *only* thing that
-disagrees with the generator is a human opening the editor, which is how this went unnoticed for a
-whole level set.
 
 ---
 
