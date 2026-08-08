@@ -65,6 +65,59 @@ threshold all at once, so there is nothing to interpolate.
 
 ---
 
+## Defence capacity — the first candidate that does not invert
+
+`Verify -- maps` now reports **`capacity`** and **`cap/route`**. Capacity is how many towers a board
+can hold, built the way a competent player builds: take the cell covering the most of the *current*
+route, refuse anything the game's own `WouldRemainConnected` would refuse, re-trace, repeat. A ceiling,
+not an outcome — the balance sim's "towers standing" mixes the ceiling up with how many the enemy
+destroyed.
+
+Across the **eleven maps that share one wave table** (`crossroads` plus the generated ten — `gauntlet`
+is excluded, its table is its own at `hpGrowth` 1.09):
+
+| Map | Capacity | cap/route | Late runs lost |
+|---|---|---|---|
+| `crossroads` | 43 | 2.26 | 1.3% |
+| `ringfort` | 38 | 1.73 | 0.0% |
+| `chambers` | 34 | 1.70 | 0.0% |
+| `meander` | 33 | 1.65 | 0.0% |
+| `atoll` | 36 | 1.64 | 0.0% |
+| `braid` | 37 | 1.61 | 0.0% |
+| `stepwell` | 34 | 1.55 | 0.0% |
+| `driftway` | 32 | 1.45 | 0.0% |
+| `switchback` | 29 | 1.16 | 0.0% |
+| **`comb`** | 31 | **1.03** | **42.0%** |
+| **`spiral`** | 21 | **0.95** | **25.3%** |
+
+**Every map at ≥ 1.16 loses nothing late. The only two that lose runs late are the only two at ≤ 1.03.**
+That is a clean split, and it is the first candidate here that does not invert — `useful` puts `comb`
+*highest* at 82% while it is the hardest board, and maze multiplier and seal pressure both order
+backwards.
+
+### What it is not
+
+**It does not rank the two positives.** `comb` at 1.03 loses more than `spiral` at 0.95. So this is a
+**viability threshold, not a difficulty dial** — the same character `useful` was given, except that
+this one actually separates.
+
+**The before/after test is confounded and proves nothing.** `spiral` before the stranded-cell repair
+measured capacity 23 / 1.05 at 41.3% late lost; after, 21 / 0.95 at 25.3%. Capacity fell and difficulty
+fell with it — the opposite of the cross-map trend. But two things changed at once, and the five sealed
+cells are the known cause of the outcome move. It neither confirms nor refutes the metric.
+
+**n = 2 positives.** Nine zeros and two non-zeros is a split, not a law.
+
+### The decisive test, not yet run
+
+Raise `spiral`'s capacity above ~1.1 by widening its pockets in the generator, change nothing else, and
+see whether its late losses go to zero. That is a causal test rather than a correlation, and it is the
+one thing that would justify turning `cap/route` into a warning. **No threshold is enforced today** —
+the column is reported and nothing fails on it, which is the same discipline the maze multiplier got
+after a 1.15× threshold flagged nine of twelve maps.
+
+---
+
 ## `comb` retuned by composition — it does not work, and the reason matters
 
 Fifteen configurations across waves 9–12, holding wave 9 near its original strength and reshaping the

@@ -96,10 +96,18 @@ runs, the map's only change being those five cells painted blocked:
 | with 5 stranded cells | 41.3% | 8.4 | 7.6 | 60% |
 | sealed | **25.3%** | 7.7 | 6.7 | 64% |
 
-**A walled-off buildable cell is a decoy, not a blemish.** The scripted policy builds on it, the tower
-never fires, and the run is down a tower it paid for. Five cells out of seventy-three were worth
+**A walled-off buildable cell is a decoy, not a blemish.** The scripted policy builds on it and the
+gold is worse spent than it would have been. Five cells out of seventy-three were worth
 sixteen points of run-loss — enough to carry the map from above the 15–30% band into it. A player
-reads the same board and makes the same mistake, with no warning that the plot they just bought is dead.
+reads the same board and makes the same mistake, with no warning.
+
+> **Corrected 2026-08-08: the tower is not impotent, it is bad value.** This section first said the
+> tower "never fires". It does. `TargetingSystem` acquires on Euclidean range alone — `d2 >
+> rangeSquared` — with no reachability or line-of-sight test on the tower's own cell, so a tower in a
+> sealed pocket shoots anything that walks past it. The mechanism is opportunity cost: the policy keeps
+> no reserve, so gold spent on a low-coverage pocket is gold not spent upgrading a tower that covers
+> more, and with the pockets gone it upgrades instead. The 16-point measurement is unaffected; only the
+> explanation was wrong.
 
 This sharpens the `useful` finding rather than overturning it. Earlier, raising `spiral`'s `useful`
 from 43% to 60% **by adding cells near the route** changed its outcome not at all. Here, raising it

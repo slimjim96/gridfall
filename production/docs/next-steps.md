@@ -45,8 +45,10 @@ it and omitted that check, and `Verify -- maps` never calls the validator at all
 ran disagreed. The generator now seals stranded cells and refuses to write a map with any left.
 
 **And sealing them was not cosmetic.** Same seed, same 150 runs, `spiral` went **41.3% → 25.3% runs
-lost** on five cells. A walled-off buildable cell is a *decoy*: the policy builds there, the tower never
-fires, the run is down a tower. `spiral` is now the only generated level inside the 15–30% band.
+lost** on five cells. A walled-off buildable cell is a *decoy*: the policy builds there and the gold is
+worse spent than it would have been. (It does fire — `TargetingSystem` acquires on range alone, with no
+reachability test on the tower's cell. Corrected 2026-08-08: the measurement stands, the explanation
+did not.) `spiral` is now the only generated level inside the 15–30% band.
 
 **`Verify -- maps` now calls `MapValidator`.** It was a geometry report that had separately
 re-implemented the buildable band, the path/floor split and the lane cap — three rules in two places —
@@ -190,10 +192,28 @@ every seed. What does explain it is placement capacity: **17.8 towers standing f
 The teeth that make its route 2.1× the floor also mean nearly every buildable cell would wall the route
 off, so the policy's defence caps out around wave 5 and the rest is decided by which cells it took.
 
-**The candidate to test next is achievable defence capacity** — towers actually placeable without
-sealing, measured by simulation rather than read off the grid. It is the first candidate that is not
-a shape metric, and it is the one number that separates `comb` from `crossroads` in the right
-direction. Ruled-out list above stands; add nothing to it without a measurement.
+**Built, 2026-08-08. `Verify -- maps` now reports `capacity` and `cap/route`** — towers placeable by
+best-coverage order, each checked against the game's own `WouldRemainConnected`, route re-traced after
+every placement. Across the eleven maps sharing one wave table:
+
+| cap/route | Maps | Late runs lost |
+|---|---|---|
+| 1.16 – 2.26 | nine, `crossroads` down to `switchback` | **0.0%** every one |
+| 1.03 | `comb` | 42.0% |
+| 0.95 | `spiral` | 25.3% |
+
+**The first candidate that does not invert.** `useful` puts `comb` highest at 82% while it is the
+hardest board; maze multiplier and seal pressure both order backwards. This splits cleanly.
+
+It is still only a **viability threshold, not a difficulty dial** — `comb` at 1.03 loses more than
+`spiral` at 0.95, so it does not rank the two positives — and **n = 2**. Nothing is enforced on it; the
+column is reported and nothing fails, same discipline the maze multiplier got.
+
+**The decisive test is not yet run:** widen `spiral`'s pockets in the generator to lift it above ~1.1,
+change nothing else, and see whether its late losses go to zero. Causal rather than correlational, and
+the only thing that would justify a warning threshold. A before/after on `spiral`'s stranded-cell
+repair was tried and is confounded — capacity and difficulty both fell, but the five sealed cells are
+the known cause of the outcome move.
 
 Eleven of twelve maps cross at or near the last wave. **The table length has already flattened the
 target variable for all of them**, so no map metric can be validated against it today. Settle §2a,

@@ -60,10 +60,12 @@ public class ShippedMapValidityTests
     public void NoShippedMapHasWalledOffBuildableCells()
     {
         // The specific regression. A buildable cell the creeps can never reach is
-        // not a blemish, it is a decoy: the player buys a tower there and it never
-        // fires. Sealing spiral's five moved it from 41.3% to 25.3% of runs lost
-        // over 150 runs -- from outside the difficulty band into it, on five cells.
-        // See content-data/docs/example-levels.md.
+        // not a blemish, it is a decoy: the player buys a tower there and the gold
+        // is worse spent than it would have been. (The tower does fire --
+        // TargetingSystem acquires on range alone -- it is simply bad value, and
+        // the policy keeps no reserve.) Sealing spiral's five moved it from 41.3%
+        // to 25.3% of runs lost over 150 runs, from outside the difficulty band
+        // into it, on five cells. See content-data/docs/example-levels.md.
         foreach ((string name, MapDraft draft) in ShippedMaps())
         {
             string? stranded = MapValidator.Validate(draft)

@@ -622,9 +622,69 @@ int WaveReport()
     return 0;
 }
 
+/// <summary>
+/// How many towers a board can hold, built the way a competent player builds:
+/// take the cell covering the most of the CURRENT route, refuse anything that
+/// would wall the route off, repeat until nothing legal is left.
+///
+/// A ceiling, not an outcome. The balance sim's "towers standing" mixes this up
+/// with how many the enemy destroyed; this is what the board permits before a
+/// single creep walks.
+///
+/// Uses the game's own <c>WouldRemainConnected</c> rather than a second opinion
+/// about what seals a lane, and re-traces the route after every placement --
+/// mazing is the point, and a capacity computed against the unmazed route would
+/// count cells that stop covering anything the moment you build.
+/// </summary>
+int DefenceCapacity(MapDef map, double range)
+{
+    var path = new Gridfall.Core.Path.PathSystem(map);
+    path.ForceRebuild();
+
+    var route = new int[map.Width * map.Height];
+    int placed = 0;
+
+    // Bounded by the cell count: every iteration blocks one more cell, so this
+    // cannot spin even if a placement somehow fails to reduce the free set.
+    for (int guard = 0; guard < map.Cells.Length; guard++)
+    {
+        int routeLength = path.TraceRoute(map.Index(map.Spawns[0]), route);
+        if (routeLength <= 0) break;
+
+        int best = -1, bestCover = 0;
+        for (int i = 0; i < map.Cells.Length; i++)
+        {
+            if (map.Cells[i] != CellKind.Buildable) continue;
+            if (path.IsBlocked(i)) continue;
+
+            int tx = i % map.Width, ty = i / map.Width, covered = 0;
+            for (int r = 0; r < routeLength; r++)
+            {
+                double dx = route[r] % map.Width - tx, dy = route[r] / map.Width - ty;
+                if (dx * dx + dy * dy <= range * range) covered++;
+            }
+
+            // A tower covering nothing is not defence, and counting it would
+            // make capacity a synonym for "buildable cells".
+            if (covered <= 0 || covered <= bestCover) continue;
+            if (!path.WouldRemainConnected(i)) continue;
+
+            best = i;
+            bestCover = covered;
+        }
+
+        if (best < 0) break;
+        path.SetBlocked(best, true);
+        path.RecomputeIfDirty();
+        placed++;
+    }
+
+    return placed;
+}
+
 int MapReport()
 {
-    Console.WriteLine($"{"map",-14} {"size",-8} {"buildable",-11} {"path",-6} {"vs floor",-9} {"cover",-6} {"useful",-7} {"maze",-6} {"per route",-10} {"spawns",-7} verdict");
+    Console.WriteLine($"{"map",-14} {"size",-8} {"buildable",-11} {"path",-6} {"vs floor",-9} {"cover",-6} {"useful",-7} {"capacity",-9} {"cap/route",-10} {"maze",-6} {"per route",-10} {"spawns",-7} verdict");
     bool anyErrors = false;
     foreach (string mapId in ContentFiles.MapIds(root))
     {
@@ -749,6 +809,18 @@ int MapReport()
             warnings.Add($"only {usefulPct}% of buildable is within range of the route -- "
                          + "the rest is dead space and the map may be unwinnable");
 
+        // Defence capacity: how many towers this board can actually hold, built
+        // the way a competent player builds -- best route coverage first, each one
+        // checked against the game's own seal rule, until nothing legal is left.
+        //
+        // The first candidate here that is not a shape metric. `comb` loses 42%
+        // of runs no matter how its waves are composed, and the thing that
+        // separates it from `crossroads` is not route shape, maze multiplier or
+        // `useful` -- it is that its teeth make almost every buildable cell a
+        // wall, so the defence caps out early and the rest is luck. Capacity is
+        // that number. See 2026-08-08-example-levels-balance.md.
+        int capacity = DefenceCapacity(map, range);
+
         // How much the route can be lengthened by legal building -- the greedy
         // lower bound the board editor's F6 uses.
         //
@@ -770,7 +842,13 @@ int MapReport()
 
         string verdict = warnings.Count == 0 ? "ok" : string.Join("; ", warnings);
         string lengthening = Gridfall.Core.Content.MapValidator.Tenths(shortest, floor) + "x";
-        Console.WriteLine($"{mapId,-14} {map.Width + "x" + map.Height,-8} {pct + "%",-11} {shortest,-6} {lengthening,-9} {cover,-6} {usefulPct + "%",-7} {maze,-6} {density,-10:F1} {map.Spawns.Length,-7} {verdict}");
+        // Capacity normalised by route length: how many layers of defence the
+        // board lets you stack against the distance a creep has to walk. Raw
+        // capacity cannot be compared across boards of different route lengths,
+        // and this is the form that orders by outcome.
+        double capPerRoute = shortest > 0 ? capacity / (double)shortest : 0;
+
+        Console.WriteLine($"{mapId,-14} {map.Width + "x" + map.Height,-8} {pct + "%",-11} {shortest,-6} {lengthening,-9} {cover,-6} {usefulPct + "%",-7} {capacity,-9} {capPerRoute,-10:F2} {maze,-6} {density,-10:F1} {map.Spawns.Length,-7} {verdict}");
     }
 
     // Errors fail the run; warnings do not. Every map in the repo carries the
