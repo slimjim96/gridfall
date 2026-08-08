@@ -103,6 +103,7 @@ dotnet run --project Gridfall.Verify -- perf    # tick cost vs the 8ms budget
 ./run-game.sh --shot /tmp/x.png --shot-after 40 # byte-reproducible capture
 ./run-game.sh --shot /tmp/x.png --shot-seed sappers --shot-after 40   # a named board state
 ./run-game.sh --headless --quit                 # scene/resource wiring check
+./fit-sprite.sh presentation/units/<id> --dry-run   # sprite crop check; drop --dry-run to apply
 ```
 
 The mode is a bare word, not a flag — `-- balance`, never `-- --balance`.

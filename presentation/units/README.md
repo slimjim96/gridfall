@@ -2,8 +2,10 @@
 
 Final tower and creep art. **`arrow-tower` is real; everything else is still a placeholder.**
 
-The first shipped asset is a single-frame WebP idle sprite, `arrow-tower/idle.webp` — 768×768, one
-frame, `frameCells` 1.57. It is the reason five committed baselines were re-recorded on 2026-08-08.
+The first shipped asset is a single-frame WebP idle sprite, `arrow-tower/idle.webp` — 662×662, one
+frame, `frameCells` 1.353. It is the reason five committed baselines were re-recorded on 2026-08-08.
+It arrived 768×768 with 53px of empty space under the base, which is why it hovered until it was run
+through [`fit-sprite.sh`](#cropping-do-not-trim-to-all-edges).
 
 Its alpha is **not** hard-edged — 0.71% of pixels sit at partial alpha, a one-pixel anti-aliased
 fringe. That is survivable *here* because `SpriteUnitView` hardcodes `AlphaScissor` at 0.5 rather than
@@ -48,6 +50,41 @@ and hand back to `idle`.
 **The folder name must match a content id.** `arrow_tower` or `arrowtower` matches nothing, resolves
 to nothing, and the game quietly keeps drawing the placeholder — no error, because nothing is wrong
 as far as the loader is concerned. `UnitAssetTests` fails the build instead.
+
+## Cropping: do not "trim to all edges"
+
+Run the tool instead. It is in-place, so commit first or pass `--dry-run`:
+
+```bash
+./fit-sprite.sh presentation/units/arrow-tower --dry-run   # reports, writes nothing
+./fit-sprite.sh presentation/units/arrow-tower             # crops every clip in the folder
+```
+
+It prints the factor to multiply `frameCells` by. It deliberately does **not** edit `unit.json` —
+keeping the on-screen size is usually right, but it is an art decision and the tool only knows how to
+leave it where it was.
+
+### Why the obvious crop is wrong
+
+`SpriteUnitView` makes the quad a **square of side `frameCells`** and lifts it so the frame's **bottom
+edge sits on the ground** at the cell centre. Three rules follow:
+
+| Rule | What breaks if you ignore it |
+|---|---|
+| Frames stay **square** | Frame count is `width / height`. A strip trimmed to content is re-read as a different number of frames — 262×662 is not a tall sprite, it is a zero-frame one. |
+| Subject **horizontally centred** | The frame's centre line is the cell centre. Trimming an asymmetric subject to its own bounds walks it off the tile. |
+| Base **flush to the bottom edge** | Empty pixels below the base are float: the unit hovers `gap / side × frameCells` cells above the board. The shipped arrow tower had 53px of it and hovered 0.11 cells. |
+
+So the manual recipe, if you are doing it in Photoshop rather than with the tool: **trim to the
+silhouette, then re-pad to a square canvas, subject centred horizontally, base flush to the bottom.**
+Trim-to-all-edges alone gets the first two wrong.
+
+### The one that only shows up in motion
+
+The crop box must be computed **once across every frame of every clip in the folder** — never per
+frame, never per file. Per frame pins the subject in place and the animation jitters; per file makes
+the unit change size when it fires. `fit-sprite.sh` takes the union across the whole folder for
+exactly this reason, which is also why you point it at a **unit directory**, not at a file.
 
 ## Sprites: two things that are not obvious
 
