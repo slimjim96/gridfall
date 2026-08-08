@@ -32,7 +32,40 @@ copied verbatim. It got there by having five walled-off buildable cells sealed �
 [`example-levels.md`](../example-levels.md) — which moved it 41.3% → 25.3%. The best-balanced board in
 the repo is a generator artefact that was corrected by a bug fix.
 
-## 2. The late band is measured over two waves, not ten
+## RESOLVED — the band was restated for twelve waves
+
+**Decision (2026-08-08): restate, do not grow the tables to 20.** The split is now `waveCount / 2`, so
+a 12-wave table splits 1–6 / 7–12 and `Verify balance` prints the range it actually used. Band values
+are unchanged — they were never the problem.
+
+Re-measured, all twelve, 150 runs, against the restated split. `by wave` is the share of all runs that
+ended on that wave:
+
+| Map | Lost | Early 1–6 | Late 7–12 | By wave | Waves that can kill |
+|---|---|---|---|---|---|
+| `comb` | 42.0% | 0.0% ok | 42.0% MISS | w12:42% | **1** |
+| `spiral` | 25.3% | 0.0% ok | **25.3% ok** | w12:25% | **1** |
+| `crossroads` | 20.0% | 18.7% MISS | 1.3% MISS | w3:17% w4:1% w5:1% w11:1% w12:1% | **5** |
+| `chambers` | 0.7% | 0.7% ok | 0.0% MISS | w3:1% | 1 |
+| the other eight | 0.0% | — | — | — | **0** |
+
+**The histogram is the finding, not the split.** No map's verdict moved — deaths land on wave 3 or
+wave 12, on the same side of either boundary. What the restatement bought is a target a level can
+*reach*: six waves to distribute lethality across instead of two.
+
+And it exposes the real defect. `spiral` passes both bands and is still not a good level — **every one
+of its lost runs dies at wave 12.** A map with one lethal wave is a gate, and passing a percentage band
+does not make it a difficulty curve. `crossroads` is the only board where more than one wave can end a
+run, and its distribution is a 17% spike at wave 3 with a thin tail — not a curve either, but at least
+five waves participate.
+
+Hence the new target: **waves that can kill you ≥ 3.** It is the one `comb` genuinely fails, and it
+explains why its knobs are cliffs — every global knob moves its single lethal wave through the
+threshold all at once, so there is nothing to interpolate.
+
+---
+
+## 2. The late band was measured over two waves, not ten *(the problem, now fixed)*
 
 The target reads **waves 11–20**. Every wave table in `content-data/waves/` has **12 waves**. So the
 "late" window is waves 11 and 12, and `Verify balance` labels it `in waves 11+`.

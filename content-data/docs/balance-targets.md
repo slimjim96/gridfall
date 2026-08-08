@@ -11,22 +11,40 @@ Measured over 200 headless runs per map, fixed seed, competent-play policy.
 
 | Metric | Target | Fail if |
 |---|---|---|
-| Runs lost (waves 1–10) | 0–5% | > 10% |
-| Runs lost (waves 11–20) | 15–30% | < 5% (trivial) or > 50% (unfair) |
+| Runs lost (**first half** of the table) | 0–5% | > 10% |
+| Runs lost (**second half**) | 15–30% | < 5% (trivial) or > 50% (unfair) |
+| **Waves that can kill you** | ≥ 3 | 1 (a wall, not a curve) |
 | Leak rate, overall | ≤ 4% | > 8% |
 | Leak rate, any single wave | ≤ 15% | > 25% |
 | Time-to-clear, per wave | 20–45 s | > 60 s (grindy) |
-| Idle gold at wave 10 | 0–2 tower costs | > 4 (nothing worth buying) |
-| Idle gold at wave 20 | 0–3 tower costs | > 6 |
+| Idle gold at the halfway wave | 0–2 tower costs | > 4 (nothing worth buying) |
+| Idle gold at the last wave | 0–3 tower costs | > 6 |
 
-> **The late band is measured over two waves, not ten (2026-08-08).** "Waves 11–20" is the target;
-> every wave table in `content-data/waves/` has **12 waves**, so `Verify balance` reports it as
-> `in waves 11+` and that window is waves 11 and 12. 15–30% spread over ten waves is a gentle
-> per-wave rate; the same figure over two waves needs one wave to be near a coin flip, which is not
-> something a level can sit in stably. `comb` demonstrates it: every global knob is a cliff around
-> wave 12, and `waveClearGold` is not even monotone — 25→42%, 35→0%, 45→52%, 60→0%.
-> **Either the tables grow to 20 waves or this band is restated for the 12 that exist.** Until then
-> the late figure is not worth tuning towards. See
+**The split is proportional, not a wave number.** `Verify balance` computes it as `waveCount / 2`, so a
+12-wave table splits 1–6 and 7–12 and prints the actual range in its own output. The bands have always
+meant *"the first half should rarely kill you and the second half should"*; a hardcoded wave 10 turned
+that into a two-wave window on a twelve-wave table, where no level could sit in band except by
+accident. Growing the tables to 20 waves was the alternative and was **not** chosen (2026-08-08).
+
+> **Restated for the twelve waves that exist (2026-08-08).** The target used to read "waves 11–20"
+> while every table in `content-data/waves/` had 12 waves, so the late window was waves 11 and 12.
+> 15–30% over ten waves is a gentle per-wave rate; over two it needs one wave to be near a coin flip,
+> which is not somewhere a level can sit. `comb` proved it: every global knob is a cliff around wave
+> 12, and `waveClearGold` is not even monotone — 25→42%, 35→0%, 45→52%, 60→0%.
+>
+> The band **values are unchanged** and were never the problem. "How often does a competent beginner
+> lose a run" is a property of the game, not of how long the window is; only the window was wrong. The
+> split is now `waveCount / 2` and follows the table.
+
+> **"Waves that can kill you" is new, and is the target `comb` actually fails.** Runs lost says how
+> often you lose; this says whether losing is a difficulty curve or a single wall. Measured today:
+> `crossroads` 5 of 12, everything else **1 or 0**. `comb` loses 42% of runs and every one of them
+> dies at wave 12 — a level with one lethal wave is a gate, and no global knob can widen it because
+> every knob moves that one wave through the threshold at once. Spreading the lethality is the fix,
+> and it is a wave-composition job.
+>
+> This also unblocks `route-variance-metric`, which had been regressing map geometry against sd of
+> lives left — a statistic that cannot tell a curve from a coin flip. See
 > [example-levels balance](reports/2026-08-08-example-levels-balance.md).
 
 > **Both runs-lost targets were carried here for months and only one was ever measured (2026-08-07).**

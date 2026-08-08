@@ -362,14 +362,21 @@ int Balance()
     Console.WriteLine();
     Console.WriteLine($"  {"metric",-22} {"value",-14} target");
     Console.WriteLine($"  {"leak rate",-22} {leakRate,6:F1}%        <= 4.0%      {Verdict(leakRate <= 4.0)}");
-    int lostEarly = lostAtWave.Count(w => w <= 10);
-    int lostLate = lostAtWave.Count(w => w > 10);
+    // The halfway point of the table this map actually has, not a wave number
+    // carried from a 20-wave game that was never built. The bands mean "the first
+    // half should rarely kill you, the second half should" -- a proportion, and
+    // hardcoding 10 turned that into a two-wave window on a twelve-wave table
+    // where no level could sit in band except by coin flip. See balance-targets.md.
+    int earlyThrough = waveCount / 2;
+
+    int lostEarly = lostAtWave.Count(w => w <= earlyThrough);
+    int lostLate = lostAtWave.Count(w => w > earlyThrough);
     double earlyRate = 100.0 * lostEarly / runs;
     double lateRate = 100.0 * lostLate / runs;
 
     Console.WriteLine($"  {"runs lost",-22} {lostRate,6:F1}%        (split below)");
-    Console.WriteLine($"  {"  in waves 1-10",-22} {earlyRate,6:F1}%        0-5%         {Verdict(earlyRate <= 5.0)}");
-    Console.WriteLine($"  {"  in waves 11+",-22} {lateRate,6:F1}%        15-30%       {Verdict(lateRate is >= 15.0 and <= 30.0)}");
+    Console.WriteLine($"  {$"  in waves 1-{earlyThrough}",-22} {earlyRate,6:F1}%        0-5%         {Verdict(earlyRate <= 5.0)}");
+    Console.WriteLine($"  {$"  in waves {earlyThrough + 1}-{waveCount}",-22} {lateRate,6:F1}%        15-30%       {Verdict(lateRate is >= 15.0 and <= 30.0)}");
     // The SPREAD matters as much as the mean. A map where every run ends with
     // the same lives has no difficulty curve, only a threshold: when the mean
     // crosses zero, every run crosses at once. That is what a cliff IS, and the
@@ -379,8 +386,26 @@ int Balance()
     Console.WriteLine($"  {"lives left (avg)",-22} {livesMean,6:F1}   " +
                       $"sd {livesSd:F1}, range {finalLives.Min()}-{finalLives.Max()}");
     if (lostAtWave.Count > 0)
+    {
         Console.WriteLine($"  {"lost runs died at wave",-22} {lostAtWave.Average(),6:F1} avg " +
                           $"(earliest {lostAtWave.Min()}, latest {lostAtWave.Max()})");
+
+        // The distribution, not just its ends. A mean of 7 means nothing on its
+        // own: it is a curve if deaths are spread and a coin flip if half die at
+        // wave 3 and half at wave 11. Only this line tells the two apart, and the
+        // difference is the whole of route-variance-metric.
+        var histogram = new int[waveCount + 1];
+        foreach (int w in lostAtWave)
+            if (w >= 1 && w <= waveCount) histogram[w]++;
+
+        var bars = new System.Text.StringBuilder();
+        for (int w = 1; w <= waveCount; w++)
+            if (histogram[w] > 0)
+                bars.Append($" w{w}:{100.0 * histogram[w] / runs:F0}%");
+
+        Console.WriteLine($"  {"  by wave",-22}{bars}");
+        Console.WriteLine($"  {"  waves that can kill",-22} {histogram.Count(c => c > 0),6} of {waveCount}");
+    }
     Console.WriteLine();
     Console.WriteLine($"  {"wave",-6} {"spawned",-9} {"leaked",-9} {"leak%",-8} {"ticks",-8} {"gold",-7} {"towers",-8} {"earned so far",-14}");
 

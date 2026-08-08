@@ -99,16 +99,26 @@ All twelve re-measured at 150 runs:
 The scope call — ten passes, or two or three — turned out to be the wrong question. Three findings,
 in the order they matter:
 
-**a. `balance-targets.md` asks for 15–30% of runs lost in waves 11–20. Every wave table has 12
-waves.** The late window is waves 11 and 12. Over ten waves that band is a gentle per-wave rate; over
-two it needs a single wave to be a coin flip, which no level sits in stably. Either the tables grow to
-20 waves or the band is restated for the 12 that exist. **Nothing else here is worth doing first** —
-tuning towards a two-wave window is how six earlier passes read the number as `ok`.
+**a. RESOLVED — the band is restated for twelve waves.** The split is `waveCount / 2`, so 1–6 / 7–12,
+and `Verify balance` prints the range it used. Band values unchanged; only the window was wrong.
+Growing the tables to 20 was the alternative and was not chosen.
 
-**b. `comb` does not tune, and the knobs are not monotone.** Every lost run dies at wave 12 exactly,
-so each global knob is a threshold rather than a dial: `hpGrowthFrom` 6→42%, 7→0%; `waveClearGold`
-25→42%, 35→0%, **45→52%**, 60→0%. `hpGrowth` is already at 1.10, the floor of its band. Landing 15–30%
-here would be luck. `comb` needs wave 12 spread across waves 8–15 — a composition job, after (a).
+No map's verdict moved — deaths land on wave 3 or wave 12, the same side of either boundary. What it
+bought is a target a level can *reach*, and a new one that catches what the percentages missed:
+**waves that can kill you ≥ 3.** Measured: `crossroads` 5 of 12, every other map 1 or 0. `spiral`
+passes both percentage bands and is still not a good level, because all 25.3% of its lost runs die at
+wave 12. A single lethal wave is a gate, not a difficulty curve.
+
+**b. `comb` does not tune, and now there is a target that says why.** Every lost run dies at wave 12
+exactly — 1 killing wave of 12 — so each global knob is a threshold rather than a dial: `hpGrowthFrom`
+6→42%, 7→0%; `waveClearGold` 25→42%, 35→0%, **45→52%**, 60→0%. `hpGrowth` is already at 1.10, the
+floor of its band. Nothing global can widen a single lethal wave, because every knob moves that wave
+through the threshold all at once.
+
+**This is now the top piece of open work**, and (a) no longer blocks it: spread `comb`'s lethality
+across waves 7–12 by composition — lighten wave 12, stiffen 9–11 — and measure against
+`waves that can kill ≥ 3` rather than against the percentage alone. That is also the experiment §3
+needs.
 
 **c. `crossroads` fails both targets and `spiral` passes both.** The reference board loses 18.7% early
 and 1.3% late — inverted, as recorded on 2026-08-07 and still true. `spiral`, whose wave table is
@@ -120,7 +130,7 @@ Two rows of the old table were also just wrong — `braid` and `switchback` were
 `tower-range-tiers` and never re-measured. `braid` is degenerate (sd 0.2), not easy, making it five
 degenerate levels rather than four.
 
-### 3. `route-variance-metric` — **blocked on §2a**, with four predictors ruled out and one refined
+### 3. `route-variance-metric` — **unblocked by §2a**, with four predictors ruled out and a measurable target at last
 
 `gauntlet` and `ringfort` both lose 0.0% of runs at sd ≈ 0 — the same signature from two independently
 built maps, and **no metric in the repo explains either.**
@@ -147,16 +157,30 @@ for a map metric predicting *sd of lives left*. That statistic mixes two unrelat
 ever separate those, because the difference lives in the wave table.** Three geometric candidates were
 regressed against a number that was mixing two populations.
 
-**Death-wave spread** (`latest - earliest` over lost runs) separates `crossroads` from all eleven
-others immediately: spread 9 against spread 0 everywhere. But **n = 1** — one board has spread and no
-other has any, which is as consistent with "spread is what tuning produces" as with "spread is what a
-good map permits". Not a metric yet; a better-posed target than sd.
+**`Verify balance` now reports the whole distribution**, not just its ends — `by wave` and
+`waves that can kill`. That is the statistic the hunt should have been using:
 
-**That test has now been run, and it makes this item blocked rather than open.** `comb` extended to 20
-waves on a scratch copy: spread goes 0 → 1 → 2 as runway is added, at every ramp tried including flat
-counts. A map cannot show death-wave spread after the last wave in its table, and `comb`'s difficulty
-crossing falls at wave 12 of 12 — so its spread is 0 *by construction*, not by geometry. `crossroads`
-has spread 9 only because its crossing falls at wave 3, leaving nine waves for outcomes to separate.
+| Map | By wave | Waves that can kill |
+|---|---|---|
+| `crossroads` | w3:17% w4:1% w5:1% w11:1% w12:1% | **5 of 12** |
+| `comb` | w12:42% | 1 |
+| `spiral` | w12:25% | 1 |
+| `chambers` | w3:1% | 1 |
+| the other eight | — | **0** |
+
+**n is still 1** — one board has more than one killing wave — so this is a better-posed target, not yet
+a validated metric.
+
+**And the runway result still stands, but now points somewhere.** `comb` extended to 20 waves on a
+scratch copy: spread goes 0 → 1 → 2 as runway is added, at every ramp tried including flat counts. A
+map cannot show killing waves after the last wave in its table, and `comb`'s difficulty crossing falls
+at wave 12 of 12. `crossroads` has five only because its crossing falls at wave 3.
+
+So the next test is §2b, and it is now a real experiment rather than a blocked one: **spread `comb`'s
+lethality across waves 7–12 by composition and see whether a map's geometry then separates anything.**
+If eleven maps still show one killing wave after their tables are shaped to allow more, the difference
+is geometric and worth measuring. If they all spread once the table lets them, then difficulty spread
+is a property of **wave tables, not maps**, and this item belongs in `content-data`, not here.
 
 Eleven of twelve maps cross at or near the last wave. **The table length has already flattened the
 target variable for all of them**, so no map metric can be validated against it today. Settle §2a,
