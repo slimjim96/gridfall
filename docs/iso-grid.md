@@ -48,6 +48,32 @@ Vector2I WorldToGrid(Vector3 w)
 
 Sub-cell sim positions convert by `(float)fix` **only at the boundary**, inside the view layer.
 
+## Elevation
+
+A map may carry a **per-cell height**, authored in the map file as digit rows parallel to `cells`.
+
+> **Elevation is presentation, not simulation.** `Gridfall.Core` never reads it — same standing as
+> `MapDef.Theme`. Movement, pathing, range and the state hash are all computed on the flat grid, so a
+> board with hills plays exactly as the same board flat. Nothing about elevation can desynchronise a
+> replay, and adding it re-records no traces.
+
+| Constant | Value | Where |
+|---|---|---|
+| Height step | `0.22` world units per level | `IsoGrid.HeightStep` |
+| Levels | `0`–`9`, authored as a digit | map file, `heights` |
+
+```csharp
+float WorldHeightOf(int level) => level * HeightStep;   // IsoGrid.HeightOf
+```
+
+The renderer adds the **kind raise** on top of this — blocked terrain +0.28, an occupied cell +0.10 —
+so a wall on a plateau is still visibly a wall. Elevation moves the ground; the kind raise says what
+is standing on it.
+
+**When this becomes simulation input** — a station on a rise reaching further, which composes with the
+shipped *height means range* rule — it stops being view-only and everything above changes. Do that as
+its own ADR, not as an extension of this section.
+
 ## Picking
 
 Screen → grid is a ray cast, not an inverse projection formula:
@@ -55,9 +81,17 @@ Screen → grid is a ray cast, not an inverse projection formula:
 1. `camera.ProjectRayOrigin(mousePos)` and `camera.ProjectRayNormal(mousePos)`
 2. Intersect with the ground plane `y = 0` (`Plane.Up` at 0) — analytic, no physics query
 3. `WorldToGrid` the hit point
-4. Clamp to the map bounds; out of bounds is a valid answer ("no cell"), not an error
+4. **Re-intersect at that cell's elevation and repeat, up to a fixed number of steps** (below)
+5. Clamp to the map bounds; out of bounds is a valid answer ("no cell"), not an error
 
 Never pick with a `PhysicsDirectSpaceState3D` query per frame. The plane intersection is exact and free.
+
+**Step 4 is not optional on an elevated board.** A flat-plane pick tests `y = 0`, so on a raised cell
+the ray flies over the top of the terrain and lands somewhere *further from the camera* — you click a
+hilltop and select a cell behind it, by roughly `height / tan(30°)` ≈ 1.7 cells per unit of height.
+The fix is to iterate: intersect at `y = 0`, read the height of the cell that lands in, intersect
+again at that height, and repeat. It converges in two or three passes on any sane height field and is
+still just plane intersections — no physics, no cost worth measuring.
 
 ## Depth and layering
 
@@ -69,6 +103,11 @@ Never pick with a `PhysicsDirectSpaceState3D` query per frame. The plane interse
 
 If Gridfall is ever ported to a 2D sprite renderer, the depth-sort key is `(x + y)`, ascending, with
 ties broken by entity id. Do not use world Y.
+
+> **That fallback key is only correct on a flat board.** With elevation, a tall cell can occlude one
+> with a higher `(x + y)`, so the 2D key would sort it wrongly. The 3D z-buffer has no such problem,
+> which is one more reason the renderer is 3D. Anyone attempting the 2D port on an elevated board
+> needs a real depth key, not this one.
 
 ## Camera behavior
 
