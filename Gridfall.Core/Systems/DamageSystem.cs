@@ -97,8 +97,7 @@ internal static class ServingSystem
             //
             // Floored at 1: an visitor immune to a station is a soft-lock waiting to
             // happen, and "my stations do nothing" is not a readable failure.
-            int fussiness = content.Visitor(state.VisitorDefIndex[slot]).Fussiness;
-            int amount = System.Math.Max(1, r.Amount - fussiness);
+            int amount = content.Visitor(state.VisitorDefIndex[slot]).ServingTaken(r.Amount);
 
             state.VisitorAppetite[slot] -= amount;
             events.Add(new SimEvent(tick, EventKind.VisitorServed, r.VisitorId, amount));

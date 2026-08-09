@@ -69,6 +69,22 @@ economy has stopped generating choices, which fails pillar 5 before it fails any
 A station outside the DPS-per-gold band must earn it with utility — slow, splash, reveal, chain. If it
 cannot name the utility, the number is wrong.
 
+> **Both roster targets fail, and neither had ever been measured (2026-08-09).** Nothing printed which
+> stations a run actually bought. `Verify balance` now reports a **`station mix`** line, and on all
+> twelve shipped boards it reads `arrow-station 100%, cannon 0%`. Presence target: ≤ 70%. Measured:
+> **100%**.
+>
+> This is not the harness failing to try. `PlayPolicy` now ranks stations by *effective* serving per
+> gold against the visitors it has met, and it will hold gold for a station it cannot yet afford —
+> both fixes shipped, and on a husk-heavy board it does buy cannons. The shipped wave tables simply
+> never make the cannon the better buy: the crossover is at average fussiness **4**, and the tables
+> peak at **1.53** on wave 12. The husk is 16.5% of that wave by appetite and would need ~48%.
+>
+> **DPS-per-gold is therefore not a property of a station.** It is a property of a station against a
+> mix, and the two shipped stations swap places at fussiness 4. The ±15% band above is written as if
+> one number existed; it needs restating in terms of a reference mix before it can be checked.
+> See [policy fussiness](reports/2026-08-09-policy-fussiness-balance.md).
+
 ## Visitor targets
 
 | Property | Target |
@@ -77,6 +93,24 @@ cannot name the utility, the number is wrong.
 | HP growth, wave to wave | 1.10–1.18× — **disputed, see below** |
 | Speed spread across archetypes | 0.6× – 1.8× of base |
 | Waves where a single archetype is > 70% of the visitors | ≤ 3 per run |
+| **`fussiness`, per archetype** | ≤ **11** — see below |
+| **A fussy archetype's share of a wave, by appetite** | ≥ **48%** if it is meant to change the buy |
+
+> **Fussiness has a ceiling and a floor, and both are arithmetic (2026-08-09).**
+>
+> *Ceiling.* Fussiness subtracts from every station's hit, not just the fast one. Once it reaches
+> `serving - 1` of the cheapest station — 11, against the arrow station's 12 — that station is floored
+> at 1 per hit and cannot get worse, while the burst station keeps losing damage. **Past 11, raising
+> `fussiness` makes burst a *worse* answer, not a better one.** `husk` is at 8, inside the ceiling.
+>
+> *Floor.* One armoured archetype in a mixed wave changes nothing unless it is most of the wave's
+> **appetite**. Against the shipped two-station roster the crossover is average fussiness 4, which
+> `husk` at 8 reaches at 48% share. It currently sits at 16.5% on wave 12, the most armoured wave in
+> the repo, and no wave in any table crosses — asserted in
+> `PolicyFussinessTests.NoShippedWaveTableEverReachesTheCrossover`.
+>
+> Appetite, not head count: `husk` is 120 and `runner` 60, so half the appetite is a third of the
+> bodies. "One visitor in five is a husk" sounds like plenty and is not close.
 
 HP growth above 1.18× produces the classic wall: the player is fine, then suddenly is not, with nothing
 to react to. That fails pillar 4.

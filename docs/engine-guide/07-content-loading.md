@@ -54,11 +54,16 @@ Three things to notice:
 
 ## Fussiness
 
-`"fussiness": 8` on an visitor def. Flat damage reduction applied **per hit** in phase 7, floored at 1:
+`"fussiness": 8` on an visitor def. Flat damage reduction applied **per hit** in phase 7, floored at 1.
+The rule lives in exactly one place — `VisitorDef.ServingTaken` — and `DamageSystem` calls it:
 
 ```csharp
-int amount = Math.Max(1, record.Amount - visitor.Fussiness);
+public int ServingTaken(int amount) => Math.Max(1, amount - Fussiness);
 ```
+
+It is on the def rather than inline in the system because things outside the simulation need it too:
+the balance harness ranks stations by *effective* serving per gold, and a second copy of the
+subtraction there would be a rule with two authorities.
 
 Per hit rather than per tick total, and flat rather than percentage — both deliberate. A percentage
 scales every station equally and changes no decisions; flat punishes many-small-hits and rewards
@@ -69,6 +74,13 @@ The floor of 1 means no station is ever useless against an visitor, only ineffic
 station is a soft-lock waiting to happen.
 
 Fussiness does **not** scale with `appetiteGrowth`. A growing fussiness value becomes immunity.
+
+**It also has a ceiling, and it is lower than it looks.** The subtraction applies to *every* station,
+so once fussiness reaches `serving - 1` of the cheapest station the floor of 1 has already caught it
+and further increases only take damage off the burst station — the one the mechanic exists to reward.
+Against the shipped roster that ceiling is **11**. Content-side consequences, including how much of a
+wave an armoured archetype must be before it changes any decision, are in
+[`balance-targets.md`](../../content-data/docs/balance-targets.md) §Visitor targets.
 
 ## Visitor attacks and station health
 

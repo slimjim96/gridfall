@@ -18,6 +18,10 @@
 
   <ItemGroup>
     <ProjectReference Include="../Gridfall.Core/Gridfall.Core.csproj" />
+    <!-- The balance harness. Its play policy decides which station gets bought,
+         and that decision is the premise under every balance number in the repo,
+         so it belongs in the test suite rather than in a report nobody re-runs. -->
+    <ProjectReference Include="../Gridfall.Verify/Gridfall.Verify.csproj" />
   </ItemGroup>
 
 </Project>

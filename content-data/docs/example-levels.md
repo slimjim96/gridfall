@@ -103,6 +103,13 @@ died: one number means a wall, a range means a curve.
 
 **Ten maps, every one inside every `MapTargets` band, outcomes from 0% to 42%.**
 
+> **Every figure in this table survived the policy learning about fussiness (2026-08-09).** The balance
+> harness used to rank stations on base serving and had therefore never bought a cannon on any board,
+> in any run. It can now, and on all twelve boards it still does not: the shipped wave tables never
+> make burst the better buy. All twelve reports came back **byte-identical**. See
+> [policy fussiness](reports/2026-08-09-policy-fussiness-balance.md) — the numbers above are measured
+> on a game that uses one of its two stations, and that is a property of the content, not of the sim.
+
 Two rows moved for reasons that have nothing to do with this set: `braid` and `switchback` were
 measured before `tower-range-tiers` and never re-measured. `braid` at sd 0.2 is degenerate, not merely
 easy, which makes it five degenerate levels rather than four.

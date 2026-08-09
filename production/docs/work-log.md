@@ -8,6 +8,44 @@ Open threads live in [`next-steps.md`](next-steps.md), not here.
 
 ---
 
+## 2026-08-09 · policy fussiness
+
+The balance harness ranked stations on **base** serving-per-gold, so it had never bought a cannon on
+any board in any run ever measured. Fixed. All twelve maps came back **byte-identical**, and that is
+the finding.
+
+**A heuristic can be wrong for two independent reasons, and fixing the interesting one changes
+nothing.** Ranking was the obvious defect. The second was structural: the policy bought the best
+station it could *afford this tick* and kept no reserve, so on any roster the cheapest station is
+bought the instant its price is reached and gold never approaches the price of anything else. A 90-gold
+station is unreachable while a 50-gold one exists, whatever the census says. Census-awareness alone
+left it building 2 arrows and 0 cannons on a board of pure husks. Neither fix is sufficient; I found
+the second only because the end-to-end test failed after the first.
+
+**A mechanic can be present in the content and absent from the game.** The crossover where burst beats
+rapid fire is at average `fussiness` **4**, weighted by appetite. Every shipped wave table peaks at
+**1.53**. `husk` is 16.5% of wave 12 and would need ~48%. The arrow station is 22.5% better value even
+on the most armoured wave in the repo — so the husk's `_asks` field ("do you have burst?") was claiming
+something twelve maps do not deliver, and no measurement could have caught it because nothing printed
+which stations were bought.
+
+**Fussiness has a ceiling, and it is lower than it looks.** It subtracts from *every* station's hit.
+Once it reaches `serving - 1` of the cheapest station — 11, here — that station is floored at 1 and
+cannot get worse, while the burst station keeps losing damage. **Past 11, more armour makes burst a
+worse answer, not a better one.** So "just make husks fussier" is not a lever at all: at 19 husks in
+wave 12, no value of `fussiness` flips the choice.
+
+**Weight by appetite, not by head count.** A husk is 120 and a runner 60, so half the appetite is a
+third of the bodies. "One visitor in five is a husk" sounds like plenty and is off by a factor of two.
+
+The method worth repeating: publish the pre-change binary to a scratch directory and sweep the baseline
+**before editing a line**. The committed 08-08 report had drifted from the tree (`spiral` 25.3% →
+26.7%), so "compare against the last report" would have invented a delta the change did not cause. One
+trap in doing that — `ContentFiles.FindRepoRoot` walks up from the *binary*, so a published snapshot
+needs `content-data` symlinked next to it or it cannot find the game.
+
+---
+
 ## 2026-08-09 · elevation
 
 Boards climb. A per-cell height field, **view-only** — the simulation is still computed on the flat

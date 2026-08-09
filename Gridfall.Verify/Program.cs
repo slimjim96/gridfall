@@ -252,6 +252,9 @@ int Balance()
         spentByWave[i] = new List<int>();
     }
     var finalPatience = new List<int>();
+    // Builds per station def. The mix is the finding `policy-fussiness` exists
+    // for: before it, this column read 100% arrow-station on every board.
+    var boughtByDef = new int[content.Stations.Length];
     // WHICH wave killed the run, not just how many died. balance-targets.md has
     // carried separate early (0-5%) and late (15-30%) runs-lost targets since it
     // was written, and nothing has ever measured the split.
@@ -328,6 +331,7 @@ int Balance()
                 : 0;
 
         totalBuilds += policy.BuildsPlaced;
+        for (int d = 0; d < boughtByDef.Length; d++) boughtByDef[d] += policy.BoughtOf(d);
         stationsStanding.Add(sim.State.StationCount);
         coverage.Add(policy.TotalCoverage());
         noPlacement += policy.NoPlacementFound;
@@ -344,8 +348,13 @@ int Balance()
     double lostRate = 100.0 * runsLost / runs;
 
     Console.WriteLine($"Balance report -- map '{mapId}', {runs} runs, seed {baseSeed}");
-    Console.WriteLine($"  policy          competent-beginner (coverage placement, best dps/gold, no reserve)");
+    Console.WriteLine($"  policy          competent-beginner (coverage placement, best serving/gold");
+    Console.WriteLine($"                  against waves already met, no reserve)");
     Console.WriteLine($"  stations built    {totalBuilds / (double)runs:F1} avg per run, {stationsStanding.Average():F1} standing at end");
+    // Which stations, not just how many. A roster half of which is never bought
+    // is invisible in every other line of this report.
+    Console.WriteLine($"  station mix     " + string.Join(", ", content.Stations
+        .Select((d, i) => $"{d.Id} {(totalBuilds == 0 ? 0 : 100.0 * boughtByDef[i] / totalBuilds):F0}%")));
     Console.WriteLine($"  upgrades bought {upgrades / (double)runs:F1} avg per run");
     Console.WriteLine($"  repairs bought  {repairs / (double)runs:F1} avg per run, " +
                       $"{repairGold / (double)runs:F0} gold spent on them");
@@ -448,22 +457,31 @@ int Curve()
     double growthOverride = double.TryParse(Opt("growth"), out double g) ? g : 0;
     double bountyScale = double.TryParse(Opt("bounty"), out double b) ? b : 1.0;
 
-    // What a gold piece buys, in serving per tick, from the best station available.
-    double bestServingPerGold = 0;
-    foreach (StationDef t in content.Stations)
+    // What a gold piece buys, in serving per tick, from the best station available
+    // AGAINST THAT WAVE. Not a constant: fussiness is subtracted per hit, so the
+    // cheap fast station is the best buy against wave 1 and the worst against a
+    // wave of husks. Computing it once from base stats -- which this did -- made
+    // every capacity figure below describe a game with one station in it.
+    double BestServingPerGold(int waveIndexZeroBased)
     {
-        if (t.Serving <= 0 || t.CooldownTicks <= 0) continue;
-        double v = t.Serving / (double)t.CooldownTicks / t.Cost;
-        if (v > bestServingPerGold) bestServingPerGold = v;
+        VisitorCensus census = VisitorCensus.ForWave(content, waveIndexZeroBased);
+        double best = 0;
+        foreach (StationDef t in content.Stations)
+        {
+            double v = census.ServingPerTickPerGold(t);
+            if (v > best) best = v;
+        }
+        return best;
     }
 
-    Console.WriteLine($"Income vs difficulty -- map '{mapId}'");
-    Console.WriteLine($"  best serving/tick per gold: {bestServingPerGold:F5}"
+    Console.WriteLine($"Income vs difficulty -- map '{mapId}'"
                       + (growthOverride > 0 ? $"   hpGrowth override {growthOverride}" : "")
                       + (bountyScale != 1.0 ? $"   bounty x{bountyScale}" : ""));
+    Console.WriteLine("  serving/gold is the BEST station against that wave's composition, so it");
+    Console.WriteLine("  falls when a wave is fussy -- the same gold buys less against armour.");
     Console.WriteLine();
     Console.WriteLine($"  {"wave",-5} {"visitors",-7} {"wave HP",-9} {"income",-8} {"cum income",-11} " +
-                      $"{"capacity",-9} {"cap/HP",-8} {"vs wave 1",-9}");
+                      $"{"srv/gold",-9} {"capacity",-9} {"cap/HP",-8} {"vs wave 1",-9}");
 
     double cumIncome = 0;
     double firstRatio = 0;
@@ -487,14 +505,15 @@ int Curve()
 
         // Capacity is what CUMULATIVE income could buy, because stations persist.
         // That is the asymmetry: the player accumulates, the wave does not.
-        double capacity = cumIncome * bestServingPerGold;
+        double servingPerGold = BestServingPerGold(w);
+        double capacity = cumIncome * servingPerGold;
         double ratio = waveAppetite > 0 ? capacity / waveAppetite : 0;
         // Normalise against wave 2, not wave 1: before wave 1 the player has
         // earned nothing, so its ratio is zero and divides into nonsense.
         if (w == 1) firstRatio = ratio;
 
         Console.WriteLine($"  {wave.Index,-5} {visitors,-7} {waveAppetite,-9:F0} {income,-8:F0} {cumIncome,-11:F0} " +
-                          $"{capacity,-9:F1} {ratio,-8:F4} " +
+                          $"{servingPerGold,-9:F5} {capacity,-9:F1} {ratio,-8:F4} " +
                           (firstRatio > 0 && w >= 1 ? $"{ratio / firstRatio,-9:F2}x" : "-"));
 
         cumIncome += income;

@@ -1,7 +1,7 @@
 # Next Steps
 
-**Written:** 2026-08-09 · **State:** `main`, pushed, tree clean · `dotnet build` 0 warnings 0 errors ·
-**228 tests** · `replay` 30/30 · `maps` exits 0 · 12/12 maps valid and selectable, all twelve looked at
+**Written:** 2026-08-09 · **State:** `main`, tree clean · `dotnet build` 0 warnings 0 errors ·
+**234 tests** · `replay` 30/30 · `maps` exits 0 · 12/12 maps valid and selectable, all twelve looked at
 in-engine, ten of them with terrain that climbs · `arrow-station` is real art.
 
 **Start here, then read [`work-log.md`](work-log.md) before touching anything.** That file is shorter
@@ -16,7 +16,7 @@ else is building and judgement, ordered below by what I would pick up first.
 ### The five-minute orientation
 
 ```bash
-dotnet build && dotnet test                       # 0/0, 228
+dotnet build && dotnet test                       # 0/0, 234
 dotnet run --project Gridfall.Verify -- replay    # determinism; must be 30/30
 dotnet run --project Gridfall.Verify -- maps      # geometry + MapValidator, exits 1 on error
 ./run-game.sh                                     # play it  (Windows: .\run-game.ps1)
@@ -33,21 +33,28 @@ standard build silently ignores every C# script (ADR-0005).
 Everything below is genuinely open. Closed threads are one line each in §Settled, with a pointer to
 the record; the detail is not repeated here.
 
-### 1. Teach the play policy about fussiness — cheapest, highest leverage
+### 1. Make the husk mean something — a decision, priced, and it is yours
 
-`PlayPolicy` ranks stations on **base** damage-per-gold and never reads `fussiness`, so it has never
-built a cannon on any board. But the cannon is not dominated — fussiness subtracts *per hit*, so the
-crossover is at ~4:
+**This is what §1 turned into.** The policy learned about fussiness (§Settled); it can buy a cannon
+now and on all twelve boards it still never does. Every balance figure came back byte-identical. The
+rock-paper-scissors is in the roster and **not in the content**: the crossover is at average fussiness
+4 weighted by appetite, every shipped wave table peaks at 1.53, and the arrow station stays 22.5%
+better value even on the most armoured wave in the repo.
 
-| Fussiness | Arrow /gold | Cannon /gold |
+Three levers, all cheap, all with different blast radii:
+
+| Lever | What it takes | What it costs you |
 |---|---|---|
-| 0 | 0.400 | 0.296 |
-| 4 | 0.267 | 0.267 |
-| 8 | **0.133** | **0.237** |
+| **Cannon at 73 gold** (from 90), or serving 49 (from 40) | one number, one file | makes burst better value in the *late* game on every board that offers it; nothing has been measured that way |
+| **90 husks in wave 12** (from 19) | one wave, twelve tables | one wave asks the question; wave 12 goes from 147 visitors to 218 |
+| **Nothing** | — | defensible if the husk is flavour — but then `husk.json`'s `_asks` claims something the content does not deliver, and two roster targets stay failing |
 
-`husk` sits at 8. There is a real rock-paper-scissors in the roster, and **every balance number in the
-repo describes a game that never uses half of it.** Small change, large blast radius: it would move
-every figure in `example-levels.md` and the balance report.
+Raising `fussiness` is **not** on the list: past 11 the arrow station is already floored at 1 per hit
+and more armour only subtracts from the cannon. Full pricing:
+[policy-fussiness balance](../../content-data/docs/reports/2026-08-09-policy-fussiness-balance.md).
+
+Related and now measured for the first time: `balance-targets.md` asks that no station appear in more
+than 70% of winning runs. It is at **100%**.
 
 ### 2. Make elevation mean something — the follow-on that was always planned
 
@@ -113,6 +120,8 @@ If the trace hashes match there, the claim stops being a claim.
 | `route-variance-metric` | **Closed.** Seven predictors ruled out and the reason none can work: outcomes are stable to seed and chaotic in inputs | [balance report](../../content-data/docs/reports/2026-08-08-example-levels-balance.md) |
 | Can `comb` be tuned by composition? | No. Fifteen configurations, non-monotone, 42% is structural | same report |
 | Elevation | Shipped, view-only; a hilly board hashes identically to the same board flat | `docs/iso-grid.md` §Elevation |
+| Does the play policy understand fussiness? | **Shipped.** It ranks by effective serving and will hold gold for the station it wants. Two blocks, not one — the second was "never substitute down" | [policy-fussiness](../06-release/policy-fussiness-v1.md) |
+| Does teaching it move the balance figures? | **No.** All twelve maps byte-identical. The content never asks the question — see §1 | [balance report](../../content-data/docs/reports/2026-08-09-policy-fussiness-balance.md) |
 
 What each of those *taught* is in [`work-log.md`](work-log.md) — read that before starting anything,
 it is shorter than this file and it is where the traps are.
@@ -124,6 +133,7 @@ it is shorter than this file and it is where the traps are.
 | The ten levels: metrics, motifs, elevation styles, and what a human must still eyeball | `content-data/docs/example-levels.md` |
 | All twelve measured, the knob sweeps, the runway result | `content-data/docs/reports/2026-08-08-example-levels-balance.md` |
 | Bands, cover/useful figures, balance history | `content-data/docs/balance-targets.md` |
+| What the balance harness's player actually does, and what it deliberately does not | `Gridfall.Verify/PlayPolicy.cs` header, `tooling/specs/policy-fussiness-tool-note.md` |
 | The accepted reframe (why the code says Station/Visitor) | `game-design/docs/fulfilment-direction.md` |
 | The three soft-lock options, costed | `game-design/docs/tier2-soft-lock-options.md` |
 | Regenerate maps / schematic atlas / iso atlas | `content-data/maps/make-example-levels.py`, `render-atlas.py`, `capture-iso-atlas.py` |

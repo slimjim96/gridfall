@@ -13,12 +13,18 @@ namespace Gridfall.Verify;
 /// This one is:
 ///
 ///   1. Build whenever gold allows, keeping no reserve -- an idle pile of gold
-///      is the thing the economy targets are trying to detect.
+///      is the thing the economy targets are trying to detect. The one exception
+///      is waiting out the price of the station it has decided it wants, which
+///      is bounded by one wave (see BestAffordableStation).
 ///   2. Place where a station covers the most cells of the CURRENT route, because
 ///      coverage is what a human eyeballs. Never place where the game would
 ///      refuse.
-///   3. Buy the best serving-per-gold that is affordable right now, with no
-///      lookahead and no saving up for something better.
+///   3. Buy the best serving-per-gold that is affordable right now, measured
+///      against the visitors it has ALREADY MET rather than against base stats,
+///      with no lookahead and no saving up for something better. Fussiness is
+///      subtracted per hit, so "best" is not a fixed answer: the arrow station
+///      wins by 35% against an unarmoured wave and loses by 78% against husks.
+///      Ranking on base serving is why no measured run ever built a cannon.
 ///   4. When there is nowhere useful left to build, upgrade the station covering
 ///      the most of the route instead. Board saturation is exactly the moment
 ///      upgrades are for.
@@ -81,6 +87,7 @@ public sealed class PlayPolicy
 
     private readonly Sim _sim;
     private readonly SimRandom _rng;
+    private readonly VisitorCensus _census;
     private readonly int[] _routeBuffer = new int[4096];
     private readonly List<(int cell, int score)> _candidates = new();
 
@@ -91,10 +98,23 @@ public sealed class PlayPolicy
     {
         _sim = sim;
         _rng = new SimRandom(seed);
+        _census = new VisitorCensus(sim.Content);
+        _boughtByDef = new int[sim.Content.Stations.Length];
     }
 
     public int BuildsPlaced { get; private set; }
     public int BuildsRefused { get; private set; }
+
+    private readonly int[] _boughtByDef;
+
+    /// <summary>
+    /// Builds queued per station def. Reported because "the policy never bought a
+    /// cannon" was true for the entire history of this harness and no number in
+    /// any report said so -- an unexercised half of the roster is invisible in
+    /// leak rate, and it silently made every balance figure a one-station
+    /// measurement.
+    /// </summary>
+    public int BoughtOf(int defIndex) => _boughtByDef[defIndex];
 
     /// <summary>
     /// Attempts that found no cell worth building on. A high count means the
@@ -142,6 +162,11 @@ public sealed class PlayPolicy
     public void Update()
     {
         SimStateView state = _sim.State;
+
+        // What the player has met so far. Folded in every tick because a wave can
+        // start on any tick and the mid-wave build branch below is entitled to
+        // know what is currently walking at it.
+        _census.ObserveWavesStarted(state.WaveIndex);
 
         // Between waves: spend down first, one purchase per tick, and only pull
         // the next wave once the gold is committed.
@@ -272,6 +297,7 @@ public sealed class PlayPolicy
         _sim.Enqueue(new BuildCommand(
             new GridCell(cell % _sim.Map.Width, cell / _sim.Map.Width), stationIndex));
         BuildsPlaced++;
+        _boughtByDef[stationIndex]++;
         return true;
     }
 
@@ -318,13 +344,32 @@ public sealed class PlayPolicy
     }
 
     /// <summary>
-    /// Best serving-per-gold that is affordable now. No lookahead: a policy that
-    /// saves up would be a different, and much harder to justify, definition of
-    /// competent.
+    /// The best serving-per-gold on the board's roster, measured against the
+    /// visitors already met -- or null if it is not affordable yet.
+    ///
+    /// Two things had to change together here, and either alone does nothing:
+    ///
+    /// **Value is census-relative.** Base serving ranks the arrow station first on
+    /// every board and every wave, so the roster had a second station in it that
+    /// the harness never bought, and every balance figure in the repo was measured
+    /// on a one-station game.
+    ///
+    /// **The policy will not substitute down.** It used to buy the best station it
+    /// could afford THIS TICK, which on any roster means the cheapest one is
+    /// bought the instant its price is reached and gold never gets near the price
+    /// of anything else. That is a structural block, not a preference: with a 50g
+    /// station on the board, the 90g one is unreachable no matter what the census
+    /// says. So when the best buy is out of reach the policy holds instead, and
+    /// the wait is self-limiting -- holding makes <see cref="TryBuild"/> fail,
+    /// which is what pulls the next wave, which is what pays for the station.
+    ///
+    /// The cost is that up to (price - 1) gold can sit across one wave. That is
+    /// the "no reserve" rule bending, and it is bounded by one wave and one
+    /// station's price; the idle-gold pathology the rule exists to detect is
+    /// thousands of gold across a whole run.
     /// </summary>
     private ushort? BestAffordableStation()
     {
-        int gold = _sim.State.Gold;
         ushort? best = null;
         long bestValue = 0;
 
@@ -338,16 +383,18 @@ public sealed class PlayPolicy
             if (!_sim.Map.Offers(_sim.Content, i)) continue;
 
             StationDef def = _sim.Content.Station(i);
-            if (def.Cost > gold || def.Serving <= 0 || def.CooldownTicks <= 0) continue;
+            if (def.Serving <= 0 || def.CooldownTicks <= 0) continue;
 
-            // serving per tick per gold, scaled to stay in integers
-            long value = (long)def.Serving * 1000 / (def.CooldownTicks * (long)def.Cost);
+            // Effective serving per tick per gold, scaled to stay in integers.
+            long value = _census.ValuePerGold(def);
             if (best is not null && value <= bestValue) continue;
 
             bestValue = value;
             best = i;
         }
-        return best;
+
+        if (best is null) return null;
+        return _sim.Content.Station(best.Value).Cost <= _sim.State.Gold ? best : null;
     }
 
     /// <summary>

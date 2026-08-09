@@ -173,6 +173,22 @@ public sealed class VisitorDef
     public required Fix32 AttackRangeSquared { get; init; }
 
     public bool AttacksStations => AttackDrain > 0;
+
+    /// <summary>
+    /// What a single hit of <paramref name="amount"/> actually removes from this
+    /// visitor's appetite.
+    ///
+    /// The one authority for the fussiness rule. <c>DamageSystem</c> applies it,
+    /// and anything OUTSIDE the simulation that needs to reason about what a
+    /// station is worth -- the balance harness's shopping policy, the income
+    /// curve -- asks here rather than subtracting for itself. A second copy of
+    /// "max(1, amount - fussiness)" is a rule with two authorities, and the one
+    /// that drifts is always the one nobody is testing.
+    ///
+    /// Floored at 1 for the reason DamageSystem states: a visitor immune to a
+    /// station is a soft-lock waiting to happen.
+    /// </summary>
+    public int ServingTaken(int amount) => System.Math.Max(1, amount - Fussiness);
 }
 
 public sealed class WaveEntry

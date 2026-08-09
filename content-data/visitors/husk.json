@@ -7,5 +7,6 @@
   "bounty": 16,
   "patienceCost": 1,
   "_asks": "Do you have burst? Flat armour 8 means an arrow tower's 12 damage lands as 4, while a cannon's 40 lands as 32. A board of cheap fast towers cannot answer this.",
+  "_asksNothingYet": "MEASURED 2026-08-09: it does not ask this. The crossover is at average fussiness 4 weighted by appetite, and the husk is 16.5% of wave 12 -- the most armoured wave in any shipped table -- which averages 1.53. The arrow station stays 22.5% better value everywhere, so a board of cheap fast stations answers this fine. Closing the gap needs ~90 husks in wave 12, or a cannon at 73 gold. Raising THIS number does not work: past fussiness 11 the arrow is floored at 1 per hit and further armour only subtracts from the cannon. See content-data/docs/reports/2026-08-09-policy-fussiness-balance.md.",
   "_untuned": "Placeholder values. See content-data/docs/balance-targets.md."
 }
