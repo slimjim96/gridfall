@@ -28,7 +28,7 @@ requirements drift toward whatever is easy to build.
 1. **[deterministic]** Choose the slug. Lowercase kebab-case, and it will follow this slice to release.
    Check `find_by_slug` first — if it is taken, you are revising, not creating.
 2. **[deterministic]** Restate the request in one sentence, in the player's terms, not the system's.
-   "Creeps find a new route when the maze changes" — not "expose a repath API".
+   "Visitors find a new route when the maze changes" — not "expose a repath API".
 3. **[model call: gap detection]** If you cannot write that sentence, or it needs an assumption you
    cannot justify from the pillars, **stop and ask one question.** Do not proceed on a guess.
 4. **[deterministic]** Check the pillars. If the feature fights one, say which, and either reject it or

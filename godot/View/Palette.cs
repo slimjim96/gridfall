@@ -21,24 +21,24 @@ public static class Palette
     public static readonly Color TerrainSpawn = Color.FromHtml("7a5aa0");
     public static readonly Color TerrainGoal = Color.FromHtml("46a07a");
 
-    // Player towers: the only warm saturated things on the board.
-    public static readonly Color TowerArrow = Color.FromHtml("d98f45");
-    public static readonly Color TowerCannon = Color.FromHtml("c46a3a");
-    public static readonly Color TowerFrost = Color.FromHtml("6fc7d9");
-    public static readonly Color TowerUnknown = Color.FromHtml("b0864f");
+    // Player stations: the only warm saturated things on the board.
+    public static readonly Color StationArrow = Color.FromHtml("d98f45");
+    public static readonly Color StationCannon = Color.FromHtml("c46a3a");
+    public static readonly Color StationFrost = Color.FromHtml("6fc7d9");
+    public static readonly Color StationUnknown = Color.FromHtml("b0864f");
 
-    // Creeps: hue carries threat tier, cool to hot.
-    public static readonly Color CreepRunner = Color.FromHtml("7fc4a8");
-    public static readonly Color CreepBrute = Color.FromHtml("b8a05a");
-    public static readonly Color CreepHusk = Color.FromHtml("c98a5e");
-    public static readonly Color CreepMite = Color.FromHtml("9ad4c0");
-    /// <summary>The only red in the creep roster. Sappers attack towers, and
+    // Visitors: hue carries threat tier, cool to hot.
+    public static readonly Color VisitorRunner = Color.FromHtml("7fc4a8");
+    public static readonly Color VisitorBrute = Color.FromHtml("b8a05a");
+    public static readonly Color VisitorHusk = Color.FromHtml("c98a5e");
+    public static readonly Color VisitorMite = Color.FromHtml("9ad4c0");
+    /// <summary>The only red in the visitor roster. Sappers attack stations, and
     /// nothing else on the board does -- so nothing else gets this hue.</summary>
-    public static readonly Color CreepSapper = Color.FromHtml("c2565c");
+    public static readonly Color VisitorSapper = Color.FromHtml("c2565c");
 
-    /// <summary>What a tower tints toward as its structure health falls.</summary>
-    public static readonly Color Damaged = Color.FromHtml("6e2a2f");
-    public static readonly Color CreepUnknown = Color.FromHtml("9aa8b8");
+    /// <summary>What a station tints toward as its structure health falls.</summary>
+    public static readonly Color Depleted = Color.FromHtml("6e2a2f");
+    public static readonly Color VisitorUnknown = Color.FromHtml("9aa8b8");
 
     /// <summary>
     /// One red, used nowhere else. Reserved for danger and refusal -- if red
@@ -54,7 +54,7 @@ public static class Palette
     public static readonly Color Hint = Color.FromHtml("e8c46a");
 
     /// <summary>
-    /// The route creeps currently take. Cool and quiet -- it is always on screen --
+    /// The route visitors currently take. Cool and quiet -- it is always on screen --
     /// but it has to clear the buildable terrain it sits on, and the first attempt
     /// (7f96ad) was close enough to that slate to vanish into it.
     /// </summary>
@@ -67,22 +67,22 @@ public static class Palette
     public static readonly Color HitFlash = Color.FromHtml("ffffff");
     public static readonly Color BuildPreviewOk = Color.FromHtml("8fd98f");
 
-    public static Color ForTower(string contentId) => contentId switch
+    public static Color ForStation(string contentId) => contentId switch
     {
-        "arrow-tower" => TowerArrow,
-        "cannon" => TowerCannon,
-        "frost-spire" => TowerFrost,
-        _ => TowerUnknown,
+        "arrow-station" => StationArrow,
+        "cannon" => StationCannon,
+        "frost-spire" => StationFrost,
+        _ => StationUnknown,
     };
 
-    public static Color ForCreep(string contentId) => contentId switch
+    public static Color ForVisitor(string contentId) => contentId switch
     {
-        "runner" => CreepRunner,
-        "brute" => CreepBrute,
-        "husk" => CreepHusk,
-        "mite" => CreepMite,
-        "sapper" => CreepSapper,
-        _ => CreepUnknown,
+        "runner" => VisitorRunner,
+        "brute" => VisitorBrute,
+        "husk" => VisitorHusk,
+        "mite" => VisitorMite,
+        "sapper" => VisitorSapper,
+        _ => VisitorUnknown,
     };
 
     /// <summary>

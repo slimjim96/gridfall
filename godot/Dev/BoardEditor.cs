@@ -12,7 +12,7 @@ namespace Gridfall.Dev;
 /// The board editor: paint a map, see it validated as you paint, press F5 to
 /// play it. Spec: tooling/docs/board-editor-spec.md.
 ///
-/// Dev-only. Lives under godot/Dev/, which is excluded from release exports.
+/// Dev-only. Patience under godot/Dev/, which is excluded from release exports.
 ///
 /// It reuses the game's renderer, the game's picking, and above all the game's
 /// validator -- it contributes no rules of its own, so it cannot disagree with

@@ -121,15 +121,15 @@ public sealed partial class WorldRenderer : Node3D
     }
 
     /// <summary>
-    /// The reach of the tower about to be placed, as a ring on the ground.
+    /// The reach of the station about to be placed, as a ring on the ground.
     ///
-    /// A ring rather than a filled disc: at the ranges these towers have it
+    /// A ring rather than a filled disc: at the ranges these stations have it
     /// would cover a third of the board, and the board is the thing the player
     /// is reading. The outline answers "does this cover the corner?" without
     /// hiding the corner.
     ///
     /// Drawn from the cell centre. TargetingSystem compares grid coordinates
-    /// (tower at `(cellX, cellY)`, creep at its FixVec2), and the renderer adds
+    /// (station at `(cellX, cellY)`, visitor at its FixVec2), and the renderer adds
     /// the same half-cell to both — so the relative geometry is preserved and a
     /// ring centred on the cell is the honest picture of the comparison.
     /// </summary>
@@ -196,11 +196,11 @@ public sealed partial class WorldRenderer : Node3D
                 int index = _map.Index(x, y);
                 CellKind kind = _map.Cells[index];
 
-                // A tower occupies the cell: raise it so the maze is legible as
+                // A station occupies the cell: raise it so the maze is legible as
                 // shape, not only as colour. Blocked terrain is raised further.
                 //
                 // The kind test is load-bearing: PathSystem.IsBlocked is true for
-                // blocked TERRAIN as well as for a tower, so without it every
+                // blocked TERRAIN as well as for a station, so without it every
                 // wall counted as occupied and lost its tile -- a stone theme
                 // rendered its walls in flat ramp colour and looked untextured.
                 bool occupied = kind != CellKind.Blocked && _path is not null && _path.IsBlocked(index);
@@ -208,7 +208,7 @@ public sealed partial class WorldRenderer : Node3D
 
                 Color colour = _theme.ColourFor(kind);
 
-                // An occupied cell keeps its tile. The raise and the tower on top
+                // An occupied cell keeps its tile. The raise and the station on top
                 // of it are what say "occupied" -- swapping in the ramp colour
                 // instead just put a slate pad on a grass board.
                 if (tiles is not null &&

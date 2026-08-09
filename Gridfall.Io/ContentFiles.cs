@@ -25,15 +25,15 @@ public static class ContentFiles
     {
         string data = Path.Combine(root, "content-data");
 
-        TowerDef[] towers = ContentLoader.LoadTowers(ReadAll(Path.Combine(data, "towers")));
-        EnemyDef[] enemies = ContentLoader.LoadEnemies(ReadAll(Path.Combine(data, "enemies")));
+        StationDef[] stations = ContentLoader.LoadStations(ReadAll(Path.Combine(data, "stations")));
+        VisitorDef[] visitors = ContentLoader.LoadVisitors(ReadAll(Path.Combine(data, "visitors")));
 
         string wavePath = Path.Combine(data, "waves", mapId + ".json");
         WaveDef[] waves = File.Exists(wavePath)
-            ? ContentLoader.LoadWaves(File.ReadAllText(wavePath), enemies, wavePath)
+            ? ContentLoader.LoadWaves(File.ReadAllText(wavePath), visitors, wavePath)
             : Array.Empty<WaveDef>();
 
-        return new ContentSet { Towers = towers, Enemies = enemies, Waves = waves };
+        return new ContentSet { Stations = stations, Visitors = visitors, Waves = waves };
     }
 
     public static MapDef LoadMap(string root, string mapId)
@@ -42,7 +42,7 @@ public static class ContentFiles
         return ContentLoader.LoadMap(File.ReadAllText(path), path);
     }
 
-    /// <summary>Where a map lives. The editor writes here; the game reads here.</summary>
+    /// <summary>Where a map patience. The editor writes here; the game reads here.</summary>
     public static string MapPath(string root, string mapId)
         => Path.Combine(root, "content-data", "maps", mapId + ".json");
 

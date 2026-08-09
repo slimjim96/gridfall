@@ -47,45 +47,45 @@ happened when one should have, and did not when it should not have.
 
 ### 3 · Spawn — `SpawnSystem`
 
-Reads the wave table, spawns creeps whose spawn tick has arrived. New entities get the next entity id,
+Reads the wave table, spawns visitors whose spawn tick has arrived. New entities get the next entity id,
 ascending, never reused within a run — which is what makes id order a stable tie-break everywhere else.
 
-Newly spawned creeps **do move this tick**. They spawn before phase 4 on purpose; spawning after
-movement would give every creep a one-tick stutter at birth.
+Newly spawned visitors **do move this tick**. They spawn before phase 4 on purpose; spawning after
+movement would give every visitor a one-tick stutter at birth.
 
 ### 4 · Move — `MovementSystem`
 
-Each creep advances by its speed along its current heading. On crossing a cell boundary it reads
-`_flow[cell]` for its new heading — and only then. A creep between cells keeps its heading regardless
+Each visitor advances by its speed along its current heading. On crossing a cell boundary it reads
+`_flow[cell]` for its new heading — and only then. A visitor between cells keeps its heading regardless
 of what happened in phase 2.
 
-Iterate creeps by **ascending entity id**. Always. Movement is independent per creep so order does not
-affect the result today, but it will the first time something couples two creeps, and by then nobody
+Iterate visitors by **ascending entity id**. Always. Movement is independent per visitor so order does not
+affect the result today, but it will the first time something couples two visitors, and by then nobody
 will remember this line.
 
-### 5 · Acquire and fire — `TargetingSystem`, then `EnemyAttackSystem`
+### 5 · Acquire and fire — `TargetingSystem`, then `VisitorDrainSystem`
 
 Combat runs in **both directions**, and this one phase holds both. Two systems, in a fixed order:
 
-**5a — towers fire (`TargetingSystem`).** Each tower picks a target and fires if off cooldown. Target
+**5a — stations fire (`TargetingSystem`).** Each station picks a target and fires if off cooldown. Target
 selection is a fixed priority rule (default: furthest along the path, ties broken by lowest entity id).
 Never "closest by float distance" — compare squared `Fix32` distances, and break exact ties by id.
 
 Firing creates projectiles; it does not deal damage. Damage happens in 7.
 
-**5b — enemies attack towers (`EnemyAttackSystem`).** Creeps whose def has `attackDamage > 0` pick the
-**nearest** tower in range (ties by lowest entity id) and buffer damage against it. They do not stop
+**5b — visitors attack stations (`VisitorDrainSystem`).** Visitors whose def has `attackDamage > 0` pick the
+**nearest** station in range (ties by lowest entity id) and buffer damage against it. They do not stop
 walking to do it — phase 4 has already moved them, and attacking never touches position.
 
-**Towers fire first, and that order is load-bearing** ([ADR-0006](../../engine-systems/decisions/ADR-0006-enemy-attacks-in-phase-five.md)):
-a tower destroyed this tick still gets its shot off. Swapping the two changes outcomes.
+**Stations fire first, and that order is load-bearing** ([ADR-0006](../../engine-systems/decisions/ADR-0006-visitor-attacks-in-phase-five.md)):
+a station destroyed this tick still gets its shot off. Swapping the two changes outcomes.
 
-**Iterate towers by ascending entity id**, and evaluate candidate targets in ascending id order too.
-The same rule applies to creeps in 5b.
+**Iterate stations by ascending entity id**, and evaluate candidate targets in ascending id order too.
+The same rule applies to visitors in 5b.
 
-Enemy attacks live here rather than in a tenth phase because acquiring a target and firing is the same
-operation with the roles swapped. Tower damage goes into its own buffer and is applied in 7, exactly
-like creep damage.
+Visitor attacks live here rather than in a tenth phase because acquiring a target and firing is the same
+operation with the roles swapped. Station damage goes into its own buffer and is applied in 7, exactly
+like visitor damage.
 
 ### 6 · Resolve projectiles — `ProjectileSystem`
 
@@ -95,13 +95,13 @@ skip straight to a pending damage record in the same tick they fired.
 Pending damage accumulates into a buffer; it is not applied yet. This is what makes simultaneous kills
 deterministic — see below.
 
-### 7 · Resolve damage — `DamageSystem`
+### 7 · Resolve damage — `ServingSystem`
 
 Apply the whole pending-damage buffer, **in entity id order**, then process deaths, then process leaks.
 
-Deaths are resolved after all damage is applied. Two towers that both fire a killing blow at the same
-creep on the same tick produce one death and one bounty, regardless of which tower is evaluated first.
-If damage were applied inline in phase 5, the answer would depend on tower iteration order.
+Deaths are resolved after all damage is applied. Two stations that both fire a killing blow at the same
+visitor on the same tick produce one death and one bounty, regardless of which station is evaluated first.
+If damage were applied inline in phase 5, the answer would depend on station iteration order.
 
 ### 8 · Economy — `EconomySystem`
 
@@ -126,10 +126,10 @@ rejects it.)*
 
 | Boundary | Why it must be that way |
 |---|---|
-| Commands (1) before pathing (2) | A build must be reflected in the field creeps use this same tick. |
-| Pathing (2) before movement (4) | Otherwise creeps spend one tick walking a field that no longer exists. |
-| Spawn (3) before movement (4) | New creeps move on their birth tick; no stutter. |
-| Firing (5) before damage (7) | Damage is buffered so simultaneous kills don't depend on tower order. |
+| Commands (1) before pathing (2) | A build must be reflected in the field visitors use this same tick. |
+| Pathing (2) before movement (4) | Otherwise visitors spend one tick walking a field that no longer exists. |
+| Spawn (3) before movement (4) | New visitors move on their birth tick; no stutter. |
+| Firing (5) before damage (7) | Damage is buffered so simultaneous kills don't depend on station order. |
 | Damage (7) before economy (8) | Bounties need this tick's deaths, not last tick's. |
 | Hash (9) last | It must see everything the tick did. |
 

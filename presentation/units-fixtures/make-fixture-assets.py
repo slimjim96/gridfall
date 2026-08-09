@@ -12,7 +12,7 @@ working target to drop real output into. They are ugly on purpose — nobody
 should mistake them for a design, and the moment Ludo.ai returns something the
 matching folder is overwritten and this script stops mattering.
 
-    arrow-tower/   sprite strips + unit.json   -> SpriteUnitView
+    arrow-station/   sprite strips + unit.json   -> SpriteUnitView
     cannon/        model.glb                   -> MeshUnitView
 
 One of each, deliberately: a single capture then shows both formats on one board
@@ -24,7 +24,7 @@ that actually matters (occlusion) for both paths at once.
 Each fixture matches the placeholder it stands in for, so swapping formats is
 visibly a format change and not a size change:
 
-    arrow-tower   Shapes.TallPrism(0.30, 1.45)      0.30 wide, 1.45 tall
+    arrow-station   Shapes.TallPrism(0.30, 1.45)      0.30 wide, 1.45 tall
     cannon        Shapes.SquatCylinder(0.36, 0.62)  0.72 wide, 0.62 tall
 
 The sprite additionally carries the camera's foreshortening, because a sprite is
@@ -123,7 +123,7 @@ def strip(frames):
 
 
 def build_sprite():
-    root = os.path.join(HERE, "arrow-tower")
+    root = os.path.join(HERE, "arrow-station")
 
     # idle: a slow 4-frame brightness breath, looping.
     write_png(os.path.join(root, "idle.png"),

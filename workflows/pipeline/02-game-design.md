@@ -74,7 +74,7 @@ instruction. Architecture decides.
 
 ## Failure modes
 
-- **Designing the implementation.** "Recompute the flow field" is architecture. "Creeps re-route within
+- **Designing the implementation.** "Recompute the flow field" is architecture. "Visitors re-route within
   a moment of the maze changing" is design.
 - **Silent states.** A slow that the player cannot see is a slow the player will not believe.
 - **Interaction rules deferred to "later".** Later is the bug report. Decide now, even if the decision

@@ -17,8 +17,8 @@ Measured over 200 headless runs per map, fixed seed, competent-play policy.
 | Leak rate, overall | ≤ 4% | > 8% |
 | Leak rate, any single wave | ≤ 15% | > 25% |
 | Time-to-clear, per wave | 20–45 s | > 60 s (grindy) |
-| Idle gold at the halfway wave | 0–2 tower costs | > 4 (nothing worth buying) |
-| Idle gold at the last wave | 0–3 tower costs | > 6 |
+| Idle gold at the halfway wave | 0–2 station costs | > 4 (nothing worth buying) |
+| Idle gold at the last wave | 0–3 station costs | > 6 |
 
 **The split is proportional, not a wave number.** `Verify balance` computes it as `waveCount / 2`, so a
 12-wave table splits 1–6 and 7–12 and prints the actual range in its own output. The bands have always
@@ -57,26 +57,26 @@ accident. Growing the tables to 20 waves was the alternative and was **not** cho
 **Idle gold** is the interesting one. High idle gold means the player has money and no decision — the
 economy has stopped generating choices, which fails pillar 5 before it fails any math.
 
-## Tower targets
+## Station targets
 
 | Property | Target |
 |---|---|
 | Cost spread across the roster | Cheapest : most expensive ≤ 1 : 6 |
 | DPS-per-gold spread at equal tier | Within ±15% |
-| Share of a roster used in a winning run | ≥ 4 of 8 distinct towers |
-| Any single tower's presence in winning runs | ≤ 70% (a must-pick is a design failure) |
+| Share of a roster used in a winning run | ≥ 4 of 8 distinct stations |
+| Any single station's presence in winning runs | ≤ 70% (a must-pick is a design failure) |
 
-A tower outside the DPS-per-gold band must earn it with utility — slow, splash, reveal, chain. If it
+A station outside the DPS-per-gold band must earn it with utility — slow, splash, reveal, chain. If it
 cannot name the utility, the number is wrong.
 
-## Enemy targets
+## Visitor targets
 
 | Property | Target |
 |---|---|
 | Archetypes per map | 4–7 |
 | HP growth, wave to wave | 1.10–1.18× — **disputed, see below** |
 | Speed spread across archetypes | 0.6× – 1.8× of base |
-| Waves where a single archetype is > 70% of the creeps | ≤ 3 per run |
+| Waves where a single archetype is > 70% of the visitors | ≤ 3 per run |
 
 HP growth above 1.18× produces the classic wall: the player is fine, then suddenly is not, with nothing
 to react to. That fails pillar 4.
@@ -90,15 +90,15 @@ to react to. That fails pillar 4.
 > the early economy is (wave 3 leaks 21.5% with 12 gold in hand) — and a target rewritten to match its
 > first measurement stops being a target.
 >
-> **Vindicated, largely (2026-08-07.)** That measurement was taken before tower upgrades existed and
+> **Vindicated, largely (2026-08-07.)** That measurement was taken before station upgrades existed and
 > before `startingGold` was fixed. With the economy working, the playable band moved and the shipped
 > value is now **1.08** — just below the disputed 1.10 rather than a tenth of it. **Not editing the
 > target to match the first measurement was the right call**, and this is the evidence. Resolve the
 > remaining gap as `hp-growth-target`.
 >
-> It moved *down* again, 1.09 → 1.08, when destructible towers shipped: difficulty from losing towers
-> substitutes for difficulty from enemy hitpoints. The band is a property of the whole system, not of
-> the enemies alone. See
+> It moved *down* again, 1.09 → 1.08, when destructible stations shipped: difficulty from losing stations
+> substitutes for difficulty from visitor hitpoints. The band is a property of the whole system, not of
+> the visitors alone. See
 > [income vs difficulty](reports/2026-08-07-income-vs-difficulty.md).
 
 ## Wave pacing — `prepTicks`, `midWaveBuildPercent`, `earlyCallGoldPerSecond` (2026-08-07)
@@ -124,7 +124,7 @@ gold arrives during the gap, no timer can make the gap matter.
 
 **2. The mid-wave premium is a cliff, not a texture.** 100 → 27%, 125 → 63%, 150 → 87%. A 25% price
 bump more than doubles the loss rate, because the policy builds continuously and pays it on most
-towers. Any shipped value lives between 100 and 125, and wants finer steps than were tested.
+stations. Any shipped value lives between 100 and 125, and wants finer steps than were tested.
 
 **3. The early-call bonus is unconditional income, not a trade.** At 3 gold/second of a 10s window it
 is 30 gold a wave, worth **~27 points** of loss rate (63.3% → 36.7% at the same premium). A
@@ -157,15 +157,15 @@ within noise of the 27.3% baseline — but now income arrives in the gap and rea
 ### Shipped on crossroads (2026-08-08)
 
 Enabling `midWaveBuildPercent 115` **broke two verification seeds**: `sappers` and `repair` finished
-at 5 towers and 0 lives instead of 28 towers and 20 lives. Isolated to the premium — with it at 100
+at 5 stations and 0 lives instead of 28 stations and 20 lives. Isolated to the premium — with it at 100
 both recover exactly.
 
 The cause is that both seeds build almost entirely *during* waves, so they pay the premium on nearly
-every tower. That is the mechanic working as designed, and it is also a harness that models the one
+every station. That is the mechanic working as designed, and it is also a harness that models the one
 playstyle the mechanic exists to discourage.
 
 **The seeds were rewritten to build between waves**, which is what a premium-aware player does
-anyway, and both recover: 28 towers and 20 lives, with `repair` still holding its `worstHp 59%` case.
+anyway, and both recover: 28 stations and 20 lives, with `repair` still holding its `worstHp 59%` case.
 
 `crossroads` now ships `waveClearGold 25`, `midWaveBuildPercent 115`, `prepTicks 300`. Re-measured
 after the change: **24.0% runs lost, 8.4 lives** — unchanged from the tuning pass. Determinism trace
@@ -225,14 +225,14 @@ Measured on `crossroads`, 30 runs, beginner policy:
 a sixth — it removes the entire losing condition and produces the `gauntlet` failure: a map that
 cannot be lost, with no spread of outcomes.
 
-So: **shortening a run means re-authoring the curve, not truncating it.** `hpGrowth` and
-`hpGrowthFrom` are the knobs — a steeper rate from an earlier wave reaches the same threat in fewer
+So: **shortening a run means re-authoring the curve, not truncating it.** `appetiteGrowth` and
+`appetiteGrowthFrom` are the knobs — a steeper rate from an earlier wave reaches the same threat in fewer
 waves. `runWaves` is for testing and for deliberately gentle boards, and any use of it in shipped
 content needs a balance run beside it. Re-authoring a short curve is `short-run-curve`.
 
-## Tower coverage — the metric that links range to board size (2026-08-08)
+## Station coverage — the metric that links range to board size (2026-08-08)
 
-`Verify maps` reports **cover**: the share of the route one cheapest tower reaches from its best
+`Verify maps` reports **cover**: the share of the route one cheapest station reaches from its best
 buildable cell.
 
 | map | size | path | cover | useful |
@@ -249,25 +249,25 @@ buildable cell.
 
 **`useful`** is the share of buildable cells within range of the route at all. It is a **viability
 floor, not a difficulty predictor**: across twelve maps the middle of its range does not order by
-outcome, but the bottom does. `spiral` sits at 43% — 89 buildable cells forming a courtyard the creeps
+outcome, but the bottom does. `spiral` sits at 43% — 89 buildable cells forming a courtyard the visitors
 never approach — passes every other band, and lost **100% of 150 runs**. Nothing else in the repo
 would have caught that.
 
-**What halving cover cost.** `arrow-tower` range 3.0 → 2.0 (area scales with r², so ~55% less
+**What halving cover cost.** `arrow-station` range 3.0 → 2.0 (area scales with r², so ~55% less
 reach) took `crossroads` from **24.0% runs lost to 80.7%** at an unchanged wave table. Recovered with
-`hpGrowth 1.10 from wave 6` → **20.0%**, in band. The rate stays inside the documented 1.10–1.18
+`appetiteGrowth 1.10 from wave 6` → **20.0%**, in band. The rate stays inside the documented 1.10–1.18
 band; delaying the ramp to wave 6 did the work, not a rate below band.
 
-`gauntlet` was **unaffected: still 0.0% lost, sd 0.2.** Halving every tower's reach did not make a
+`gauntlet` was **unaffected: still 0.0% lost, sd 0.2.** Halving every station's reach did not make a
 walled-in route interesting, which is the clearest evidence yet that its problem is route freedom and
 not tuning — see [gauntlet's cliff](reports/2026-08-07-gauntlet-cliff-balance.md) and
 `route-variance-metric`.
 
-**Tower range is fixed in cells; boards are not.** So the same tower covers a shrinking share of the
+**Station range is fixed in cells; boards are not.** So the same station covers a shrinking share of the
 route as a board grows, and a wave tuned on a 20×9 board is a different problem on a 40×40 one — the
-creeps spend proportionally longer outside every tower's reach.
+visitors spend proportionally longer outside every station's reach.
 
-Buildable-per-route-cell measures how much defence a map *permits*. Cover measures how much one tower
+Buildable-per-route-cell measures how much defence a map *permits*. Cover measures how much one station
 *buys*. Wave design depends on the second, and until now nothing reported it.
 
 **No target band yet, deliberately.** Two maps is not a sample, and the honest next step is to measure
@@ -275,7 +275,7 @@ cover against runs-lost across several boards before drawing a line. Follow-up `
 
 > This is also the concrete form of the large-board problem. `MaxSpawnGoalDistance` caps boards at a
 > spawn-goal distance of 30 because the combat model was not tuned past it; cover is *why*. A board
-> twice as long does not just take longer, it gives every tower half the job.
+> twice as long does not just take longer, it gives every station half the job.
 
 ## Map targets
 
@@ -293,7 +293,7 @@ cover against runs-lost across several boards before drawing a line. Follow-up `
 The validator permits boards from 8×8 to 64×64. **The balance targets support a much smaller range
 than that, and the gap is now stated rather than discovered.**
 
-The 18–30 band is about **time under fire** — how many cells a creep is exposed for against tower
+The 18–30 band is about **time under fire** — how many cells a visitor is exposed for against station
 DPS — not about geometry. Scaling it with board size would keep the warning quiet on a 64×64 map
 while silently claiming a combat model that nothing has tested.
 
@@ -324,10 +324,10 @@ straight lane, which is worth reading next to its 4.0 density — and gauntlet i
 **Raising the cap is a balance question, not a constant.** It needs the sim run at that scale, with
 wave duration and DPS re-checked — `large-board-balance`.
 
-> **Buildable share is the wrong metric, and the enemy-roster pass proved it (2026-08-07).**
+> **Buildable share is the wrong metric, and the visitor-roster pass proved it (2026-08-07).**
 > `crossroads` is 42% buildable — comfortably inside the band — and still permits a defence of 55
-> towers against a 19-cell route. That is 4.0 buildable cells per route cell, and no enemy design
-> survives it: raising a creep's armour until arrow towers dealt the floor of 1 damage produced zero
+> stations against a 19-cell route. That is 4.0 buildable cells per route cell, and no visitor design
+> survives it: raising a visitor's fussiness until arrow stations dealt the floor of 1 damage produced zero
 > leaks in the late game.
 >
 > A map can pass every current target and still be unwinnable for the attacker. The proposed
@@ -344,28 +344,28 @@ wave duration and DPS re-checked — `large-board-balance`.
 > route-variability companion (`route-variance-metric`).
 > See [gauntlet's cliff](reports/2026-08-07-gauntlet-cliff-balance.md).
 >
-> **But density is not sufficient either** (2026-08-07). `gauntlet` cut tower count by 60% and came out
-> *easier*: a winding route raises coverage per tower, and gold that cannot buy breadth buys depth
-> instead — 1.8 upgrades per tower against 0.77. **Total defence tracks cumulative income, and
+> **But density is not sufficient either** (2026-08-07). `gauntlet` cut station count by 60% and came out
+> *easier*: a winding route raises coverage per station, and gold that cannot buy breadth buys depth
+> instead — 1.8 upgrades per station against 0.77. **Total defence tracks cumulative income, and
 > constraining one sink diverts gold to another.** Six passes have now confirmed that from six
 > directions. See [the tighter-map pass](reports/2026-08-07-gauntlet-tighter-map-balance.md).
 >
-> **Broken on purpose (2026-08-07).** The invariant held only because towers were permanent. With
-> destructible towers, `crossroads` builds 55.7 towers a run and finishes with **45.8** — the first
-> time in this project those two numbers have differed. `hpGrowth` fell 1.09 → 1.08 to pay for it.
-> See [destructible towers](reports/2026-08-07-tower-combat-balance.md).
+> **Broken on purpose (2026-08-07).** The invariant held only because stations were permanent. With
+> destructible stations, `crossroads` builds 55.7 stations a run and finishes with **45.8** — the first
+> time in this project those two numbers have differed. `appetiteGrowth` fell 1.09 → 1.08 to pay for it.
+> See [destructible stations](reports/2026-08-07-station-combat-balance.md).
 >
-> **And nearly restored by accident (2026-08-07).** `tower-repair` gave the player a way to undo that
-> damage, and at *every legal price* it drove towers lost per run to **0.0** — built and standing equal
+> **And nearly restored by accident (2026-08-07).** `station-repair` gave the player a way to undo that
+> damage, and at *every legal price* it drove stations lost per run to **0.0** — built and standing equal
 > again at 45.6, with both run-level targets still reading ok. Price was never the lever: repair is
-> bounded below half a tower's cost by the sell-and-rebuild alternative, and a tower costs 50–90 gold
+> bounded below half a station's cost by the sell-and-rebuild alternative, and a station costs 50–90 gold
 > against 6,479 earned. Restricting repair to **between waves** gives 5.8 lost per run.
-> See [tower repair](reports/2026-08-07-tower-repair-balance.md).
+> See [station repair](reports/2026-08-07-station-repair-balance.md).
 >
 > **And nearly restored a second time, by a different route (2026-08-07).** Selling refunded half of a
-> tower's *cost* regardless of damage, so cashing out a wreck paid the same as cashing out a pristine
-> tower. A player who sold every doomed tower took destructions from 5.8 to **0.0** — and `towers lost`
-> could not see it, because a sold tower is not a destroyed one. Refunds now scale with remaining
+> station's *cost* regardless of damage, so cashing out a wreck paid the same as cashing out a pristine
+> station. A player who sold every doomed station took destructions from 5.8 to **0.0** — and `stations lost`
+> could not see it, because a sold station is not a destroyed one. Refunds now scale with remaining
 > health. See [salvage value](reports/2026-08-07-salvage-value-balance.md).
 
 The first four are also `MapTargets` constants in code — read by the balance sim's map report and by the
@@ -381,7 +381,7 @@ Maximum mazing above 3× breaks wave timing: waves overlap in ways the tables we
 ## Difficulty slope, and the spread that explains it
 
 Two maps can hit identical balance numbers and fail completely differently. `gauntlet` flips from 0% of
-runs lost to 95% on a **0.005** change in `hpGrowth`; `crossroads` degrades across a range.
+runs lost to 95% on a **0.005** change in `appetiteGrowth`; `crossroads` degrades across a range.
 
 **Measured since 2026-08-07:** `balance` reports the standard deviation and range of lives left, not
 just the mean. That is the number that separates the two cases.
@@ -399,20 +399,20 @@ have caught it.
 spread means the map has one solution, and a map with one solution cannot be tuned — see
 [gauntlet's cliff](reports/2026-08-07-gauntlet-cliff-balance.md).
 
-Still proposed: sweep `hpGrowth` and report how sharply runs-lost changes (`difficulty-slope`).
+Still proposed: sweep `appetiteGrowth` and report how sharply runs-lost changes (`difficulty-slope`).
 
 ## A target is necessary, not sufficient
 
-`tower-combat` found a configuration that hit **both** run-level targets — leak 1.3%, runs lost 20% —
-and it was the wrong answer: at that tuning only ~5 towers died per run and the numbers were
-indistinguishable from the build with no destructible towers at all. The tuning had turned the new
+`station-combat` found a configuration that hit **both** run-level targets — leak 1.3%, runs lost 20% —
+and it was the wrong answer: at that tuning only ~5 stations died per run and the numbers were
+indistinguishable from the build with no destructible stations at all. The tuning had turned the new
 mechanic off while satisfying its metrics.
 
 **When a pass adds a mechanic, measure that the mechanic is still doing something.** The targets here
 describe a game that is fun to lose; they cannot tell you whether the thing you just built matters.
 
-`tower-repair` then found the converse, and it is the sharper half. Repair satisfied every target while
-driving tower destruction — the *previous* slice's entire result — to exactly zero. Nothing in this
+`station-repair` then found the converse, and it is the sharper half. Repair satisfied every target while
+driving station destruction — the *previous* slice's entire result — to exactly zero. Nothing in this
 document could see it, because the defence on the board came out the same either way.
 
 **Measure that the previous pass's mechanic is still doing something too.** A new mechanic can hit every
@@ -420,22 +420,22 @@ target while quietly deleting the one before it. `balance` prints the guard numb
 exactly this reason: the number that catches a deletion has to be on screen by default, because nobody
 thinks to go looking for it.
 
-Then `salvage-value` deleted the same mechanic again, past the guard. `towers lost` counts destructions,
-and a tower **sold** at 1 hp is not destroyed — so it read 0.0 while the same investment was just as
+Then `salvage-value` deleted the same mechanic again, past the guard. `stations lost` counts destructions,
+and a station **sold** at 1 hp is not destroyed — so it read 0.0 while the same investment was just as
 gone.
 
 | Pass | Failure the targets missed | Number added |
 |---|---|---|
-| `tower-combat` | Tuning that hit targets while the mechanic did nothing | towers built vs standing |
-| `tower-repair` | A new mechanic deleting the previous one | towers lost |
+| `station-combat` | Tuning that hit targets while the mechanic did nothing | stations built vs standing |
+| `station-repair` | A new mechanic deleting the previous one | stations lost |
 | `salvage-value` | The **same** deletion by a route that metric did not cover | **gold destroyed** |
 
 The lesson is not "add a metric per pass". Each of these was **too specific**, and the fix each time was
-to measure one level more abstractly — from tower counts, to destructions, to the gold those
+to measure one level more abstractly — from station counts, to destructions, to the gold those
 destructions represent.
 
-**`gold destroyed` is now the first number to check** when a pass touches towers. It counts
-unrecoverable investment whether the tower was destroyed or sold at a discount, which is what the
+**`gold destroyed` is now the first number to check** when a pass touches stations. It counts
+unrecoverable investment whether the station was destroyed or sold at a discount, which is what the
 invariant is actually about.
 
 ## Hard invariants

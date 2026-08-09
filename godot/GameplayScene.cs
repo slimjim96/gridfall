@@ -47,14 +47,14 @@ public sealed partial class GameplayScene : Node3D
     private UnitRenderer _units = null!;
     private RouteOverlay _routes = null!;
     private Hud _hud = null!;
-    private TowerBar _towerBar = null!;
+    private StationBar _stationBar = null!;
     private WaveCountdown _countdown = null!;
     private BoardSelect _boards = null!;
     private Camera3D _camera = null!;
     private CameraRig _rig = null!;
 
-    private ushort _selectedTower;
-    private string _selectedTowerName = "";
+    private ushort _selectedStation;
+    private string _selectedStationName = "";
 
     // --shot <path> [--shot-after N]: render N frames, capture, quit. This is how
     // the renderer gets verified without a human at the keyboard.
@@ -112,10 +112,10 @@ public sealed partial class GameplayScene : Node3D
 
         _driver = new SimDriver(map, content, seed: 1);
         // Set properly from the board's roster once the bar is built. Hardcoding
-        // "arrow-tower" here would start a board that does not offer it with a
+        // "arrow-station" here would start a board that does not offer it with a
         // selection the sim refuses on every click.
-        _selectedTower = 0;
-        _selectedTowerName = content.Tower(_selectedTower).Name;
+        _selectedStation = 0;
+        _selectedStationName = content.Station(_selectedStation).Name;
 
         BuildEnvironment();
 
@@ -150,9 +150,9 @@ public sealed partial class GameplayScene : Node3D
 
         // Both live inside the HUD's CanvasLayer so they scale and sort with the
         // rest of the overlay rather than needing a layer of their own.
-        _towerBar = new TowerBar();
-        _hud.AddChild(_towerBar);
-        _towerBar.Populate(map, content);
+        _stationBar = new StationBar();
+        _hud.AddChild(_stationBar);
+        _stationBar.Populate(map, content);
         SelectSlot(0);
 
         _countdown = new WaveCountdown();
@@ -175,7 +175,7 @@ public sealed partial class GameplayScene : Node3D
         // A finished run stops advancing. The sim reports the ending and does
         // not stop itself (EconomySystem) -- this is the caller that decides,
         // and until now there was not one: GameOver fired into nothing and the
-        // game kept playing at zero lives forever.
+        // game kept playing at zero patience forever.
         if (_shotPath is null && !_runEnded) _driver.Advance(dt);
         _world.RebuildIfChanged();
         _routes.RebuildLiveIfChanged();
@@ -200,10 +200,10 @@ public sealed partial class GameplayScene : Node3D
         // Priced by the sim's own function, never a second copy of the rule --
         // a HUD that quotes a different number than the one charged is worse
         // than no HUD.
-        int cost = _driver.SelectedTowerCost(_selectedTower);
-        bool premium = cost != _driver.Content.Tower(_selectedTower).Cost;
-        _hud.Refresh(_driver.State, _selectedTowerName, cost, premium, dt);
-        _towerBar.Refresh(_driver.State, _selectedTower, _driver.SelectedTowerCost, premium);
+        int cost = _driver.SelectedStationCost(_selectedStation);
+        bool premium = cost != _driver.Content.Station(_selectedStation).Cost;
+        _hud.Refresh(_driver.State, _selectedStationName, cost, premium, dt);
+        _stationBar.Refresh(_driver.State, _selectedStation, _driver.SelectedStationCost, premium);
 
         // The window the CURRENT wave was armed with -- the ring's denominator.
         // Read from the wave def rather than remembered, so calling a wave early
@@ -236,7 +236,7 @@ public sealed partial class GameplayScene : Node3D
         // Straight into the next choice. A run that ends on a dead screen is
         // the same dead time the prep window was added to remove.
         _boards.Open(_repoRoot,
-            won ? $"RUN COMPLETE  --  {_mapId}, {_driver.State.Lives} lives left"
+            won ? $"RUN COMPLETE  --  {_mapId}, {_driver.State.Patience} patience left"
                 : $"OVERRUN  --  {_mapId}, cleared {_driver.State.WaveIndex - 1} of {_driver.Content.Waves.Length} waves");
     }
 
@@ -262,9 +262,9 @@ public sealed partial class GameplayScene : Node3D
             switch (key.Keycode)
             {
                 case Key.Space: _driver.Enqueue(new StartWaveCommand()); break;
-                // Slots, not tower ids: the number key selects the nth thing the
+                // Slots, not station ids: the number key selects the nth thing the
                 // board offers, so a roster of one has no dead 2 key and a roster
-                // that omits the arrow tower still starts at 1.
+                // that omits the arrow station still starts at 1.
                 case >= Key.Key1 and <= Key.Key9:
                     SelectSlot((int)(key.Keycode - Key.Key1));
                     break;
@@ -285,47 +285,47 @@ public sealed partial class GameplayScene : Node3D
         // not assume it will succeed -- the refusal arrives as an event.
         if (click.ButtonIndex == MouseButton.Left)
         {
-            _driver.Enqueue(new BuildCommand(cell, _selectedTower));
+            _driver.Enqueue(new BuildCommand(cell, _selectedStation));
         }
         else if (click.ButtonIndex == MouseButton.Right)
         {
-            if (TowerSlotAt(cell) is { } slot)
-                _driver.Enqueue(new SellCommand(_driver.State.TowerId(slot)));
+            if (StationSlotAt(cell) is { } slot)
+                _driver.Enqueue(new SellCommand(_driver.State.StationId(slot)));
         }
         else if (click.ButtonIndex == MouseButton.Middle)
         {
-            if (TowerSlotAt(cell) is { } slot)
-                _driver.Enqueue(new RepairCommand(_driver.State.TowerId(slot)));
+            if (StationSlotAt(cell) is { } slot)
+                _driver.Enqueue(new RepairCommand(_driver.State.StationId(slot)));
         }
     }
 
     /// <summary>
-    /// The repair offer for the tower under the cursor, or null if there is
+    /// The repair offer for the station under the cursor, or null if there is
     /// nothing to offer.
     ///
-    /// Calls TowerDef.RepairCostFor rather than reimplementing the curve: a
+    /// Calls StationDef.RepairCostFor rather than reimplementing the curve: a
     /// second copy of the cost formula in the view is a divergence waiting to
     /// happen, and this one would be the copy the player reads.
     /// </summary>
     private string? RepairPromptFor(GridCell cell)
     {
-        if (TowerSlotAt(cell) is not { } slot) return null;
+        if (StationSlotAt(cell) is not { } slot) return null;
 
         SimStateView state = _driver.State;
-        TowerDef def = _driver.Content.Tower(state.TowerDefIndex(slot));
-        int level = state.TowerLevel(slot);
-        int hp = state.TowerHp(slot);
-        int missing = def.Hp - hp;
+        StationDef def = _driver.Content.Station(state.StationDefIndex(slot));
+        int level = state.StationLevel(slot);
+        int hp = state.StationStock(slot);
+        int missing = def.Stock - hp;
 
         // Selling was the one command in the game whose price was never shown
-        // before the click -- and now that the price MOVES with damage, hiding it
+        // before the click -- and now that the price MOVES with serving, hiding it
         // means the player cannot tell a repair from a write-off (pillar 2).
         int sell = def.SalvageValueAt(level, hp);
         string sellPart = $"sell {sell} (right click)";
 
         if (missing <= 0) return $"{def.Name}  --  {sellPart}";
 
-        int percent = 100 * hp / def.Hp;
+        int percent = 100 * hp / def.Stock;
 
         // Naming the rule where the player meets it, rather than only in a
         // refusal after they have already clicked.
@@ -336,29 +336,29 @@ public sealed partial class GameplayScene : Node3D
         return $"{def.Name} at {percent}%  --  {repairPart}  ·  {sellPart}";
     }
 
-    /// <summary>The slot of the tower standing on a cell, or null.</summary>
-    private int? TowerSlotAt(GridCell cell)
+    /// <summary>The slot of the station standing on a cell, or null.</summary>
+    private int? StationSlotAt(GridCell cell)
     {
         int index = _driver.Map.Index(cell);
         SimStateView state = _driver.State;
-        for (int k = 0; k < state.TowerCount; k++)
+        for (int k = 0; k < state.StationCount; k++)
         {
-            int slot = state.TowerSlotByOrder(k);
-            if (state.TowerCellIndex(slot) == index) return slot;
+            int slot = state.StationSlotByOrder(k);
+            if (state.StationCellIndex(slot) == index) return slot;
         }
         return null;
     }
 
     /// <summary>
-    /// Select the nth tower this board offers. Out-of-range is ignored rather
-    /// than clamped: pressing 3 on a two-tower board should do nothing, not
+    /// Select the nth station this board offers. Out-of-range is ignored rather
+    /// than clamped: pressing 3 on a two-station board should do nothing, not
     /// quietly select the cannon.
     /// </summary>
     private void SelectSlot(int slot)
     {
-        if (slot < 0 || slot >= _towerBar.Order.Count) return;
-        _selectedTower = _towerBar.Order[slot];
-        _selectedTowerName = _driver.Content.Tower(_selectedTower).Name;
+        if (slot < 0 || slot >= _stationBar.Order.Count) return;
+        _selectedStation = _stationBar.Order[slot];
+        _selectedStationName = _driver.Content.Station(_selectedStation).Name;
     }
 
     private void UpdateHover()
@@ -368,7 +368,7 @@ public sealed partial class GameplayScene : Node3D
         // shows the live route only and the preview goes unverified.
         if (_shotPath is not null)
         {
-            // A seed that makes a claim about a hovered tower sets the cell; the
+            // A seed that makes a claim about a hovered station sets the cell; the
             // rest hover a cell squarely on the lane, where a build forces a
             // visible detour.
             GridCell hovered = _shotHoverCell ?? new GridCell(10, 4);
@@ -407,14 +407,14 @@ public sealed partial class GameplayScene : Node3D
     }
 
     /// <summary>
-    /// The selected tower's reach in cells, at the level it would be built —
-    /// level 1, since a placement is always a fresh tower.
+    /// The selected station's reach in cells, at the level it would be built —
+    /// level 1, since a placement is always a fresh station.
     ///
-    /// Read off TowerDef.Range, the same value TargetingSystem compares against,
-    /// so the ring cannot promise a reach the tower does not have.
+    /// Read off StationDef.Range, the same value TargetingSystem compares against,
+    /// so the ring cannot promise a reach the station does not have.
     /// </summary>
     private float SelectedRangeCells()
-        => _driver.Content.Tower(_selectedTower).Range.ToFloat();
+        => _driver.Content.Station(_selectedStation).Range.ToFloat();
 
     private void BuildEnvironment()
     {
@@ -455,12 +455,12 @@ public sealed partial class GameplayScene : Node3D
     }
 
     /// <summary>
-    /// Put something worth looking at on the board: a few towers and a running
+    /// Put something worth looking at on the board: a few stations and a running
     /// wave, stepped deterministically rather than by wall clock so the capture
     /// is the same frame every time.
     /// </summary>
     /// <summary>
-    /// The prep window, partly spent, with a tower or two already up.
+    /// The prep window, partly spent, with a station or two already up.
     ///
     /// Its own seed because the default one starts a wave immediately and the
     /// countdown is only ever on screen when a wave is NOT running -- the two
@@ -473,7 +473,7 @@ public sealed partial class GameplayScene : Node3D
     /// </summary>
     private void SeedCountdown()
     {
-        ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
+        ushort arrow = _driver.Content.StationIndexOf("arrow-station");
         _driver.Enqueue(new BuildCommand(new GridCell(2, 3), arrow));
         _driver.StepOneTick();
         _driver.Enqueue(new BuildCommand(new GridCell(6, 5), arrow));
@@ -495,16 +495,16 @@ public sealed partial class GameplayScene : Node3D
         if (_shotSeed == "formats") { SeedFormats(); return; }
         if (_shotSeed == "countdown") { SeedCountdown(); return; }
 
-        ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
+        ushort arrow = _driver.Content.StationIndexOf("arrow-station");
 
         // Budgeted deliberately. Starting gold is 200 and a level-2 upgrade costs
-        // 110, so the first attempt at this seed built three towers, had 18 gold
+        // 110, so the first attempt at this seed built three stations, had 18 gold
         // left, and the upgrades were correctly refused -- producing a capture
         // that showed no level cue at all and "verified" nothing.
         _driver.Enqueue(new BuildCommand(new GridCell(2, 3), arrow));   // 200 -> 150
         _driver.StepOneTick();
 
-        int upgraded = _driver.State.TowerId(_driver.State.TowerSlotByOrder(0));
+        int upgraded = _driver.State.StationId(_driver.State.StationSlotByOrder(0));
         _driver.Enqueue(new UpgradeCommand(upgraded));                   // 150 -> 40
         _driver.StepOneTick();   // apply it before reading gold: a command queued
                                  // is not a command applied, and checking too
@@ -523,34 +523,34 @@ public sealed partial class GameplayScene : Node3D
         for (int t = 0; t < 30; t++) _driver.StepOneTick();
 
         var levels = new System.Text.StringBuilder();
-        for (int k = 0; k < _driver.State.TowerCount; k++)
+        for (int k = 0; k < _driver.State.StationCount; k++)
         {
-            int slot = _driver.State.TowerSlotByOrder(k);
-            levels.Append($" t{_driver.State.TowerId(slot)}=L{_driver.State.TowerLevel(slot)}");
+            int slot = _driver.State.StationSlotByOrder(k);
+            levels.Append($" t{_driver.State.StationId(slot)}=L{_driver.State.StationLevel(slot)}");
         }
 
         GD.Print($"shot-state: tick={_driver.TickCount} hash={_driver.Sim.Hash():x16} " +
-                 $"gold={_driver.State.Gold} lives={_driver.State.Lives} " +
-                 $"creeps={_driver.State.CreepCount} towers={_driver.State.TowerCount}" +
+                 $"gold={_driver.State.Gold} patience={_driver.State.Patience} " +
+                 $"visitors={_driver.State.VisitorCount} stations={_driver.State.StationCount}" +
                  $" levels:{levels}");
     }
 
     /// <summary>
-    /// Both asset formats on the board at once, with creeps walking behind them.
+    /// Both asset formats on the board at once, with visitors walking behind them.
     ///
-    /// `arrow-tower` resolves to a SpriteUnitView and `cannon` to a MeshUnitView
+    /// `arrow-station` resolves to a SpriteUnitView and `cannon` to a MeshUnitView
     /// (see presentation/units/), so one frame checks both halves of ADR-0004.
     ///
     /// The claim being checked is **occlusion**, which is the property the whole
-    /// format question turns on. Towers go on row 5 and creeps walk row 4:
+    /// format question turns on. Stations go on row 5 and visitors walk row 4:
     /// the camera sits at +X+Z, so a larger grid `x + y` is nearer, which puts
-    /// row 5 in FRONT of row 4. If either view fails to write depth, its creeps
+    /// row 5 in FRONT of row 4. If either view fails to write depth, its visitors
     /// show through it and the frame says so immediately.
     /// </summary>
     private void SeedFormats()
     {
-        ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
-        ushort cannon = _driver.Content.TowerIndexOf("cannon");
+        ushort arrow = _driver.Content.StationIndexOf("arrow-station");
+        ushort cannon = _driver.Content.StationIndexOf("cannon");
 
         _driver.Enqueue(new BuildCommand(new GridCell(9, 5), arrow));     // 300 -> 250
         _driver.StepOneTick();
@@ -560,24 +560,24 @@ public sealed partial class GameplayScene : Node3D
         _driver.Enqueue(new StartWaveCommand());
 
         // Freeze on the board STATE, not on a guessed tick count. A frame taken
-        // while the creeps are still at the spawn would show two towers occluding
+        // while the visitors are still at the spawn would show two stations occluding
         // nothing and would have verified precisely nothing.
         int waited = 0;
-        while (waited < 4000 && !CreepIsBehindTheTowers()) { _driver.StepOneTick(); waited++; }
+        while (waited < 4000 && !VisitorIsBehindTheStations()) { _driver.StepOneTick(); waited++; }
 
         GD.Print($"shot-state: tick={_driver.TickCount} hash={_driver.Sim.Hash():x16} " +
-                 $"gold={_driver.State.Gold} creeps={_driver.State.CreepCount} " +
-                 $"towers={_driver.State.TowerCount} waited={waited} " +
-                 $"occluded={CreepIsBehindTheTowers()}");
+                 $"gold={_driver.State.Gold} visitors={_driver.State.VisitorCount} " +
+                 $"stations={_driver.State.StationCount} waited={waited} " +
+                 $"occluded={VisitorIsBehindTheStations()}");
     }
 
-    /// <summary>A creep on the lane directly behind the two seeded towers.</summary>
-    private bool CreepIsBehindTheTowers()
+    /// <summary>A visitor on the lane directly behind the two seeded stations.</summary>
+    private bool VisitorIsBehindTheStations()
     {
-        for (int k = 0; k < _driver.State.CreepCount; k++)
+        for (int k = 0; k < _driver.State.VisitorCount; k++)
         {
-            int slot = _driver.State.CreepSlotByOrder(k);
-            int index = _driver.State.CreepCellIndex(slot);
+            int slot = _driver.State.VisitorSlotByOrder(k);
+            int index = _driver.State.VisitorCellIndex(slot);
             int x = index % _driver.Map.Width;
             int y = index / _driver.Map.Width;
             if (y == 4 && x is >= 9 and <= 11) return true;
@@ -587,7 +587,7 @@ public sealed partial class GameplayScene : Node3D
 
     /// <summary>
     /// Runs to the first wave that contains sappers and freezes with at least
-    /// one of them on the board beside a damaged tower.
+    /// one of them on the board beside a depleted station.
     ///
     /// Sappers first appear at wave 5, so unlike the upgrade seed this one has
     /// to actually play the game to get there. Everything is stepped through
@@ -595,18 +595,18 @@ public sealed partial class GameplayScene : Node3D
     /// </summary>
     private void SeedSappers()
     {
-        ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
-        ushort sapper = _driver.Content.EnemyIndexOf("sapper");
+        ushort arrow = _driver.Content.StationIndexOf("arrow-station");
+        ushort sapper = _driver.Content.VisitorIndexOf("sapper");
 
         // Build across the board as gold allows. One cursor over the list, never
         // than parked in a corner. One cursor over the list, never revisited: the
         // first version re-offered cells it had already built on, so every build
         // after the sixth was refused and the run was lost before wave 5.
-        int cost = _driver.Content.Tower(arrow).Cost;
+        int cost = _driver.Content.Station(arrow).Cost;
 
         // Cells the sim has refused. Without this the seed livelocks: the first
         // legal-looking cell is offered, the seal check refuses it, and the same
-        // cell is offered again next tick forever -- two towers built while
+        // cell is offered again next tick forever -- two stations built while
         // holding 248 gold.
         var refused = new HashSet<int>();
         int pending = -1;
@@ -615,7 +615,7 @@ public sealed partial class GameplayScene : Node3D
         {
             // Recomputed rather than cached: every build can move the route, so
             // a list taken once goes stale and starts naming cells nowhere near
-            // where the creeps now walk.
+            // where the visitors now walk.
             // Between waves only. That is the fix AND it keeps the cost simple:
             // no mid-wave premium ever applies, so def.Cost is the real price.
             bool between = !_driver.State.WaveActive;
@@ -631,10 +631,10 @@ public sealed partial class GameplayScene : Node3D
             // Spend first, THEN call the wave -- the order PlayPolicy uses.
             //
             // This loop used to start the wave on the tick it went inactive and
-            // build afterwards, so every tower was bought mid-wave. Harmless
+            // build afterwards, so every station was bought mid-wave. Harmless
             // while building cost the same either way; the moment
             // midWaveBuildPercent existed, the seed paid the premium on all 28
-            // towers, could afford 5, and finished the capture at 0 lives. A
+            // stations, could afford 5, and finished the capture at 0 patience. A
             // verification seed must not model the one playstyle the economy is
             // designed to discourage.
             if (between && !built && pending < 0)
@@ -648,31 +648,31 @@ public sealed partial class GameplayScene : Node3D
                 if (e.Kind is EventKind.BuildRejected or EventKind.BuildPlaced) pending = -1;
             }
 
-            // Wait for real damage, not the first scratch. One 22-point hit on
-            // an 800-hp tower is a 3% tint shift -- a capture taken there would
+            // Wait for real serving, not the first scratch. One 22-point hit on
+            // an 800-hp station is a 3% tint shift -- a capture taken there would
             // "verify" a cue nobody could see.
-            if (SapperOnBoard(sapper) && AWoundedTowerExists(0.3f)) break;
+            if (SapperOnBoard(sapper) && AWoundedStationExists(0.3f)) break;
         }
 
         int wounded = 0, sappers = 0;
-        for (int k = 0; k < _driver.State.TowerCount; k++)
+        for (int k = 0; k < _driver.State.StationCount; k++)
         {
-            int slot = _driver.State.TowerSlotByOrder(k);
-            if (_driver.State.TowerHp(slot) < _driver.Content.Tower(_driver.State.TowerDefIndex(slot)).Hp)
+            int slot = _driver.State.StationSlotByOrder(k);
+            if (_driver.State.StationStock(slot) < _driver.Content.Station(_driver.State.StationDefIndex(slot)).Stock)
                 wounded++;
         }
-        for (int k = 0; k < _driver.State.CreepCount; k++)
-            if (_driver.State.CreepDefIndex(_driver.State.CreepSlotByOrder(k)) == sapper) sappers++;
+        for (int k = 0; k < _driver.State.VisitorCount; k++)
+            if (_driver.State.VisitorDefIndex(_driver.State.VisitorSlotByOrder(k)) == sapper) sappers++;
 
-        // Where the worst-hurt tower is on screen, so a verification crop can be
+        // Where the worst-hurt station is on screen, so a verification crop can be
         // aimed at the cue instead of hunting for it.
         int worstSlot = -1;
         float worst = 2f;
-        for (int k = 0; k < _driver.State.TowerCount; k++)
+        for (int k = 0; k < _driver.State.StationCount; k++)
         {
-            int slot = _driver.State.TowerSlotByOrder(k);
-            float f = (float)_driver.State.TowerHp(slot)
-                      / _driver.Content.Tower(_driver.State.TowerDefIndex(slot)).Hp;
+            int slot = _driver.State.StationSlotByOrder(k);
+            float f = (float)_driver.State.StationStock(slot)
+                      / _driver.Content.Station(_driver.State.StationDefIndex(slot)).Stock;
             if (f >= worst) continue;
             worst = f;
             worstSlot = slot;
@@ -681,7 +681,7 @@ public sealed partial class GameplayScene : Node3D
         string worstAt = "none";
         if (worstSlot >= 0)
         {
-            int c = _driver.State.TowerCellIndex(worstSlot);
+            int c = _driver.State.StationCellIndex(worstSlot);
             Vector3 world = IsoGrid.CellCentre(c % _driver.Map.Width, c / _driver.Map.Width);
             Vector2 screen = _camera.UnprojectPosition(world);
             worstAt = $"cell({c % _driver.Map.Width},{c / _driver.Map.Width}) " +
@@ -690,14 +690,14 @@ public sealed partial class GameplayScene : Node3D
 
         GD.Print($"shot-state: tick={_driver.TickCount} hash={_driver.Sim.Hash():x16} " +
                  $"wave={_driver.State.WaveIndex} gold={_driver.State.Gold} " +
-                 $"lives={_driver.State.Lives} creeps={_driver.State.CreepCount} " +
-                 $"towers={_driver.State.TowerCount} sappers={sappers} wounded={wounded}");
+                 $"patience={_driver.State.Patience} visitors={_driver.State.VisitorCount} " +
+                 $"stations={_driver.State.StationCount} sappers={sappers} wounded={wounded}");
         GD.Print($"shot-worst: {worstAt}");
     }
 
     /// <summary>
-    /// Freezes BETWEEN waves with a damaged tower under the cursor, so the
-    /// capture shows the repair offer rather than the damage alone.
+    /// Freezes BETWEEN waves with a depleted station under the cursor, so the
+    /// capture shows the repair offer rather than the serving alone.
     ///
     /// Between waves is not incidental framing: repair is refused while a wave
     /// runs, so a capture taken mid-wave would show the rule's refusal text and
@@ -705,9 +705,9 @@ public sealed partial class GameplayScene : Node3D
     /// </summary>
     private void SeedRepair()
     {
-        ushort arrow = _driver.Content.TowerIndexOf("arrow-tower");
-        ushort sapper = _driver.Content.EnemyIndexOf("sapper");
-        int cost = _driver.Content.Tower(arrow).Cost;
+        ushort arrow = _driver.Content.StationIndexOf("arrow-station");
+        ushort sapper = _driver.Content.VisitorIndexOf("sapper");
+        int cost = _driver.Content.Station(arrow).Cost;
 
         var refused = new HashSet<int>();
         int pending = -1;
@@ -715,15 +715,15 @@ public sealed partial class GameplayScene : Node3D
 
         for (int t = 0; t < 20_000; t++)
         {
-            // Stop pulling waves once a tower is hurt enough to be worth showing:
+            // Stop pulling waves once a station is hurt enough to be worth showing:
             // the shot has to land in the gap between waves, and the only way to
             // reach that gap is to stop asking for the next one.
-            bool holding = sappersSeen && AWoundedTowerExists(0.6f);
+            bool holding = sappersSeen && AWoundedStationExists(0.6f);
 
             // Between waves only, and spend before calling the next one -- same
-            // fix and same reason as SeedSappers: a seed that buys its towers
+            // fix and same reason as SeedSappers: a seed that buys its stations
             // mid-wave pays midWaveBuildPercent on every one and finishes the
-            // capture overrun at 5 towers instead of 28.
+            // capture overrun at 5 stations instead of 28.
             bool between = !_driver.State.WaveActive;
             bool built = false;
 
@@ -748,17 +748,17 @@ public sealed partial class GameplayScene : Node3D
 
             if (SapperOnBoard(sapper)) sappersSeen = true;
 
-            // The frame we want: hurt tower, no wave running, board still alive.
-            if (holding && !_driver.State.WaveActive && _driver.State.CreepCount == 0) break;
+            // The frame we want: hurt station, no wave running, board still alive.
+            if (holding && !_driver.State.WaveActive && _driver.State.VisitorCount == 0) break;
         }
 
         int worstSlot = -1;
         float worst = 2f;
-        for (int k = 0; k < _driver.State.TowerCount; k++)
+        for (int k = 0; k < _driver.State.StationCount; k++)
         {
-            int slot = _driver.State.TowerSlotByOrder(k);
-            float f = (float)_driver.State.TowerHp(slot)
-                      / _driver.Content.Tower(_driver.State.TowerDefIndex(slot)).Hp;
+            int slot = _driver.State.StationSlotByOrder(k);
+            float f = (float)_driver.State.StationStock(slot)
+                      / _driver.Content.Station(_driver.State.StationDefIndex(slot)).Stock;
             if (f >= worst) continue;
             worst = f;
             worstSlot = slot;
@@ -767,15 +767,15 @@ public sealed partial class GameplayScene : Node3D
         string prompt = "none";
         if (worstSlot >= 0)
         {
-            int c = _driver.State.TowerCellIndex(worstSlot);
+            int c = _driver.State.StationCellIndex(worstSlot);
             _shotHoverCell = new GridCell(c % _driver.Map.Width, c / _driver.Map.Width);
             prompt = RepairPromptFor(_shotHoverCell.Value) ?? "none";
         }
 
         GD.Print($"shot-state: tick={_driver.TickCount} hash={_driver.Sim.Hash():x16} " +
                  $"wave={_driver.State.WaveIndex} waveActive={_driver.State.WaveActive} " +
-                 $"gold={_driver.State.Gold} lives={_driver.State.Lives} " +
-                 $"towers={_driver.State.TowerCount} worstHp={worst:P0}");
+                 $"gold={_driver.State.Gold} patience={_driver.State.Patience} " +
+                 $"stations={_driver.State.StationCount} worstAppetite={worst:P0}");
         GD.Print($"shot-prompt: {prompt}");
     }
 
@@ -783,8 +783,8 @@ public sealed partial class GameplayScene : Node3D
     private bool TryNextPlacement(HashSet<int> refused, out GridCell cell)
     {
         var taken = new HashSet<int>();
-        for (int k = 0; k < _driver.State.TowerCount; k++)
-            taken.Add(_driver.State.TowerCellIndex(_driver.State.TowerSlotByOrder(k)));
+        for (int k = 0; k < _driver.State.StationCount; k++)
+            taken.Add(_driver.State.StationCellIndex(_driver.State.StationSlotByOrder(k)));
 
         foreach (GridCell candidate in BuildableBesideRoute())
         {
@@ -801,31 +801,31 @@ public sealed partial class GameplayScene : Node3D
 
     private bool SapperOnBoard(ushort sapper)
     {
-        for (int k = 0; k < _driver.State.CreepCount; k++)
-            if (_driver.State.CreepDefIndex(_driver.State.CreepSlotByOrder(k)) == sapper) return true;
+        for (int k = 0; k < _driver.State.VisitorCount; k++)
+            if (_driver.State.VisitorDefIndex(_driver.State.VisitorSlotByOrder(k)) == sapper) return true;
         return false;
     }
 
-    private bool AWoundedTowerExists(float below)
+    private bool AWoundedStationExists(float below)
     {
-        for (int k = 0; k < _driver.State.TowerCount; k++)
+        for (int k = 0; k < _driver.State.StationCount; k++)
         {
-            int slot = _driver.State.TowerSlotByOrder(k);
-            int full = _driver.Content.Tower(_driver.State.TowerDefIndex(slot)).Hp;
-            if (_driver.State.TowerHp(slot) < full * below) return true;
+            int slot = _driver.State.StationSlotByOrder(k);
+            int full = _driver.Content.Station(_driver.State.StationDefIndex(slot)).Stock;
+            if (_driver.State.StationStock(slot) < full * below) return true;
         }
         return false;
     }
 
     /// <summary>
-    /// Buildable cells beside the route the creeps actually walk, nearest the
+    /// Buildable cells beside the route the visitors actually walk, nearest the
     /// spawn first. Coverage placement, the same idea the balance policy uses.
     ///
     /// It has to come from the flow field, not the terrain. crossroads is a
     /// mazing map: the route runs over buildable cells, so "adjacent to a
     /// PathOnly cell" found nine placements. Building in plain index order was
     /// no better -- it filled a far corner, killed nothing, earned no bounty,
-    /// and the seeded run was dead by wave 12 with nine towers both times.
+    /// and the seeded run was dead by wave 12 with nine stations both times.
     /// </summary>
     private List<GridCell> BuildableBesideRoute()
     {

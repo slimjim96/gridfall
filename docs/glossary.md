@@ -2,23 +2,23 @@
 
 Stable reference. Load it when a term in a spec is doing work you can't pin down.
 
-## Tower defense domain
+## Station defense domain
 
 | Term | Meaning in Gridfall |
 |---|---|
-| **Creep** | A single enemy unit walking the grid. Sim-side it is an index into entity arrays, not an object. |
-| **Wave** | One scripted group of creeps, defined by a wave table entry. Waves are numbered from 1. |
-| **Leak** | A creep reaching the goal. Leaks cost lives. **Leak rate** is leaks ÷ creeps spawned. |
+| **Visitor** | A single visitor unit walking the grid. Sim-side it is an index into entity arrays, not an object. |
+| **Wave** | One scripted group of visitors, defined by a wave table entry. Waves are numbered from 1. |
+| **Leak** | A visitor reaching the goal. Leaks cost lives. **Leak rate** is leaks ÷ visitors spawned. |
 | **Lane** | A spawn→goal corridor. A map may have several; they can merge. |
-| **Maze / mazing** | Placing towers to lengthen the path rather than to block it. Gridfall supports it — see the never-fully-blockable rule. |
+| **Maze / mazing** | Placing stations to lengthen the path rather than to block it. Gridfall supports it — see the never-fully-blockable rule. |
 | **Dirty grid** | The walkable grid changed this tick, so pathing must recompute. The only trigger for a recompute. |
-| **Flow field** | One pass over the whole grid producing a per-cell "step this way" direction. Replaces per-creep A*. See ADR-0003. |
-| **Acquisition** | Choosing a target for the tick — a tower picking a creep, or a sapper picking a tower. Deterministic: fixed priority rule, ties broken by entity id. |
-| **Structure health** | A tower's `hp`. Towers are destructible; at zero the tower is removed and its cell frees. Large relative to per-hit damage because it is measured against cumulative attack throughput, not one hit. |
-| **Sapper** | The archetype that attacks towers while walking. Shorthand for any enemy with `attackDamage > 0`; `0` is the default, so every other enemy ignores towers. |
-| **Attrition** | Defence lost to destruction rather than spent. The reason *towers built* and *towers standing* are now different numbers. |
+| **Flow field** | One pass over the whole grid producing a per-cell "step this way" direction. Replaces per-visitor A*. See ADR-0003. |
+| **Acquisition** | Choosing a target for the tick — a station picking a visitor, or a sapper picking a station. Deterministic: fixed priority rule, ties broken by entity id. |
+| **Structure health** | A station's `hp`. Stations are destructible; at zero the station is removed and its cell frees. Large relative to per-hit damage because it is measured against cumulative attack throughput, not one hit. |
+| **Sapper** | The archetype that attacks stations while walking. Shorthand for any visitor with `attackDamage > 0`; `0` is the default, so every other visitor ignores stations. |
+| **Attrition** | Defence lost to destruction rather than spent. The reason *stations built* and *stations standing* are now different numbers. |
 | **Gold curve** | Gold held over time across a run. A balance target, not a knob. |
-| **Time-to-clear** | Ticks from wave start to the last creep of that wave dying or leaking. |
+| **Time-to-clear** | Ticks from wave start to the last visitor of that wave dying or leaking. |
 | **Pressure** | How hard a wave pushes the player's current defense. Design language, measured by leak rate in the sim. |
 | **Slice** | One unit of work moving through the production pipeline. The thing a slug names. |
 
@@ -33,12 +33,12 @@ Stable reference. Load it when a term in a spec is doing work you can't pin down
 | **Trace** | A recorded command stream plus the per-tick hashes it produced. The determinism harness replays these. |
 | **`Fix32`** | Q16.16 fixed-point. All sim arithmetic. |
 | **`SimRandom`** | The seeded PRNG. The only randomness Core may use, advanced only inside the tick loop. |
-| **`SimEvent`** | An ordered, tick-stamped fact the view can react to ("creep died", "build rejected"). |
+| **`SimEvent`** | An ordered, tick-stamped fact the view can react to ("visitor died", "build rejected"). |
 | **Command** | Player intent queued into the sim, applied at phase 1 of the next tick. |
 | **`SimStateView`** | The read-only façade the renderer gets. No setter, no arrays out — the Core/View boundary as a compile-time fact. |
 | **`MutableState`** | The writable state, `internal` to Core, visible only to the test suite and the harness. Never to the view. |
 | **`TraceRoute`** | Walks the flow field from a cell to the goal into a caller-provided span. Drives the route overlay. |
-| **`hpGrowth`** | Per-wave HP multiplier, compounded at load. Without it later waves cannot be harder. |
+| **`appetiteGrowth`** | Per-wave HP multiplier, compounded at load. Without it later waves cannot be harder. |
 | **`MapDraft` / `MapValidator`** | The mutable map being edited, and the single verdict on whether a map is legal — shared by the editor and the loader. |
 | **Play policy** | The scripted "competent beginner" that drives the balance sim. Its numbers are a floor on difficulty, not a verdict. |
 | **Phase** | One of the nine ordered steps inside a tick. Knowing yours is most of knowing you're correct. |

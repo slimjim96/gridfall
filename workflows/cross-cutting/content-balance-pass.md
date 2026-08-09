@@ -5,20 +5,20 @@
 
 ## Fires when
 
-Any number changes: a tower stat, an enemy stat, a wave composition, a map layout, an economy value.
+Any number changes: a station stat, an visitor stat, a wave composition, a map layout, an economy value.
 Also fires when a slice ships a new knob with no default.
 
 ## Load
 
 - `content-data/docs/balance-targets.md`
 - The one data file being changed
-- The two nearest-neighbor definitions (the towers/enemies this one competes with)
+- The two nearest-neighbor definitions (the stations/visitors this one competes with)
 - The last balance report for this map
 - The design spec's tuning-knob table, for the *intent*
 
 ## Never load
 
-`engine-systems/**` · `presentation/**` · the full catalogue of towers and enemies · any code
+`engine-systems/**` · `presentation/**` · the full catalogue of stations and visitors · any code
 
 ## Steps
 
@@ -85,7 +85,7 @@ and the data file is already live.
 - **Tuning by feel.** The sim costs seconds. Run it.
 - **Moving two knobs.** You will learn nothing and believe you learned something.
 - **Changing the seed between before and after.** Then you measured noise.
-- **A new field instead of a new rule.** If the tower needs behavior it does not have, that is
+- **A new field instead of a new rule.** If the station needs behavior it does not have, that is
   `engine-systems`. Data describes; it does not decide.
 - **Skipping the map invariants.** A map that can be fully blocked is a soft-locked game, and it will
   not show up in leak rate — it shows up as a run that never ends.

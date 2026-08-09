@@ -2,8 +2,10 @@
 
 ## What This Is
 
-**Gridfall** is an isometric tower defense game built with **Godot 4 + C#**. Creeps walk a grid toward
-your line; you place towers on it; the towers change the paths.
+**Gridfall** is an isometric grid game built with **Godot 4 + C#**. Visitors walk a grid toward your line
+carrying a need; you place stations on it that fill the need; the stations change the paths. Genre-wise
+it is lane defence — the vocabulary is deliberately not
+([fulfilment-direction.md](game-design/docs/fulfilment-direction.md), accepted 2026-08-09).
 
 Two rules define the codebase and everything downstream of it:
 
@@ -22,7 +24,7 @@ gridfall/
 ├── Gridfall.Core/           ← the simulation. No Godot, no floats, no clock
 ├── Gridfall.Io/             ← reads content-data/; Core never touches disk
 ├── Gridfall.Verify/         ← net10.0 · determinism harness, balance sim, map/perf reports
-├── Gridfall.Tests/          ← net10.0 · 200 tests
+├── Gridfall.Tests/          ← net10.0 · 212 tests
 ├── godot/                   ← Godot 4.6.3 · renderer, HUD, Dev/BoardEditor
 │
 │   ── the workspaces ──
@@ -30,7 +32,7 @@ gridfall/
 ├── workflows/               ← the runnable procedures (start at workflows/README.md)
 ├── game-design/             ← requirements, pillars, feature design
 ├── engine-systems/          ← simulation architecture + ADRs 0001–0007
-├── content-data/            ← tower/enemy/wave/map data, balance targets, balance reports
+├── content-data/            ← station/visitor/wave/map data, balance targets, balance reports
 ├── presentation/            ← iso view, HUD, placeholders, tiles/, prompts/ for Ludo.ai
 ├── tooling/                 ← board editor spec + headless CLIs
 └── production/              ← the pipeline: 01-requirements/ … 06-release/
@@ -55,7 +57,7 @@ gridfall/
 | Know what a term means | `docs/glossary.md` |
 | Know how grid coords become screen coords | `docs/iso-grid.md` |
 | Add board tiles, or change how one looks | `presentation/tiles/README.md` |
-| Add final tower or creep art | `presentation/units/README.md` |
+| Add final station or visitor art | `presentation/units/README.md` |
 | Know where the product is heading | `game-design/docs/board-themes-direction.md` |
 | Know how a map got balanced, or why one could not be | `content-data/docs/reports/` (newest first) |
 | Build, test, replay, or run the game | `docs/tech-standards.md` §Commands |

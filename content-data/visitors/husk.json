@@ -1,11 +1,11 @@
 {
   "id": "husk",
   "name": "Husk",
-  "hp": 120,
+  "appetite": 120,
   "speed": 0.04,
-  "armour": 8,
+  "fussiness": 8,
   "bounty": 16,
-  "livesCost": 1,
+  "patienceCost": 1,
   "_asks": "Do you have burst? Flat armour 8 means an arrow tower's 12 damage lands as 4, while a cannon's 40 lands as 32. A board of cheap fast towers cannot answer this.",
   "_untuned": "Placeholder values. See content-data/docs/balance-targets.md."
 }

@@ -7,7 +7,7 @@ namespace Gridfall.View.Units;
 ///
 /// ADR-0004: placeholders, 2D sprite sheets, and 3D meshes all sit behind this,
 /// so the question of what Ludo.ai actually returns never reaches the code that
-/// spawns a creep. Asset format becomes a per-entity data field rather than an
+/// spawns a visitor. Asset format becomes a per-entity data field rather than an
 /// architectural commitment.
 ///
 /// Deliberately a lowest common denominator. Sprite-only tricks (per-frame pivot
@@ -33,7 +33,7 @@ public interface IUnitView
     void PlayClip(string clip);
 
     /// <summary>
-    /// Tower level, 1-based. Added rather than expressed as a clip because level
+    /// Station level, 1-based. Added rather than expressed as a clip because level
     /// is a persistent STATE, not an event: a clip would replay on every reload
     /// and would not survive the view being recreated. Design rule "every
     /// player-visible state has a visible representation" makes it mandatory.
@@ -42,10 +42,10 @@ public interface IUnitView
 
     /// <summary>
     /// Remaining structure health, 0-1. Persistent state like level, and for the
-    /// same reason not a clip: a tower that reloads at half health must still
-    /// look damaged.
+    /// same reason not a clip: a station that reloads at half health must still
+    /// look depleted.
     ///
-    /// Mandatory for the same design rule. A tower can now be destroyed, and a
+    /// Mandatory for the same design rule. A station can now be destroyed, and a
     /// destruction the player could not see coming is exactly the unexplainable
     /// loss pillar 4 forbids.
     /// </summary>

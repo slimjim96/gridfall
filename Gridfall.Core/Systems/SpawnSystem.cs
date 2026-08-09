@@ -6,9 +6,9 @@ using Gridfall.Core.Path;
 namespace Gridfall.Core.Systems;
 
 /// <summary>
-/// Phase 3. Spawns creeps whose spawn tick has arrived.
+/// Phase 3. Spawns visitors whose spawn tick has arrived.
 ///
-/// Runs before movement on purpose: newly spawned creeps move on their birth
+/// Runs before movement on purpose: newly spawned visitors move on their birth
 /// tick, so they do not stutter at the spawn point. Entries are walked in array
 /// order, so entry order determines entity id order on ties -- which means
 /// reordering a wave table's entries changes the run (engine guide 07).
@@ -32,20 +32,20 @@ internal static class SpawnSystem
 
             GridCell spawnCell = map.Spawns[System.Math.Min(entry.SpawnIndex, map.Spawns.Length - 1)];
             int cellIndex = map.Index(spawnCell);
-            EnemyDef def = content.Enemy(entry.EnemyIndex);
+            VisitorDef def = content.Visitor(entry.VisitorIndex);
 
             byte heading = path.FlowAt(cellIndex);
             if (heading == PathSystem.GoalMarker || heading == PathSystem.Unreachable)
                 heading = Directions.North;
 
-            // Long math rather than Fix32 multiply: a tough enemy late in a long
+            // Long math rather than Fix32 multiply: a tough visitor late in a long
             // wave table can exceed Fix32's +/-32767 range, and silently wrapping
-            // a creep's health is the kind of bug that shows up as "wave 30 is
+            // a visitor's health is the kind of bug that shows up as "wave 30 is
             // trivial" three months later.
-            int hp = (int)(((long)def.Hp * wave.HpScale.Raw) >> Fix32.FractionalBits);
+            int hp = (int)(((long)def.Appetite * wave.AppetiteScale.Raw) >> Fix32.FractionalBits);
             if (hp < 1) hp = 1;
 
-            int id = state.AddCreep(entry.EnemyIndex, cellIndex, heading, hp);
+            int id = state.AddVisitor(entry.VisitorIndex, cellIndex, heading, hp);
             if (id < 0)
             {
                 events.Add(new SimEvent(tick, EventKind.CapacityExceeded, 0, 0, spawnCell));
@@ -55,15 +55,15 @@ internal static class SpawnSystem
 
             state.WaveEntrySpawned[i]++;
             state.WaveEntryNextTick[i] = tick + entry.SpacingTicks;
-            events.Add(new SimEvent(tick, EventKind.CreepSpawned, id, entry.EnemyIndex, spawnCell));
+            events.Add(new SimEvent(tick, EventKind.VisitorSpawned, id, entry.VisitorIndex, spawnCell));
         }
     }
 
-    /// <summary>True when every entry has spawned its full count and no creeps remain.</summary>
+    /// <summary>True when every entry has spawned its full count and no visitors remain.</summary>
     public static bool WaveComplete(SimState state, ContentSet content)
     {
         if (!state.WaveActive) return false;
-        if (state.CreepCount > 0) return false;
+        if (state.VisitorCount > 0) return false;
 
         WaveDef wave = content.Waves[state.WaveIndex - 1];
         int entryCount = System.Math.Min(wave.Entries.Length, SimState.MaxWaveEntries);

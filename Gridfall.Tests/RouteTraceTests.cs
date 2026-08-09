@@ -115,7 +115,7 @@ public class RouteTraceTests
         var predicted = new int[4096];
         int predictedCount = sim.Path.TraceRoute(map.Index(map.Spawns[0]), predicted, preview: true);
 
-        sim.Enqueue(new BuildCommand(cell, sim.Content.TowerIndexOf("arrow-tower")));
+        sim.Enqueue(new BuildCommand(cell, sim.Content.StationIndexOf("arrow-station")));
         sim.Tick();
 
         var actual = new int[4096];

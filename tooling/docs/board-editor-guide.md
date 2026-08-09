@@ -66,10 +66,10 @@ are never starting from an error.
 
 | Key | Brush | What it means |
 |---|---|---|
-| `1` | **Buildable** | Creeps walk it *until* you build there. This is where mazing happens. |
-| `2` | **Path-only** | Creeps walk it, you can never build on it. Use it to force a corridor. |
+| `1` | **Buildable** | Visitors walk it *until* you build there. This is where mazing happens. |
+| `2` | **Path-only** | Visitors walk it, you can never build on it. Use it to force a corridor. |
 | `3` | **Blocked** | Permanent scenery. Never walkable, never buildable. |
-| `4` | **Spawn** | Where creeps enter. You can have more than one. |
+| `4` | **Spawn** | Where visitors enter. You can have more than one. |
 | `5` | **Goal** | Where they are heading. Placing a new one *moves* the old one. |
 
 **Right-drag** erases back to buildable. `[` and `]` switch between a 1×1 and 3×3 brush — the 3×3 is

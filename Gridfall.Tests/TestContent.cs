@@ -24,7 +24,7 @@ public static class TestContent
         "############"
       ],
       "spawns": [{ "x": 0, "y": 3 }],
-      "startingGold": 500, "startingLives": 20
+      "startingGold": 500, "startingPatience": 20
     }
     """;
 
@@ -46,7 +46,7 @@ public static class TestContent
         "############"
       ],
       "spawns": [{ "x": 0, "y": 3 }],
-      "startingGold": 500, "startingLives": 20
+      "startingGold": 500, "startingPatience": 20
     }
     """;
 
@@ -71,11 +71,11 @@ public static class TestContent
         "############"
       ],
       "spawns": [{ "x": 0, "y": 4 }],
-      "startingGold": 500, "startingLives": 20
+      "startingGold": 500, "startingPatience": 20
     }
     """;
 
-    /// <summary>An open board where towers can be placed next to the lane.</summary>
+    /// <summary>An open board where stations can be placed next to the lane.</summary>
     public const string ArenaMap = """
     {
       "id": "arena", "width": 12, "height": 9,
@@ -91,12 +91,12 @@ public static class TestContent
         "############"
       ],
       "spawns": [{ "x": 0, "y": 4 }],
-      "startingGold": 500, "startingLives": 20
+      "startingGold": 500, "startingPatience": 20
     }
     """;
 
     /// <summary>
-    /// The lane itself is buildable, so a tower can actually lengthen the route.
+    /// The lane itself is buildable, so a station can actually lengthen the route.
     ///
     /// ArenaMap cannot do this: its lane is path-only, so no legal build changes
     /// the route at all -- which made a preview test pass for the wrong reason.
@@ -115,72 +115,72 @@ public static class TestContent
         "############"
       ],
       "spawns": [{ "x": 0, "y": 3 }],
-      "startingGold": 500, "startingLives": 20
+      "startingGold": 500, "startingPatience": 20
     }
     """;
 
     // Mirrors the shipped shape, upgrades included -- a fixture without them
     // makes every upgrade test pass vacuously by being refused at max level.
-    private const string ArrowTower = """
-    { "id": "arrow-tower", "name": "Arrow Tower", "cost": 50, "range": 3.0,
-      "cooldown": 0.6, "damage": 12, "projectileSpeed": 0.8,
+    private const string ArrowStation = """
+    { "id": "arrow-station", "name": "Arrow Station", "cost": 50, "range": 3.0,
+      "cooldown": 0.6, "serving": 12, "projectileSpeed": 0.8,
       "targeting": "furthest-along-path", "sellValue": 25,
       "upgrades": [
-        { "cost": 110, "damageMultiplier": 2.0, "rangeMultiplier": 1.0 },
-        { "cost": 240, "damageMultiplier": 4.0, "rangeMultiplier": 1.15 } ] }
+        { "cost": 110, "servingMultiplier": 2.0, "rangeMultiplier": 1.0 },
+        { "cost": 240, "servingMultiplier": 4.0, "rangeMultiplier": 1.15 } ] }
     """;
 
     private const string Cannon = """
     { "id": "cannon", "name": "Cannon", "cost": 90, "range": 2.5,
-      "cooldown": 1.5, "damage": 40, "projectileSpeed": 0.5,
+      "cooldown": 1.5, "serving": 40, "projectileSpeed": 0.5,
       "targeting": "furthest-along-path", "sellValue": 45,
       "upgrades": [
-        { "cost": 198, "damageMultiplier": 2.0, "rangeMultiplier": 1.0 },
-        { "cost": 432, "damageMultiplier": 4.0, "rangeMultiplier": 1.15 } ] }
+        { "cost": 198, "servingMultiplier": 2.0, "rangeMultiplier": 1.0 },
+        { "cost": 432, "servingMultiplier": 4.0, "rangeMultiplier": 1.15 } ] }
     """;
 
     /// <summary>One shot kills a runner. Used for the simultaneous-kill test.</summary>
     private const string Sniper = """
     { "id": "sniper", "name": "Sniper", "cost": 10, "range": 6.0,
-      "cooldown": 0.2, "damage": 1000, "projectileSpeed": 6.0,
+      "cooldown": 0.2, "serving": 1000, "projectileSpeed": 6.0,
       "targeting": "furthest-along-path", "sellValue": 5 }
     """;
 
     private const string Runner = """
-    { "id": "runner", "name": "Runner", "hp": 60, "speed": 0.06, "bounty": 8, "livesCost": 1 }
+    { "id": "runner", "name": "Runner", "appetite": 60, "speed": 0.06, "bounty": 8, "patienceCost": 1 }
     """;
 
     private const string Brute = """
-    { "id": "brute", "name": "Brute", "hp": 220, "speed": 0.03, "bounty": 20, "livesCost": 2 }
+    { "id": "brute", "name": "Brute", "appetite": 220, "speed": 0.03, "bounty": 20, "patienceCost": 2 }
     """;
 
     private const string Waves = """
     {
       "map": "test",
       "waves": [
-        { "index": 1, "entries": [ { "enemy": "runner", "count": 4, "spacingTicks": 20, "spawn": 0 } ] },
+        { "index": 1, "entries": [ { "visitor": "runner", "count": 4, "spacingTicks": 20, "spawn": 0 } ] },
         { "index": 2, "entries": [
-            { "enemy": "runner", "count": 6, "spacingTicks": 15, "spawn": 0 },
-            { "enemy": "brute",  "count": 2, "spacingTicks": 40, "delayTicks": 60, "spawn": 0 } ] }
+            { "visitor": "runner", "count": 6, "spacingTicks": 15, "spawn": 0 },
+            { "visitor": "brute",  "count": 2, "spacingTicks": 40, "delayTicks": 60, "spawn": 0 } ] }
       ]
     }
     """;
 
     public static ContentSet BuildContent()
     {
-        TowerDef[] towers = ContentLoader.LoadTowers(new[]
+        StationDef[] stations = ContentLoader.LoadStations(new[]
         {
-            ("arrow-tower.json", ArrowTower),
+            ("arrow-station.json", ArrowStation),
             ("cannon.json", Cannon),
             ("sniper.json", Sniper),
         });
-        EnemyDef[] enemies = ContentLoader.LoadEnemies(new[]
+        VisitorDef[] visitors = ContentLoader.LoadVisitors(new[]
         {
             ("runner.json", Runner),
             ("brute.json", Brute),
         });
-        WaveDef[] waves = ContentLoader.LoadWaves(Waves, enemies, "waves.json");
-        return new ContentSet { Towers = towers, Enemies = enemies, Waves = waves };
+        WaveDef[] waves = ContentLoader.LoadWaves(Waves, visitors, "waves.json");
+        return new ContentSet { Stations = stations, Visitors = visitors, Waves = waves };
     }
 
     public static MapDef Map(string json, string name = "fixture") => ContentLoader.LoadMap(json, name);

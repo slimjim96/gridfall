@@ -101,7 +101,7 @@ public static class UnitAssets
     ///
     /// The override is not a convenience. Fixture assets under the production
     /// folder would change how the *shipped* game looks — the default shot seed
-    /// builds arrow towers, so a fixture arrow tower silently invalidates
+    /// builds arrow stations, so a fixture arrow station silently invalidates
     /// board-baseline, sapper-baseline and repair-baseline. Verification art has
     /// to be opt-in or it stops being verification and becomes an art decision
     /// nobody made.

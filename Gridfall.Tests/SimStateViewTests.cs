@@ -63,7 +63,7 @@ public class SimStateViewTests
     public void View_ReadsTheSameValuesAsTheState()
     {
         Sim sim = TestContent.NewSim(TestContent.ArenaMap, seed: 5);
-        sim.Enqueue(new BuildCommand(new GridCell(4, 3), sim.Content.TowerIndexOf("arrow-tower")));
+        sim.Enqueue(new BuildCommand(new GridCell(4, 3), sim.Content.StationIndexOf("arrow-station")));
         sim.Enqueue(new StartWaveCommand());
         for (int t = 0; t < 60; t++) sim.Tick();
 
@@ -71,18 +71,18 @@ public class SimStateViewTests
         SimStateView view = sim.State;
 
         Assert.Equal(raw.Gold, view.Gold);
-        Assert.Equal(raw.Lives, view.Lives);
-        Assert.Equal(raw.CreepCount, view.CreepCount);
-        Assert.Equal(raw.TowerCount, view.TowerCount);
+        Assert.Equal(raw.Patience, view.Patience);
+        Assert.Equal(raw.VisitorCount, view.VisitorCount);
+        Assert.Equal(raw.StationCount, view.StationCount);
 
-        for (int k = 0; k < raw.CreepCount; k++)
+        for (int k = 0; k < raw.VisitorCount; k++)
         {
-            int slot = raw.CreepSlotByOrder(k);
-            Assert.Equal(slot, view.CreepSlotByOrder(k));
-            Assert.Equal(raw.CreepId[slot], view.CreepId(slot));
-            Assert.Equal(raw.CreepHp[slot], view.CreepHp(slot));
-            Assert.Equal(raw.CreepCellIndex[slot], view.CreepCellIndex(slot));
-            Assert.Equal(raw.CreepProgress[slot], view.CreepProgress(slot));
+            int slot = raw.VisitorSlotByOrder(k);
+            Assert.Equal(slot, view.VisitorSlotByOrder(k));
+            Assert.Equal(raw.VisitorId[slot], view.VisitorId(slot));
+            Assert.Equal(raw.VisitorAppetite[slot], view.VisitorAppetite(slot));
+            Assert.Equal(raw.VisitorCellIndex[slot], view.VisitorCellIndex(slot));
+            Assert.Equal(raw.VisitorProgress[slot], view.VisitorProgress(slot));
         }
     }
 

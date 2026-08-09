@@ -77,7 +77,7 @@ public class MapThemeTests
     public void EveryShippedMapAuthorsItsThemeExplicitly()
     {
         // Relying on the default means the map's look is nobody's decision. Same
-        // reasoning as repairPercent being authored on every tower def.
+        // reasoning as repairPercent being authored on every station def.
         string mapDir = Path.Combine(RepoRoot().FullName, "content-data", "maps");
         foreach (string file in Directory.GetFiles(mapDir, "*.json"))
             Assert.Contains("\"theme\"", File.ReadAllText(file));
@@ -100,7 +100,7 @@ public class MapThemeTests
             "#..........#",
             "############" ],
           "spawns": [{ "x": 0, "y": 3 }],
-          "startingGold": 500, "startingLives": 20 }
+          "startingGold": 500, "startingPatience": 20 }
         """;
         Assert.Equal("slate", ContentLoader.LoadMap(json, "t.json").Theme);
     }

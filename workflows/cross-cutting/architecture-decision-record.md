@@ -33,7 +33,7 @@ an ADR nobody can evaluate on its merits.
    "Pathfinding" — `ADR-0003 — Flow Field Pathfinding Over Per-Unit A*`. A title with no verb is a topic,
    not a decision.
 3. **[deterministic]** Write the **context**: what forces this choice, right now. Include the numbers
-   that constrain it — 300 creeps, 8 ms, 30 Hz. Context without constraints reads as opinion.
+   that constrain it — 300 visitors, 8 ms, 30 Hz. Context without constraints reads as opinion.
 4. **[model call: leaf generation]** Write the **options**, at least two, each stated well enough that a
    reader could pick the one you rejected. A strawman alternative makes the ADR worthless; the whole
    value is in a fair account of the road not taken.

@@ -9,7 +9,7 @@ namespace Gridfall.Core.Systems;
 ///
 /// The only phase that may change the walkable grid, and the only one that may
 /// reject player input. A build runs the block check BEFORE mutating anything.
-/// May not move entities or deal damage: a command is applied, not simulated.
+/// May not move entities or deal serving: a command is applied, not simulated.
 /// </summary>
 internal static class CommandSystem
 {
@@ -28,11 +28,11 @@ internal static class CommandSystem
             ref CommandQueue.Entry e = ref queue[i];
             switch (e.Kind)
             {
-                case CommandKind.Build: Build(state, map, content, path, events, tick, e.Cell, e.TowerDefIndex); break;
-                case CommandKind.Sell: Sell(state, content, path, events, tick, e.TowerId); break;
+                case CommandKind.Build: Build(state, map, content, path, events, tick, e.Cell, e.StationDefIndex); break;
+                case CommandKind.Sell: Sell(state, content, path, events, tick, e.StationId); break;
                 case CommandKind.StartWave: StartWave(state, content, events, tick, random); break;
-                case CommandKind.Upgrade: Upgrade(state, content, events, tick, e.TowerId); break;
-                case CommandKind.Repair: Repair(state, content, events, tick, e.TowerId); break;
+                case CommandKind.Upgrade: Upgrade(state, content, events, tick, e.StationId); break;
+                case CommandKind.Repair: Repair(state, content, events, tick, e.StationId); break;
             }
         }
         queue.Clear();
@@ -47,9 +47,9 @@ internal static class CommandSystem
             Reject(events, tick, cell, RejectReason.OutOfBounds);
             return;
         }
-        if (defIndex >= content.Towers.Length)
+        if (defIndex >= content.Stations.Length)
         {
-            Reject(events, tick, cell, RejectReason.UnknownTower);
+            Reject(events, tick, cell, RejectReason.UnknownStation);
             return;
         }
         // The board's roster is a rule, not a toolbar hint. Checked here so the
@@ -58,7 +58,7 @@ internal static class CommandSystem
         // restricted board describe a game nobody can play.
         if (!map.Offers(content, defIndex))
         {
-            Reject(events, tick, cell, RejectReason.TowerNotOnThisBoard);
+            Reject(events, tick, cell, RejectReason.StationNotOnThisBoard);
             return;
         }
 
@@ -74,8 +74,8 @@ internal static class CommandSystem
             return;
         }
 
-        TowerDef def = content.Tower(defIndex);
-        // Building mid-fight costs a premium: the prep window is when towers are
+        StationDef def = content.Station(defIndex);
+        // Building mid-fight costs a premium: the prep window is when stations are
         // meant to go up, and reacting to a wave in progress should be a
         // deliberate, expensive choice rather than the default rhythm.
         int cost = BuildCost(def, state, content);
@@ -85,7 +85,7 @@ internal static class CommandSystem
             Reject(events, tick, cell, RejectReason.InsufficientGold);
             return;
         }
-        if (state.TowerCount >= SimState.MaxTowers)
+        if (state.StationCount >= SimState.MaxStations)
         {
             Reject(events, tick, cell, RejectReason.CapacityExceeded);
             return;
@@ -99,7 +99,7 @@ internal static class CommandSystem
             return;
         }
 
-        int id = state.AddTower(defIndex, index, def.Hp);
+        int id = state.AddStation(defIndex, index, def.Stock);
         state.Gold -= cost;
         path.SetBlocked(index, true);   // sets the dirty flag; phase 2 consumes it
 
@@ -109,71 +109,71 @@ internal static class CommandSystem
 
     private static void Sell(
         SimState state, ContentSet content, PathSystem path,
-        EventLog events, int tick, int towerId)
+        EventLog events, int tick, int stationId)
     {
-        int slot = state.SlotOfTower(towerId);
+        int slot = state.SlotOfStation(stationId);
         if (slot < 0) return;   // already gone; selling twice is not an error
 
-        int cellIndex = state.TowerCellIndex[slot];
-        TowerDef def = content.Tower(state.TowerDefIndex[slot]);
+        int cellIndex = state.StationCellIndex[slot];
+        StationDef def = content.Station(state.StationDefIndex[slot]);
 
         // Half of EVERYTHING spent, upgrades included -- a flat base refund would
         // make upgrade-then-sell a money printer -- and then scaled by how much of
-        // the tower is left, so a wreck cannot be cashed out at full price.
-        int refund = def.SalvageValueAt(state.TowerLevel[slot], state.TowerHp[slot]);
+        // the station is left, so a wreck cannot be cashed out at full price.
+        int refund = def.SalvageValueAt(state.StationLevel[slot], state.StationStock[slot]);
 
-        state.RemoveTowerBySlot(slot);
+        state.RemoveStationBySlot(slot);
         state.Gold += refund;
         path.SetBlocked(cellIndex, false);
 
-        events.Add(new SimEvent(tick, EventKind.TowerSold, towerId, refund));
+        events.Add(new SimEvent(tick, EventKind.StationSold, stationId, refund));
         events.Add(new SimEvent(tick, EventKind.GoldChanged, state.Gold, refund));
     }
 
     /// <summary>
-    /// Raise a tower one level. No block check: an upgrade occupies the same cell
+    /// Raise a station one level. No block check: an upgrade occupies the same cell
     /// and changes no route, so it cannot seal a lane and never dirties the grid.
     /// </summary>
     private static void Upgrade(
-        SimState state, ContentSet content, EventLog events, int tick, int towerId)
+        SimState state, ContentSet content, EventLog events, int tick, int stationId)
     {
-        int slot = state.SlotOfTower(towerId);
+        int slot = state.SlotOfStation(stationId);
         if (slot < 0)
         {
-            events.Add(new SimEvent(tick, EventKind.UpgradeRejected, (int)RejectReason.NoSuchTower, towerId));
+            events.Add(new SimEvent(tick, EventKind.UpgradeRejected, (int)RejectReason.NoSuchStation, stationId));
             return;
         }
 
-        TowerDef def = content.Tower(state.TowerDefIndex[slot]);
-        int level = state.TowerLevel[slot];
+        StationDef def = content.Station(state.StationDefIndex[slot]);
+        int level = state.StationLevel[slot];
 
         if (level >= def.MaxLevel)
         {
-            events.Add(new SimEvent(tick, EventKind.UpgradeRejected, (int)RejectReason.AlreadyMaxLevel, towerId));
+            events.Add(new SimEvent(tick, EventKind.UpgradeRejected, (int)RejectReason.AlreadyMaxLevel, stationId));
             return;
         }
 
         int cost = def.Upgrades[level - 1].Cost;
         if (state.Gold < cost)
         {
-            events.Add(new SimEvent(tick, EventKind.UpgradeRejected, (int)RejectReason.InsufficientGold, towerId));
+            events.Add(new SimEvent(tick, EventKind.UpgradeRejected, (int)RejectReason.InsufficientGold, stationId));
             return;
         }
 
         state.Gold -= cost;
-        state.TowerLevel[slot] = (byte)(level + 1);
+        state.StationLevel[slot] = (byte)(level + 1);
 
-        events.Add(new SimEvent(tick, EventKind.TowerUpgraded, towerId, level + 1));
+        events.Add(new SimEvent(tick, EventKind.StationUpgraded, stationId, level + 1));
         events.Add(new SimEvent(tick, EventKind.GoldChanged, state.Gold, -cost));
     }
 
     /// <summary>
-    /// Restore a damaged tower to full structure health for gold. Only between
+    /// Restore a depleted station to full structure health for gold. Only between
     /// waves.
     ///
     /// The between-waves restriction is the whole mechanic, and it was measured
-    /// rather than argued. Repair available DURING a wave drove towers lost per
-    /// run to exactly zero at every legal price -- because tower destruction is
+    /// rather than argued. Repair available DURING a wave drove stations lost per
+    /// run to exactly zero at every legal price -- because station destruction is
     /// driven by throughput, and an unlimited-rate counter beats a throughput
     /// threat at any cost the player can afford. Restricted to between waves it
     /// reduces losses (9.9 -> 5.8 per run) instead of erasing them, which is what
@@ -181,7 +181,7 @@ internal static class CommandSystem
     ///
     /// The rate limit costs no new state: WaveActive is already hashed.
     ///
-    /// No block check, for the same reason Upgrade has none: a repaired tower
+    /// No block check, for the same reason Upgrade has none: a repaired station
     /// occupies the cell it already occupied, so the walkable grid never changes
     /// and phase 2 is never dirtied.
     ///
@@ -190,42 +190,42 @@ internal static class CommandSystem
     /// follows.
     /// </summary>
     private static void Repair(
-        SimState state, ContentSet content, EventLog events, int tick, int towerId)
+        SimState state, ContentSet content, EventLog events, int tick, int stationId)
     {
-        int slot = state.SlotOfTower(towerId);
+        int slot = state.SlotOfStation(stationId);
         if (slot < 0) return;   // already destroyed; repairing a corpse is not an error
 
         if (state.WaveActive)
         {
-            events.Add(new SimEvent(tick, EventKind.RepairRejected, (int)RejectReason.WaveInProgress, towerId));
+            events.Add(new SimEvent(tick, EventKind.RepairRejected, (int)RejectReason.WaveInProgress, stationId));
             return;
         }
 
-        TowerDef def = content.Tower(state.TowerDefIndex[slot]);
+        StationDef def = content.Station(state.StationDefIndex[slot]);
 
         // <= 0 rather than == 0: nothing pushes HP above max today, but a guard
         // that caught only the exact case would turn a future overshoot into a
         // negative cost, which is free gold.
-        int missing = def.Hp - state.TowerHp[slot];
+        int missing = def.Stock - state.StationStock[slot];
         if (missing <= 0)
         {
-            events.Add(new SimEvent(tick, EventKind.RepairRejected, (int)RejectReason.NotDamaged, towerId));
+            events.Add(new SimEvent(tick, EventKind.RepairRejected, (int)RejectReason.NotDepleted, stationId));
             return;
         }
 
-        int cost = def.RepairCostFor(state.TowerLevel[slot], missing);
+        int cost = def.RepairCostFor(state.StationLevel[slot], missing);
         if (state.Gold < cost)
         {
-            events.Add(new SimEvent(tick, EventKind.RepairRejected, (int)RejectReason.InsufficientGold, towerId));
+            events.Add(new SimEvent(tick, EventKind.RepairRejected, (int)RejectReason.InsufficientGold, stationId));
             return;
         }
 
         state.Gold -= cost;
-        state.TowerHp[slot] = def.Hp;
+        state.StationStock[slot] = def.Stock;
         // Level and cooldown are read, never written. Repair restores health and
-        // only health -- a repaired tower does not get a free shot.
+        // only health -- a repaired station does not get a free shot.
 
-        events.Add(new SimEvent(tick, EventKind.TowerRepaired, towerId, missing));
+        events.Add(new SimEvent(tick, EventKind.StationRepaired, stationId, missing));
         events.Add(new SimEvent(tick, EventKind.GoldChanged, state.Gold, -cost));
     }
 
@@ -267,7 +267,7 @@ internal static class CommandSystem
     /// How much later this group starts than authored, in ticks.
     ///
     /// The ONLY thing wave variance changes. Shifting start offsets reorders the
-    /// groups and reshapes the pressure without touching which enemies arrive,
+    /// groups and reshapes the pressure without touching which visitors arrive,
     /// how many, or how fast they follow each other -- so the authored budget is
     /// preserved exactly, which is what keeps a varied wave fair (pillar 4) and
     /// keeps the balance curve meaning something.
@@ -276,8 +276,8 @@ internal static class CommandSystem
     /// hashed, so a draw taken while the feature is off would change every
     /// recorded trace for no behaviour.
     /// </summary>
-    /// <summary>A tower's price now, including the mid-wave premium if one applies.</summary>
-    public static int BuildCost(TowerDef def, SimState state, ContentSet content)
+    /// <summary>A station's price now, including the mid-wave premium if one applies.</summary>
+    public static int BuildCost(StationDef def, SimState state, ContentSet content)
     {
         if (!state.WaveActive) return def.Cost;
 

@@ -113,8 +113,8 @@ public sealed class PlaceholderUnitView : IUnitView
     }
 
     /// <summary>
-    /// Damage darkens and reddens. Both, deliberately: the level cue already
-    /// owns height and brightness-up, so damage cannot use silhouette without
+    /// Serving darkens and reddens. Both, deliberately: the level cue already
+    /// owns height and brightness-up, so serving cannot use silhouette without
     /// contradicting it. Darkening is the channel that survives greyscale, and
     /// the red is a redundant second signal rather than the only one.
     /// </summary>
@@ -134,7 +134,7 @@ public sealed class PlaceholderUnitView : IUnitView
             if (_healthFraction >= 1f) return tint;
 
             float hurt = 1f - _healthFraction;
-            return tint.Lerp(Palette.Damaged, hurt * 0.9f).Darkened(hurt * 0.45f);
+            return tint.Lerp(Palette.Depleted, hurt * 0.9f).Darkened(hurt * 0.45f);
         }
     }
 

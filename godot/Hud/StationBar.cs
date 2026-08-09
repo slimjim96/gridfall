@@ -7,27 +7,27 @@ using Gridfall.View.Units;
 namespace Gridfall.View.Hud;
 
 /// <summary>
-/// The tower palette: one slot per tower this board offers, in roster order,
+/// The station palette: one slot per station this board offers, in roster order,
 /// with its number key, its colour and its price right now.
 ///
-/// The roster comes from <see cref="MapDef.TowerIds"/> and the bar asks
+/// The roster comes from <see cref="MapDef.StationIds"/> and the bar asks
 /// <see cref="MapDef.Offers"/> rather than filtering the list itself. That is the
 /// whole point of the widget: **a slot on screen and a build the sim will accept
 /// are the same set**, decided once, in Core. A toolbar that drew its own
-/// conclusion would eventually offer a tower that gets refused, which is the
+/// conclusion would eventually offer a station that gets refused, which is the
 /// refusal message the player can do least about.
 ///
 /// Prices are passed in per frame rather than computed here. The mid-wave premium
-/// lives in CommandSystem.BuildCost and the view must not carry a second copy of
+/// patience in CommandSystem.BuildCost and the view must not carry a second copy of
 /// a formula it does not own.
 ///
 /// Built in code, like the rest of the HUD -- no .tscn to drift out of sync.
 /// </summary>
-public sealed partial class TowerBar : Control
+public sealed partial class StationBar : Control
 {
     // Portrait, not square. Units are drawn standing on a cell and are typically
-    // much taller than they are wide -- the shipped arrow tower is 262x662, an
-    // aspect of 0.40. Fitted into a square box that is 12px of tower in 32px of
+    // much taller than they are wide -- the shipped arrow station is 262x662, an
+    // aspect of 0.40. Fitted into a square box that is 12px of station in 32px of
     // slot, and no amount of cropping fixes it: the content already spans the
     // full frame height, so a square box wastes the width instead. A taller box
     // is the only thing that makes a tall silhouette bigger.
@@ -52,7 +52,7 @@ public sealed partial class TowerBar : Control
 
     private readonly List<Slot> _slots = new();
 
-    /// <summary>Tower indices in roster order — the number-key order too.</summary>
+    /// <summary>Station indices in roster order — the number-key order too.</summary>
     public IReadOnlyList<ushort> Order
     {
         get
@@ -64,7 +64,7 @@ public sealed partial class TowerBar : Control
     }
 
     /// <summary>
-    /// Build one slot per offered tower. Called once, after content is loaded:
+    /// Build one slot per offered station. Called once, after content is loaded:
     /// the roster is part of the map and cannot change during a run.
     /// </summary>
     public override void _Ready()
@@ -106,10 +106,10 @@ public sealed partial class TowerBar : Control
         row.Alignment = BoxContainer.AlignmentMode.Center;
         bar.AddChild(row);
 
-        for (ushort i = 0; i < content.Towers.Length; i++)
+        for (ushort i = 0; i < content.Stations.Length; i++)
         {
             if (!map.Offers(content, i)) continue;
-            TowerDef def = content.Tower(i);
+            StationDef def = content.Station(i);
 
             var column = new VBoxContainer();
             column.AddThemeConstantOverride("separation", 2);
@@ -187,16 +187,16 @@ public sealed partial class TowerBar : Control
     /// The slot's picture: the unit's own first idle frame if it has art, and its
     /// palette colour if it does not.
     ///
-    /// A flat colour chip was right while every tower was a coloured solid — the
+    /// A flat colour chip was right while every station was a coloured solid — the
     /// swatch and the thing it built matched by construction. The moment real art
     /// lands that stops being true, and a bar showing an orange square next to a
-    /// board full of blue towers is worse than no picture: it is a wrong one.
+    /// board full of blue stations is worse than no picture: it is a wrong one.
     ///
     /// Sprite only. A `.glb` would need a render pass to thumbnail and is not
     /// worth a viewport per slot — mesh units keep the colour chip until there is
     /// a reason to do better.
     /// </summary>
-    private static Control ChipFor(TowerDef def)
+    private static Control ChipFor(StationDef def)
     {
         var size = new Vector2(SlotWidth - ChipInset, SlotHeight - ChipInset);
         UnitAsset? asset = UnitAssets.For(def.Id);
@@ -233,12 +233,12 @@ public sealed partial class TowerBar : Control
                     SizeFlagsVertical = SizeFlags.ShrinkCenter,
                 };
             }
-            GD.Print($"units: {def.Id} idle strip would not load for the tower bar; using its colour");
+            GD.Print($"units: {def.Id} idle strip would not load for the station bar; using its colour");
         }
 
         return new ColorRect
         {
-            Color = Palette.ForTower(def.Id),
+            Color = Palette.ForStation(def.Id),
             CustomMinimumSize = size,
             SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
             SizeFlagsVertical = SizeFlags.ShrinkCenter,

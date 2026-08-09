@@ -8,7 +8,7 @@ namespace Gridfall.View;
 /// The projection contract from docs/iso-grid.md, in code, once.
 ///
 /// Every constant describing how a grid coordinate becomes something on screen
-/// lives here. If you find yourself typing 0.866 or 30 degrees anywhere else,
+/// patience here. If you find yourself typing 0.866 or 30 degrees anywhere else,
 /// stop -- cite this instead. Changing a value here changes the doc too; they
 /// are the same contract in two forms.
 /// </summary>

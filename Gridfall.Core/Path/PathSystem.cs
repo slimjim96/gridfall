@@ -4,8 +4,8 @@ namespace Gridfall.Core.Path;
 
 /// <summary>
 /// One flow field for the whole board, rebuilt by reverse BFS from the goal on
-/// any tick where the grid changed. Cost is O(cells), independent of creep count
-/// -- 300 creeps cost the same as one. See ADR-0003 and engine guide 06.
+/// any tick where the grid changed. Cost is O(cells), independent of visitor count
+/// -- 300 visitors cost the same as one. See ADR-0003 and engine guide 06.
 ///
 /// Nothing here allocates after construction.
 /// </summary>
@@ -110,7 +110,7 @@ public sealed class PathSystem
         _version = version;
     }
 
-    /// <summary>Blocks a cell for tower placement. Callers must have run the block check first.</summary>
+    /// <summary>Blocks a cell for station placement. Callers must have run the block check first.</summary>
     internal void SetBlocked(int cellIndex, bool blocked)
     {
         byte want = blocked
@@ -234,7 +234,7 @@ public sealed class PathSystem
                 // FIRST ASSIGNMENT WINS. A cell reached again at equal distance is
                 // left alone. Overwriting here is still deterministic but makes the
                 // chosen route depend on the frontier shape rather than on the rule
-                // above, and creeps split across equal-cost routes. It is invisible
+                // above, and visitors split across equal-cost routes. It is invisible
                 // on symmetric maps -- see _examples/path-recompute/05-report-fail.md.
                 if (dist[n] != NoDistance) continue;
 

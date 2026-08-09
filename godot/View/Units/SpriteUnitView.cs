@@ -12,11 +12,11 @@ namespace Gridfall.View.Units;
 ///
 /// The material is <b>alpha-scissored, never alpha-blended</b>. Godot does not
 /// write depth for a blended surface, and a surface that writes no depth hides
-/// nothing behind it — the tower would stop occluding creeps walking past it,
+/// nothing behind it — the station would stop occluding visitors walking past it,
 /// which is the whole reason iso-grid.md chose a 3D scene in the first place.
 ///
 /// That makes a soft anti-aliased sprite edge a functional defect, not a
-/// cosmetic one, and it is why `tower-frost-spire.md` asks for a hard alpha edge
+/// cosmetic one, and it is why `station-frost-spire.md` asks for a hard alpha edge
 /// in the prompt itself. It cannot be fixed after the frames are cut.
 ///
 /// ## Why a full billboard, and why the pivot is not height/2
@@ -147,7 +147,7 @@ public sealed class SpriteUnitView : IUnitView
             else
             {
                 // A one-shot holds its last frame and then hands back to idle,
-                // so a tower is never left frozen mid-flare.
+                // so a station is never left frozen mid-flare.
                 frame = _current.Frames - 1;
                 if (_currentName != "idle" && _clips.ContainsKey("idle")) { Play("idle"); return; }
             }
@@ -197,7 +197,7 @@ public sealed class SpriteUnitView : IUnitView
     }
 
     /// <summary>
-    /// Damage darkens and reddens, matching PlaceholderUnitView exactly. The
+    /// Serving darkens and reddens, matching PlaceholderUnitView exactly. The
     /// cue must not depend on which asset format a unit happens to use -- a
     /// player learns the cue once.
     /// </summary>
@@ -209,7 +209,7 @@ public sealed class SpriteUnitView : IUnitView
             if (_healthFraction >= 1f) return tint;
 
             float hurt = 1f - _healthFraction;
-            return tint.Lerp(Palette.Damaged, hurt * 0.9f).Darkened(hurt * 0.45f);
+            return tint.Lerp(Palette.Depleted, hurt * 0.9f).Darkened(hurt * 0.45f);
         }
     }
 }

@@ -81,7 +81,7 @@ Verified how: …
   and the game disagree about what a legal map is. That is worse than having no editor.
 - **Reporting an estimate as a fact.** The editor's maze check is a greedy lower bound. Say so wherever
   it appears — a number that looks exact will be quoted as one.
-- **Scope creep past the spec.** "While I was in there I added wave editing" is a v2 with no spec, no
+- **Scope visitor past the spec.** "While I was in there I added wave editing" is a v2 with no spec, no
   review, and no end.
 - **Dev code in a release build.** Verify the export. Every time.
 - **Claiming a UI works.** You cannot see it. Hand it over with a list of things to try.

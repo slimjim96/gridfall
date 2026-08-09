@@ -10,9 +10,9 @@ using Gridfall.View.Units;
 namespace Gridfall.View;
 
 /// <summary>
-/// Creeps, towers, and projectiles. Reads simulation state and never writes it.
+/// Visitors, stations, and projectiles. Reads simulation state and never writes it.
 ///
-/// Continuous things (where a creep is) come from state and are interpolated.
+/// Continuous things (where a visitor is) come from state and are interpolated.
 /// Discrete things (that it just died) come from the event stream. Polling for
 /// diffs would miss a tick where two things happened -- engine guide 05.
 /// </summary>
@@ -29,8 +29,8 @@ public sealed partial class UnitRenderer : Node3D
 
     private const float DeathLingerSeconds = 0.15f;
 
-    private readonly Dictionary<int, Tracked> _creeps = new();
-    private readonly Dictionary<int, Tracked> _towers = new();
+    private readonly Dictionary<int, Tracked> _visitors = new();
+    private readonly Dictionary<int, Tracked> _stations = new();
     private readonly Dictionary<int, Tracked> _projectiles = new();
     private readonly List<int> _scratchGone = new();
 
@@ -48,7 +48,7 @@ public sealed partial class UnitRenderer : Node3D
         // driver is stepped by hand and Advance() -- the only thing that clears
         // Ticked and FrameEvents -- never runs, so the flag stays true and the
         // final tick's events replay on every rendered frame. That re-armed the
-        // hit flash forever and pinned a damaged tower solid white, hiding the
+        // hit flash forever and pinned a depleted station solid white, hiding the
         // very cue the capture existed to verify.
         if (_driver.Ticked && _driver.TickCount != _lastRenderedTick)
         {
@@ -69,32 +69,32 @@ public sealed partial class UnitRenderer : Node3D
         {
             switch (e.Kind)
             {
-                case EventKind.CreepDamaged:
-                    if (_creeps.TryGetValue(e.A, out Tracked? hit)) hit.View.PlayClip("hit");
+                case EventKind.VisitorServed:
+                    if (_visitors.TryGetValue(e.A, out Tracked? hit)) hit.View.PlayClip("hit");
                     break;
 
-                case EventKind.CreepDied:
-                case EventKind.CreepLeaked:
-                    if (_creeps.TryGetValue(e.A, out Tracked? dead) && !dead.Dying)
+                case EventKind.VisitorDied:
+                case EventKind.VisitorLeaked:
+                    if (_visitors.TryGetValue(e.A, out Tracked? dead) && !dead.Dying)
                     {
                         dead.View.PlayClip("death");
                         dead.Dying = true;   // linger through the collapse, then release
                     }
                     break;
 
-                case EventKind.TowerFired:
-                    if (_towers.TryGetValue(e.A, out Tracked? tower)) tower.View.PlayClip("fire");
+                case EventKind.StationFired:
+                    if (_stations.TryGetValue(e.A, out Tracked? station)) station.View.PlayClip("fire");
                     break;
 
-                case EventKind.TowerDamaged:
-                    if (_towers.TryGetValue(e.A, out Tracked? struck)) struck.View.PlayClip("hit");
+                case EventKind.StationDepleted:
+                    if (_stations.TryGetValue(e.A, out Tracked? struck)) struck.View.PlayClip("hit");
                     break;
 
-                case EventKind.TowerDestroyed:
+                case EventKind.StationDestroyed:
                     // ReleaseMissing would collapse it anyway, but only on the
                     // frame after it left the state. Handling the event puts the
                     // collapse on the same frame as the cause.
-                    if (_towers.TryGetValue(e.A, out Tracked? razed) && !razed.Dying)
+                    if (_stations.TryGetValue(e.A, out Tracked? razed) && !razed.Dying)
                     {
                         razed.View.PlayClip("death");
                         razed.Dying = true;
@@ -112,20 +112,20 @@ public sealed partial class UnitRenderer : Node3D
         MapDef map = _driver.Map;
         ContentSet content = _driver.Content;
 
-        // Creeps
-        for (int k = 0; k < state.CreepCount; k++)
+        // Visitors
+        for (int k = 0; k < state.VisitorCount; k++)
         {
-            int slot = state.CreepSlotByOrder(k);
-            int id = state.CreepId(slot);
-            Vector3 world = CreepWorldPosition(state, map, slot);
+            int slot = state.VisitorSlotByOrder(k);
+            int id = state.VisitorId(slot);
+            Vector3 world = VisitorWorldPosition(state, map, slot);
 
-            if (!_creeps.TryGetValue(id, out Tracked? tracked))
+            if (!_visitors.TryGetValue(id, out Tracked? tracked))
             {
-                string contentId = content.Enemy(state.CreepDefIndex(slot)).Id;
-                IUnitView view = UnitViewFactory.CreateCreep(contentId, id);
+                string contentId = content.Visitor(state.VisitorDefIndex(slot)).Id;
+                IUnitView view = UnitViewFactory.CreateVisitor(contentId, id);
                 AddChild(view.Node);
                 tracked = new Tracked { View = view, Previous = world, Current = world };
-                _creeps[id] = tracked;
+                _visitors[id] = tracked;
             }
             else
             {
@@ -133,36 +133,36 @@ public sealed partial class UnitRenderer : Node3D
                 tracked.Current = world;
             }
         }
-        ReleaseMissing(_creeps, id => state.SlotOfCreep(id) >= 0);
+        ReleaseMissing(_visitors, id => state.SlotOfVisitor(id) >= 0);
 
-        // Towers
-        for (int k = 0; k < state.TowerCount; k++)
+        // Stations
+        for (int k = 0; k < state.StationCount; k++)
         {
-            int slot = state.TowerSlotByOrder(k);
-            int id = state.TowerId(slot);
-            int cellIndex = state.TowerCellIndex(slot);
+            int slot = state.StationSlotByOrder(k);
+            int id = state.StationId(slot);
+            int cellIndex = state.StationCellIndex(slot);
             Vector3 world = IsoGrid.CellCentre(cellIndex % map.Width, cellIndex / map.Width);
 
             // Both no-op unless the value actually changed, so this is cheap
             // enough to push every frame rather than tracking dirty flags.
-            float health = (float)state.TowerHp(slot)
-                           / content.Tower(state.TowerDefIndex(slot)).Hp;
+            float health = (float)state.StationStock(slot)
+                           / content.Station(state.StationDefIndex(slot)).Stock;
 
-            if (_towers.TryGetValue(id, out Tracked? existing))
+            if (_stations.TryGetValue(id, out Tracked? existing))
             {
-                existing.View.SetLevel(state.TowerLevel(slot));
+                existing.View.SetLevel(state.StationLevel(slot));
                 existing.View.SetHealthFraction(health);
                 continue;
             }
 
-            string contentId = content.Tower(state.TowerDefIndex(slot)).Id;
-            IUnitView view = UnitViewFactory.CreateTower(contentId, id);
-            view.SetLevel(state.TowerLevel(slot));
+            string contentId = content.Station(state.StationDefIndex(slot)).Id;
+            IUnitView view = UnitViewFactory.CreateStation(contentId, id);
+            view.SetLevel(state.StationLevel(slot));
             view.SetHealthFraction(health);
             AddChild(view.Node);
-            _towers[id] = new Tracked { View = view, Previous = world, Current = world };
+            _stations[id] = new Tracked { View = view, Previous = world, Current = world };
         }
-        ReleaseMissing(_towers, id => state.SlotOfTower(id) >= 0);
+        ReleaseMissing(_stations, id => state.SlotOfStation(id) >= 0);
 
         // Projectiles
         for (int slot = 0; slot < state.ProjectileCount; slot++)
@@ -200,14 +200,14 @@ public sealed partial class UnitRenderer : Node3D
     /// World position from cell + progress along heading. Fix32 becomes float
     /// here and nowhere else in the entity path -- this is the boundary.
     /// </summary>
-    private static Vector3 CreepWorldPosition(SimStateView state, MapDef map, int slot)
+    private static Vector3 VisitorWorldPosition(SimStateView state, MapDef map, int slot)
     {
-        int cellIndex = state.CreepCellIndex(slot);
+        int cellIndex = state.VisitorCellIndex(slot);
         int cx = cellIndex % map.Width;
         int cy = cellIndex / map.Width;
 
-        (int dx, int dy) = Directions.Offsets[state.CreepHeading(slot)];
-        float progress = state.CreepProgress(slot).ToFloat();
+        (int dx, int dy) = Directions.Offsets[state.VisitorHeading(slot)];
+        float progress = state.VisitorProgress(slot).ToFloat();
 
         return IsoGrid.CellCentre(cx, cy) + new Vector3(dx * progress, 0f, dy * progress) * IsoGrid.CellSize;
     }
@@ -242,22 +242,22 @@ public sealed partial class UnitRenderer : Node3D
 
     private void Interpolate(float alpha)
     {
-        foreach (Tracked t in _creeps.Values)
+        foreach (Tracked t in _visitors.Values)
         {
             // Lerp between world positions, not between cell+progress: progress
-            // wraps 0.9 -> 0.1 at a cell boundary and the creep would snap back.
+            // wraps 0.9 -> 0.1 at a cell boundary and the visitor would snap back.
             t.View.SetWorldPosition(t.Dying ? t.Current : t.Previous.Lerp(t.Current, alpha));
         }
         foreach (Tracked t in _projectiles.Values)
             t.View.SetWorldPosition(t.Previous.Lerp(t.Current, alpha));
-        foreach (Tracked t in _towers.Values)
+        foreach (Tracked t in _stations.Values)
             t.View.SetWorldPosition(t.Current);
     }
 
     private void AdvanceViews(float delta)
     {
-        foreach (Tracked t in _creeps.Values) { t.View.Advance(delta); if (t.Dying) t.DyingFor += delta; }
-        foreach (Tracked t in _towers.Values) { t.View.Advance(delta); if (t.Dying) t.DyingFor += delta; }
+        foreach (Tracked t in _visitors.Values) { t.View.Advance(delta); if (t.Dying) t.DyingFor += delta; }
+        foreach (Tracked t in _stations.Values) { t.View.Advance(delta); if (t.Dying) t.DyingFor += delta; }
         foreach (Tracked t in _projectiles.Values) { t.View.Advance(delta); if (t.Dying) t.DyingFor += delta; }
     }
 }

@@ -5,8 +5,8 @@ using Gridfall.Core.Path;
 namespace Gridfall.Core;
 
 /// <summary>
-/// All mutable game state, as parallel arrays. There is no Creep class with an
-/// Update() method: an entity is an integer id, and its data lives in arrays
+/// All mutable game state, as parallel arrays. There is no Visitor class with an
+/// Update() method: an entity is an integer id, and its data patience in arrays
 /// indexed by slot (engine guide 04).
 ///
 /// Three reasons for this shape: iteration order is explicit, nothing allocates
@@ -14,51 +14,51 @@ namespace Gridfall.Core;
 /// </summary>
 public sealed class SimState
 {
-    public const int MaxCreeps = 512;
-    public const int MaxTowers = 128;
+    public const int MaxVisitors = 512;
+    public const int MaxStations = 128;
     public const int MaxProjectiles = 1024;
     public const int MaxWaveEntries = 16;
 
-    // ---- creeps -----------------------------------------------------------
-    public int CreepCount;
-    public readonly int[] CreepId = new int[MaxCreeps];
-    public readonly ushort[] CreepDefIndex = new ushort[MaxCreeps];
-    public readonly int[] CreepCellIndex = new int[MaxCreeps];
-    /// <summary>Progress across the current cell, in [0,1) along CreepHeading.</summary>
-    public readonly Fix32[] CreepProgress = new Fix32[MaxCreeps];
-    public readonly byte[] CreepHeading = new byte[MaxCreeps];
-    public readonly int[] CreepHp = new int[MaxCreeps];
-    /// <summary>Ticks until this creep may attack a tower again.</summary>
-    public readonly int[] CreepAttackCooldown = new int[MaxCreeps];
+    // ---- visitors -----------------------------------------------------------
+    public int VisitorCount;
+    public readonly int[] VisitorId = new int[MaxVisitors];
+    public readonly ushort[] VisitorDefIndex = new ushort[MaxVisitors];
+    public readonly int[] VisitorCellIndex = new int[MaxVisitors];
+    /// <summary>Progress across the current cell, in [0,1) along VisitorHeading.</summary>
+    public readonly Fix32[] VisitorProgress = new Fix32[MaxVisitors];
+    public readonly byte[] VisitorHeading = new byte[MaxVisitors];
+    public readonly int[] VisitorAppetite = new int[MaxVisitors];
+    /// <summary>Ticks until this visitor may attack a station again.</summary>
+    public readonly int[] VisitorAttackCooldown = new int[MaxVisitors];
 
-    /// <summary>Live creep ids, ascending. Iterate this, never raw slot order.</summary>
-    private readonly int[] _creepIdOrder = new int[MaxCreeps];
-    private int[] _slotOfCreepId = new int[4096];
+    /// <summary>Live visitor ids, ascending. Iterate this, never raw slot order.</summary>
+    private readonly int[] _visitorIdOrder = new int[MaxVisitors];
+    private int[] _slotOfVisitorId = new int[4096];
 
-    // ---- towers -----------------------------------------------------------
-    public int TowerCount;
-    public readonly int[] TowerId = new int[MaxTowers];
-    public readonly ushort[] TowerDefIndex = new ushort[MaxTowers];
-    public readonly int[] TowerCellIndex = new int[MaxTowers];
-    public readonly int[] TowerCooldown = new int[MaxTowers];
+    // ---- stations -----------------------------------------------------------
+    public int StationCount;
+    public readonly int[] StationId = new int[MaxStations];
+    public readonly ushort[] StationDefIndex = new ushort[MaxStations];
+    public readonly int[] StationCellIndex = new int[MaxStations];
+    public readonly int[] StationCooldown = new int[MaxStations];
     /// <summary>1-based. Hashed and snapshotted like every other piece of state.</summary>
-    public readonly byte[] TowerLevel = new byte[MaxTowers];
-    /// <summary>Structure health. Towers are destructible (ADR-0006).</summary>
-    public readonly int[] TowerHp = new int[MaxTowers];
-    private readonly int[] _towerIdOrder = new int[MaxTowers];
-    private int[] _slotOfTowerId = new int[1024];
+    public readonly byte[] StationLevel = new byte[MaxStations];
+    /// <summary>Structure health. Stations are destructible (ADR-0006).</summary>
+    public readonly int[] StationStock = new int[MaxStations];
+    private readonly int[] _stationIdOrder = new int[MaxStations];
+    private int[] _slotOfStationId = new int[1024];
 
     // ---- projectiles ------------------------------------------------------
     public int ProjectileCount;
     public readonly int[] ProjectileId = new int[MaxProjectiles];
-    public readonly int[] ProjectileTargetCreepId = new int[MaxProjectiles];
+    public readonly int[] ProjectileTargetVisitorId = new int[MaxProjectiles];
     public readonly FixVec2[] ProjectilePos = new FixVec2[MaxProjectiles];
     public readonly Fix32[] ProjectileSpeed = new Fix32[MaxProjectiles];
-    public readonly int[] ProjectileDamage = new int[MaxProjectiles];
+    public readonly int[] ProjectileServing = new int[MaxProjectiles];
 
     // ---- globals ----------------------------------------------------------
     public int Gold;
-    public int Lives;
+    public int Patience;
     public int WaveIndex;          // 0 == no wave has started
     public bool WaveActive;
 
@@ -82,102 +82,102 @@ public sealed class SimState
     // changes on death (swap-remove). Anything that must be deterministic
     // iterates by id.
 
-    public int CreepSlotByOrder(int k) => _slotOfCreepId[_creepIdOrder[k]];
-    public int TowerSlotByOrder(int k) => _slotOfTowerId[_towerIdOrder[k]];
+    public int VisitorSlotByOrder(int k) => _slotOfVisitorId[_visitorIdOrder[k]];
+    public int StationSlotByOrder(int k) => _slotOfStationId[_stationIdOrder[k]];
 
-    public int SlotOfCreep(int id) => id > 0 && id < _slotOfCreepId.Length ? _slotOfCreepId[id] : -1;
-    public int SlotOfTower(int id) => id > 0 && id < _slotOfTowerId.Length ? _slotOfTowerId[id] : -1;
+    public int SlotOfVisitor(int id) => id > 0 && id < _slotOfVisitorId.Length ? _slotOfVisitorId[id] : -1;
+    public int SlotOfStation(int id) => id > 0 && id < _slotOfStationId.Length ? _slotOfStationId[id] : -1;
 
-    public int AddCreep(ushort defIndex, int cellIndex, byte heading, int hp)
+    public int AddVisitor(ushort defIndex, int cellIndex, byte heading, int hp)
     {
-        if (CreepCount >= MaxCreeps) return -1;
-        int slot = CreepCount++;
+        if (VisitorCount >= MaxVisitors) return -1;
+        int slot = VisitorCount++;
         int id = NextEntityId++;
 
-        CreepId[slot] = id;
-        CreepDefIndex[slot] = defIndex;
-        CreepCellIndex[slot] = cellIndex;
-        CreepProgress[slot] = Fix32.Zero;
-        CreepHeading[slot] = heading;
-        CreepHp[slot] = hp;
-        CreepAttackCooldown[slot] = 0;
+        VisitorId[slot] = id;
+        VisitorDefIndex[slot] = defIndex;
+        VisitorCellIndex[slot] = cellIndex;
+        VisitorProgress[slot] = Fix32.Zero;
+        VisitorHeading[slot] = heading;
+        VisitorAppetite[slot] = hp;
+        VisitorAttackCooldown[slot] = 0;
 
-        EnsureSlotMap(ref _slotOfCreepId, id);
-        _slotOfCreepId[id] = slot;
-        _creepIdOrder[CreepCount - 1] = id; // ids ascend, so appending keeps it sorted
+        EnsureSlotMap(ref _slotOfVisitorId, id);
+        _slotOfVisitorId[id] = slot;
+        _visitorIdOrder[VisitorCount - 1] = id; // ids ascend, so appending keeps it sorted
         return id;
     }
 
-    public void RemoveCreepBySlot(int slot)
+    public void RemoveVisitorBySlot(int slot)
     {
-        int id = CreepId[slot];
-        int last = CreepCount - 1;
+        int id = VisitorId[slot];
+        int last = VisitorCount - 1;
 
         if (slot != last)
         {
-            CreepId[slot] = CreepId[last];
-            CreepDefIndex[slot] = CreepDefIndex[last];
-            CreepCellIndex[slot] = CreepCellIndex[last];
-            CreepProgress[slot] = CreepProgress[last];
-            CreepHeading[slot] = CreepHeading[last];
-            CreepHp[slot] = CreepHp[last];
-            CreepAttackCooldown[slot] = CreepAttackCooldown[last];
-            _slotOfCreepId[CreepId[slot]] = slot;
+            VisitorId[slot] = VisitorId[last];
+            VisitorDefIndex[slot] = VisitorDefIndex[last];
+            VisitorCellIndex[slot] = VisitorCellIndex[last];
+            VisitorProgress[slot] = VisitorProgress[last];
+            VisitorHeading[slot] = VisitorHeading[last];
+            VisitorAppetite[slot] = VisitorAppetite[last];
+            VisitorAttackCooldown[slot] = VisitorAttackCooldown[last];
+            _slotOfVisitorId[VisitorId[slot]] = slot;
         }
-        CreepCount--;
-        _slotOfCreepId[id] = -1;
-        RemoveFromIdOrder(_creepIdOrder, CreepCount + 1, id);
+        VisitorCount--;
+        _slotOfVisitorId[id] = -1;
+        RemoveFromIdOrder(_visitorIdOrder, VisitorCount + 1, id);
     }
 
-    public int AddTower(ushort defIndex, int cellIndex, int hp)
+    public int AddStation(ushort defIndex, int cellIndex, int hp)
     {
-        if (TowerCount >= MaxTowers) return -1;
-        int slot = TowerCount++;
+        if (StationCount >= MaxStations) return -1;
+        int slot = StationCount++;
         int id = NextEntityId++;
 
-        TowerId[slot] = id;
-        TowerDefIndex[slot] = defIndex;
-        TowerCellIndex[slot] = cellIndex;
-        TowerCooldown[slot] = 0;
-        TowerLevel[slot] = 1;
-        TowerHp[slot] = hp;
+        StationId[slot] = id;
+        StationDefIndex[slot] = defIndex;
+        StationCellIndex[slot] = cellIndex;
+        StationCooldown[slot] = 0;
+        StationLevel[slot] = 1;
+        StationStock[slot] = hp;
 
-        EnsureSlotMap(ref _slotOfTowerId, id);
-        _slotOfTowerId[id] = slot;
-        _towerIdOrder[TowerCount - 1] = id;
+        EnsureSlotMap(ref _slotOfStationId, id);
+        _slotOfStationId[id] = slot;
+        _stationIdOrder[StationCount - 1] = id;
         return id;
     }
 
-    public void RemoveTowerBySlot(int slot)
+    public void RemoveStationBySlot(int slot)
     {
-        int id = TowerId[slot];
-        int last = TowerCount - 1;
+        int id = StationId[slot];
+        int last = StationCount - 1;
 
         if (slot != last)
         {
-            TowerId[slot] = TowerId[last];
-            TowerDefIndex[slot] = TowerDefIndex[last];
-            TowerCellIndex[slot] = TowerCellIndex[last];
-            TowerCooldown[slot] = TowerCooldown[last];
-            TowerLevel[slot] = TowerLevel[last];
-            TowerHp[slot] = TowerHp[last];
-            _slotOfTowerId[TowerId[slot]] = slot;
+            StationId[slot] = StationId[last];
+            StationDefIndex[slot] = StationDefIndex[last];
+            StationCellIndex[slot] = StationCellIndex[last];
+            StationCooldown[slot] = StationCooldown[last];
+            StationLevel[slot] = StationLevel[last];
+            StationStock[slot] = StationStock[last];
+            _slotOfStationId[StationId[slot]] = slot;
         }
-        TowerCount--;
-        _slotOfTowerId[id] = -1;
-        RemoveFromIdOrder(_towerIdOrder, TowerCount + 1, id);
+        StationCount--;
+        _slotOfStationId[id] = -1;
+        RemoveFromIdOrder(_stationIdOrder, StationCount + 1, id);
     }
 
-    public int AddProjectile(int targetCreepId, FixVec2 pos, Fix32 speed, int damage)
+    public int AddProjectile(int targetVisitorId, FixVec2 pos, Fix32 speed, int serving)
     {
         if (ProjectileCount >= MaxProjectiles) return -1;
         int slot = ProjectileCount++;
         int id = NextEntityId++;
         ProjectileId[slot] = id;
-        ProjectileTargetCreepId[slot] = targetCreepId;
+        ProjectileTargetVisitorId[slot] = targetVisitorId;
         ProjectilePos[slot] = pos;
         ProjectileSpeed[slot] = speed;
-        ProjectileDamage[slot] = damage;
+        ProjectileServing[slot] = serving;
         return id;
     }
 
@@ -187,10 +187,10 @@ public sealed class SimState
         if (slot != last)
         {
             ProjectileId[slot] = ProjectileId[last];
-            ProjectileTargetCreepId[slot] = ProjectileTargetCreepId[last];
+            ProjectileTargetVisitorId[slot] = ProjectileTargetVisitorId[last];
             ProjectilePos[slot] = ProjectilePos[last];
             ProjectileSpeed[slot] = ProjectileSpeed[last];
-            ProjectileDamage[slot] = ProjectileDamage[last];
+            ProjectileServing[slot] = ProjectileServing[last];
         }
         ProjectileCount--;
     }
@@ -229,7 +229,7 @@ public sealed class SimState
     {
         ulong h = FnvHash.Init();
         h = FnvHash.Combine(h, tickCount);
-        h = FnvHash.Combine(h, Gold, Lives, WaveIndex);
+        h = FnvHash.Combine(h, Gold, Patience, WaveIndex);
         h = FnvHash.Combine(h, PrepTicksRemaining);
         h = FnvHash.Combine(h, WaveActive ? 1 : 0);
         h = FnvHash.Combine(h, NextEntityId);
@@ -238,22 +238,22 @@ public sealed class SimState
         h = FnvHash.Combine(h, path.Version);
         h = FnvHash.CombineBytes(h, path.CostSpan);
 
-        h = FnvHash.Combine(h, CreepCount);
-        for (int k = 0; k < CreepCount; k++)
+        h = FnvHash.Combine(h, VisitorCount);
+        for (int k = 0; k < VisitorCount; k++)
         {
-            int s = CreepSlotByOrder(k);
-            h = FnvHash.Combine(h, CreepId[s], CreepCellIndex[s], CreepHp[s]);
-            h = FnvHash.Combine(h, CreepProgress[s].Raw, CreepHeading[s], CreepDefIndex[s]);
-            h = FnvHash.Combine(h, CreepAttackCooldown[s]);
+            int s = VisitorSlotByOrder(k);
+            h = FnvHash.Combine(h, VisitorId[s], VisitorCellIndex[s], VisitorAppetite[s]);
+            h = FnvHash.Combine(h, VisitorProgress[s].Raw, VisitorHeading[s], VisitorDefIndex[s]);
+            h = FnvHash.Combine(h, VisitorAttackCooldown[s]);
         }
 
-        h = FnvHash.Combine(h, TowerCount);
-        for (int k = 0; k < TowerCount; k++)
+        h = FnvHash.Combine(h, StationCount);
+        for (int k = 0; k < StationCount; k++)
         {
-            int s = TowerSlotByOrder(k);
-            h = FnvHash.Combine(h, TowerId[s], TowerCellIndex[s], TowerCooldown[s]);
-            h = FnvHash.Combine(h, TowerDefIndex[s], TowerLevel[s]);
-            h = FnvHash.Combine(h, TowerHp[s]);
+            int s = StationSlotByOrder(k);
+            h = FnvHash.Combine(h, StationId[s], StationCellIndex[s], StationCooldown[s]);
+            h = FnvHash.Combine(h, StationDefIndex[s], StationLevel[s]);
+            h = FnvHash.Combine(h, StationStock[s]);
         }
 
         // Projectiles are short-lived and never referenced across a removal, so
@@ -265,7 +265,7 @@ public sealed class SimState
         SortSlotsByProjectileId(projOrder);
         foreach (int s in projOrder)
         {
-            h = FnvHash.Combine(h, ProjectileId[s], ProjectileTargetCreepId[s], ProjectileDamage[s]);
+            h = FnvHash.Combine(h, ProjectileId[s], ProjectileTargetVisitorId[s], ProjectileServing[s]);
             h = FnvHash.Combine(h, ProjectilePos[s].X.Raw, ProjectilePos[s].Y.Raw, ProjectileSpeed[s].Raw);
         }
 
@@ -294,34 +294,34 @@ public sealed class SimState
 
     public void CopyTo(SimState other)
     {
-        other.CreepCount = CreepCount;
-        Array.Copy(CreepId, other.CreepId, MaxCreeps);
-        Array.Copy(CreepDefIndex, other.CreepDefIndex, MaxCreeps);
-        Array.Copy(CreepCellIndex, other.CreepCellIndex, MaxCreeps);
-        Array.Copy(CreepProgress, other.CreepProgress, MaxCreeps);
-        Array.Copy(CreepHeading, other.CreepHeading, MaxCreeps);
-        Array.Copy(CreepHp, other.CreepHp, MaxCreeps);
-        Array.Copy(CreepAttackCooldown, other.CreepAttackCooldown, MaxCreeps);
-        Array.Copy(_creepIdOrder, other._creepIdOrder, MaxCreeps);
+        other.VisitorCount = VisitorCount;
+        Array.Copy(VisitorId, other.VisitorId, MaxVisitors);
+        Array.Copy(VisitorDefIndex, other.VisitorDefIndex, MaxVisitors);
+        Array.Copy(VisitorCellIndex, other.VisitorCellIndex, MaxVisitors);
+        Array.Copy(VisitorProgress, other.VisitorProgress, MaxVisitors);
+        Array.Copy(VisitorHeading, other.VisitorHeading, MaxVisitors);
+        Array.Copy(VisitorAppetite, other.VisitorAppetite, MaxVisitors);
+        Array.Copy(VisitorAttackCooldown, other.VisitorAttackCooldown, MaxVisitors);
+        Array.Copy(_visitorIdOrder, other._visitorIdOrder, MaxVisitors);
 
-        other.TowerCount = TowerCount;
-        Array.Copy(TowerId, other.TowerId, MaxTowers);
-        Array.Copy(TowerDefIndex, other.TowerDefIndex, MaxTowers);
-        Array.Copy(TowerCellIndex, other.TowerCellIndex, MaxTowers);
-        Array.Copy(TowerCooldown, other.TowerCooldown, MaxTowers);
-        Array.Copy(TowerLevel, other.TowerLevel, MaxTowers);
-        Array.Copy(TowerHp, other.TowerHp, MaxTowers);
-        Array.Copy(_towerIdOrder, other._towerIdOrder, MaxTowers);
+        other.StationCount = StationCount;
+        Array.Copy(StationId, other.StationId, MaxStations);
+        Array.Copy(StationDefIndex, other.StationDefIndex, MaxStations);
+        Array.Copy(StationCellIndex, other.StationCellIndex, MaxStations);
+        Array.Copy(StationCooldown, other.StationCooldown, MaxStations);
+        Array.Copy(StationLevel, other.StationLevel, MaxStations);
+        Array.Copy(StationStock, other.StationStock, MaxStations);
+        Array.Copy(_stationIdOrder, other._stationIdOrder, MaxStations);
 
         other.ProjectileCount = ProjectileCount;
         Array.Copy(ProjectileId, other.ProjectileId, MaxProjectiles);
-        Array.Copy(ProjectileTargetCreepId, other.ProjectileTargetCreepId, MaxProjectiles);
+        Array.Copy(ProjectileTargetVisitorId, other.ProjectileTargetVisitorId, MaxProjectiles);
         Array.Copy(ProjectilePos, other.ProjectilePos, MaxProjectiles);
         Array.Copy(ProjectileSpeed, other.ProjectileSpeed, MaxProjectiles);
-        Array.Copy(ProjectileDamage, other.ProjectileDamage, MaxProjectiles);
+        Array.Copy(ProjectileServing, other.ProjectileServing, MaxProjectiles);
 
         other.Gold = Gold;
-        other.Lives = Lives;
+        other.Patience = Patience;
         other.WaveIndex = WaveIndex;
         other.PrepTicksRemaining = PrepTicksRemaining;
         other.WaveActive = WaveActive;
@@ -329,7 +329,7 @@ public sealed class SimState
         Array.Copy(WaveEntrySpawned, other.WaveEntrySpawned, MaxWaveEntries);
         Array.Copy(WaveEntryNextTick, other.WaveEntryNextTick, MaxWaveEntries);
 
-        other._slotOfCreepId = (int[])_slotOfCreepId.Clone();
-        other._slotOfTowerId = (int[])_slotOfTowerId.Clone();
+        other._slotOfVisitorId = (int[])_slotOfVisitorId.Clone();
+        other._slotOfStationId = (int[])_slotOfStationId.Clone();
     }
 }

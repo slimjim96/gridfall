@@ -27,7 +27,7 @@
     "y": 8
   },
   "startingGold": 300,
-  "startingLives": 20,
+  "startingPatience": 20,
   "meta": {
     "author": "hand-authored",
     "created": "2026-08-07",

@@ -2,27 +2,27 @@
 
 ## Entities are indices, not objects
 
-There is no `Creep` class with a `Update()` method. An entity is an **integer id**, and its data lives
+There is no `Visitor` class with a `Update()` method. An entity is an **integer id**, and its data lives
 in parallel arrays owned by `SimState`.
 
 ```csharp
 public sealed class SimState
 {
-    // creeps — structure of arrays, index == slot, not id
-    public int      CreepCount;
-    public int[]    CreepId;          // stable, ascending, never reused within a run
-    public Vector2I[] CreepCell;
-    public FixVec2[]  CreepOffset;    // sub-cell position, Fix32
-    public int[]      CreepHp;
-    public Fix32[]    CreepHpFraction;// the DoT accumulator (Chapter 03)
-    public byte[]     CreepHeading;   // 0-3, the direction it is crossing toward
-    public ushort[]   CreepDefIndex;
-    public int[]      CreepAttackCooldown; // ticks until it can hit a tower again
+    // visitors — structure of arrays, index == slot, not id
+    public int      VisitorCount;
+    public int[]    VisitorId;          // stable, ascending, never reused within a run
+    public Vector2I[] VisitorCell;
+    public FixVec2[]  VisitorOffset;    // sub-cell position, Fix32
+    public int[]      VisitorAppetite;
+    public Fix32[]    VisitorAppetiteFraction;// the DoT accumulator (Chapter 03)
+    public byte[]     VisitorHeading;   // 0-3, the direction it is crossing toward
+    public ushort[]   VisitorDefIndex;
+    public int[]      VisitorAttackCooldown; // ticks until it can hit a station again
 
-    // towers — same shape
-    public int TowerCount;
-    public int[] TowerId;
-    public int[] TowerHp;             // structure health; 0 destroys the tower
+    // stations — same shape
+    public int StationCount;
+    public int[] StationId;
+    public int[] StationStock;             // structure health; 0 destroys the station
     …
 }
 ```
@@ -43,20 +43,20 @@ and it means slot order is *not* id order.
 
 ```csharp
 // Anywhere that must be deterministic, iterate by id — not by slot.
-foreach (int slot in state.CreepSlotsByIdAscending())
+foreach (int slot in state.VisitorSlotsByIdAscending())
 {
     …
 }
 ```
 
-`CreepSlotsByIdAscending()` is maintained incrementally as an index array; it is not a sort per tick.
+`VisitorSlotsByIdAscending()` is maintained incrementally as an index array; it is not a sort per tick.
 When you write a new system, use it. Slot order is an implementation detail that changes whenever
 something dies, and code that depends on it is a determinism bug waiting for a busy wave.
 
 ## Lookups
 
 ```csharp
-int slot = state.SlotOfCreep(id);     // -1 if dead
+int slot = state.SlotOfVisitor(id);     // -1 if dead
 ```
 
 Backed by a dense `int[]` indexed by id, not a `Dictionary` — no hashing, no iteration-order hazard,
@@ -90,11 +90,11 @@ public ulong Hash()
     h = FnvHash.Combine(h, _path.Version);
     h = FnvHash.CombineGrid(h, _grid.Cost);
 
-    foreach (int slot in CreepSlotsByIdAscending())
-        h = FnvHash.Combine(h, CreepId[slot], CreepCell[slot], CreepOffset[slot],
-                               CreepHp[slot], CreepHpFraction[slot], CreepHeading[slot]);
+    foreach (int slot in VisitorSlotsByIdAscending())
+        h = FnvHash.Combine(h, VisitorId[slot], VisitorCell[slot], VisitorOffset[slot],
+                               VisitorAppetite[slot], VisitorAppetiteFraction[slot], VisitorHeading[slot]);
 
-    foreach (int slot in TowerSlotsByIdAscending())
+    foreach (int slot in StationSlotsByIdAscending())
         h = …;
 
     return h;
@@ -122,18 +122,18 @@ Step 3 is what catches the mistake. Without it, "I added it to the hash" is a cl
 
 ```csharp
 [Fact]
-public void Hash_Covers_CreepShieldHp()
+public void Hash_Covers_VisitorShieldHp()
 {
-    var sim = TestSim.WithOneCreep();
+    var sim = TestSim.WithOneVisitor();
     ulong before = sim.Hash();
-    sim.State.CreepShieldHp[0] += 1;
+    sim.State.VisitorShieldHp[0] += 1;
     Assert.NotEqual(before, sim.Hash());
 }
 ```
 
 ## Capacity
 
-Arrays are allocated once at construction, sized from the documented caps: 512 creeps, 128 towers,
+Arrays are allocated once at construction, sized from the documented caps: 512 visitors, 128 stations,
 1,024 projectiles, 64×64 grid. Exceeding a cap throws in debug and drops the spawn in release, emitting
 `CapacityExceeded`.
 

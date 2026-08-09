@@ -7,7 +7,7 @@ public enum TargetRule : byte
     /// <summary>Furthest along the path. Ties broken by lowest entity id.</summary>
     FurthestAlongPath = 0,
     Nearest = 1,
-    LowestHp = 2,
+    LowestAppetite = 2,
 }
 
 /// <summary>
@@ -17,20 +17,20 @@ public enum TargetRule : byte
 /// </summary>
 /// <summary>
 /// One step up the upgrade track. Cost and effect are authored data -- the
-/// design rule (rising cost, falling damage-per-gold) lives in the numbers, not
+/// design rule (rising cost, falling serving-per-gold) patience in the numbers, not
 /// in code.
 /// </summary>
 public sealed class UpgradeLevel
 {
     public required int Cost { get; init; }
-    public required Fix32 DamageMultiplier { get; init; }
+    public required Fix32 ServingMultiplier { get; init; }
     public required Fix32 RangeMultiplier { get; init; }
-    /// <summary>Precomputed at load, like TowerDef.RangeSquared.</summary>
+    /// <summary>Precomputed at load, like StationDef.RangeSquared.</summary>
     public required Fix32 RangeSquared { get; init; }
-    public required int Damage { get; init; }
+    public required int Serving { get; init; }
 }
 
-public sealed class TowerDef
+public sealed class StationDef
 {
     public required ushort Index { get; init; }
     public required string Id { get; init; }
@@ -39,19 +39,19 @@ public sealed class TowerDef
     public required Fix32 Range { get; init; }
     /// <summary>Precomputed at load. Never recompute this in the tick loop.</summary>
     public required Fix32 RangeSquared { get; init; }
-    public required int Damage { get; init; }
+    public required int Serving { get; init; }
     /// <summary>Ticks, not seconds. Content authors write seconds; the loader converts.</summary>
     public required int CooldownTicks { get; init; }
     public required Fix32 ProjectileSpeed { get; init; }
     public required TargetRule Targeting { get; init; }
     public required int SellValue { get; init; }
 
-    /// <summary>Structure health. Towers are destructible (ADR-0006).</summary>
-    public required int Hp { get; init; }
+    /// <summary>Structure health. Stations are destructible (ADR-0006).</summary>
+    public required int Stock { get; init; }
 
     /// <summary>
     /// Repairing from zero to full costs this percentage of what selling the
-    /// tower and rebuilding it to the same level would cost.
+    /// station and rebuilding it to the same level would cost.
     ///
     /// Expressed against that alternative rather than against raw spend so the
     /// knob carries its own bound: 100 IS the wall, and a value above it means
@@ -59,13 +59,13 @@ public sealed class TowerDef
     /// </summary>
     public required int RepairPercent { get; init; }
 
-    /// <summary>Levels above the base. Empty means the tower cannot be upgraded.</summary>
+    /// <summary>Levels above the base. Empty means the station cannot be upgraded.</summary>
     public required UpgradeLevel[] Upgrades { get; init; }
 
     public int MaxLevel => Upgrades.Length + 1;
 
-    /// <summary>Damage at a 1-based level.</summary>
-    public int DamageAt(int level) => level <= 1 ? Damage : Upgrades[level - 2].Damage;
+    /// <summary>Serving at a 1-based level.</summary>
+    public int ServingAt(int level) => level <= 1 ? Serving : Upgrades[level - 2].Serving;
 
     /// <summary>Squared range at a 1-based level.</summary>
     public Fix32 RangeSquaredAt(int level) => level <= 1 ? RangeSquared : Upgrades[level - 2].RangeSquared;
@@ -78,23 +78,23 @@ public sealed class TowerDef
 
     /// <summary>
     /// What selling actually pays: half of everything spent, scaled by how much
-    /// of the tower is still standing.
+    /// of the station is still standing.
     ///
-    /// Selling used to refund the full half regardless of damage, which made
-    /// cashing out a nearly-destroyed tower strictly better than losing it and
-    /// drove towers-destroyed-per-run to zero -- the player pre-empted every
-    /// destruction. The value the enemy destroyed is now value the player cannot
-    /// recover, which is the whole point of destructible towers.
+    /// Selling used to refund the full half regardless of serving, which made
+    /// cashing out a nearly-destroyed station strictly better than losing it and
+    /// drove stations-destroyed-per-run to zero -- the player pre-empted every
+    /// destruction. The value the visitor destroyed is now value the player cannot
+    /// recover, which is the whole point of destructible stations.
     ///
-    /// An undamaged tower returns SellValueAt unchanged, by an explicit early
+    /// An undepleted station returns SellValueAt unchanged, by an explicit early
     /// return rather than by arithmetic that happens to land there. Repositioning
     /// is pillar 1 and must not pay a rounding tax for a feature aimed at wrecks.
     /// </summary>
     public int SalvageValueAt(int level, int hp)
     {
-        if (hp >= Hp) return SellValueAt(level);
+        if (hp >= Stock) return SellValueAt(level);
         if (hp <= 0) return 0;
-        return (int)((long)SellValueAt(level) * hp / Hp);
+        return (int)((long)SellValueAt(level) * hp / Stock);
     }
 
     /// <summary>Base cost plus every upgrade bought to reach this level.</summary>
@@ -106,9 +106,9 @@ public sealed class TowerDef
     }
 
     /// <summary>
-    /// Gold to restore <paramref name="missingHp"/> points of structure health.
+    /// Gold to restore <paramref name="missingStock"/> points of structure health.
     ///
-    /// Anchored to total spend, not base cost, so a level-3 tower is
+    /// Anchored to total spend, not base cost, so a level-3 station is
     /// proportionally more expensive to keep alive than a level-1 one. That
     /// maintenance liability is the design's whole interaction with upgrades.
     ///
@@ -119,7 +119,7 @@ public sealed class TowerDef
     ///
     /// Two properties are load-bearing and neither is incidental:
     ///
-    /// - The intermediate is <c>long</c>. spent x percent x missingHp reaches
+    /// - The intermediate is <c>long</c>. spent x percent x missingStock reaches
     ///   ~1e9 at plausible values and int overflow is silent. Integer arithmetic
     ///   is exact and therefore deterministic; overflow is exact and therefore
     ///   deterministically WRONG, which is the worse failure.
@@ -132,52 +132,52 @@ public sealed class TowerDef
     /// repair can sell for half and rebuild for full, a round trip whose net cost
     /// is exactly that. Above it nobody ever repairs. Enforced at load (ADR-0007).
     /// </summary>
-    public int RepairCostFor(int level, int missingHp)
+    public int RepairCostFor(int level, int missingStock)
     {
-        if (missingHp <= 0) return 0;
-        long numerator = (long)TotalSpentAt(level) * RepairPercent * missingHp;
-        long denominator = 200L * Hp;
+        if (missingStock <= 0) return 0;
+        long numerator = (long)TotalSpentAt(level) * RepairPercent * missingStock;
+        long denominator = 200L * Stock;
         return (int)((numerator + denominator - 1) / denominator);
     }
 }
 
-public sealed class EnemyDef
+public sealed class VisitorDef
 {
     public required ushort Index { get; init; }
     public required string Id { get; init; }
     public required string Name { get; init; }
-    public required int Hp { get; init; }
+    public required int Appetite { get; init; }
     /// <summary>Cells per tick.</summary>
     public required Fix32 Speed { get; init; }
     public required int Bounty { get; init; }
-    public required int LivesCost { get; init; }
+    public required int PatienceCost { get; init; }
 
     /// <summary>
-    /// Flat damage reduction per HIT. Flat rather than percentage on purpose:
-    /// a percentage scales every tower equally and changes no decisions, while
+    /// Flat serving reduction per HIT. Flat rather than percentage on purpose:
+    /// a percentage scales every station equally and changes no decisions, while
     /// flat punishes many-small-hits and rewards few-big-hits. That is the axis
     /// a roster of pure stat-variants cannot express.
     /// </summary>
-    public required int Armour { get; init; }
+    public required int Fussiness { get; init; }
 
     /// <summary>
-    /// Damage dealt to a tower per attack. Zero means this archetype ignores
-    /// towers entirely, which is the default and what every pre-existing
+    /// Serving dealt to a station per attack. Zero means this archetype ignores
+    /// stations entirely, which is the default and what every pre-existing
     /// archetype does.
     /// </summary>
-    public required int AttackDamage { get; init; }
+    public required int AttackDrain { get; init; }
 
     public required int AttackCooldownTicks { get; init; }
 
-    /// <summary>Precomputed at load, like TowerDef.RangeSquared.</summary>
+    /// <summary>Precomputed at load, like StationDef.RangeSquared.</summary>
     public required Fix32 AttackRangeSquared { get; init; }
 
-    public bool AttacksTowers => AttackDamage > 0;
+    public bool AttacksStations => AttackDrain > 0;
 }
 
 public sealed class WaveEntry
 {
-    public required ushort EnemyIndex { get; init; }
+    public required ushort VisitorIndex { get; init; }
     public required int Count { get; init; }
     public required int SpacingTicks { get; init; }
     public required int DelayTicks { get; init; }
@@ -189,14 +189,14 @@ public sealed class WaveDef
     public required int Index { get; init; }
 
     /// <summary>
-    /// Multiplier applied to every enemy's HP in this wave.
+    /// Multiplier applied to every visitor's HP in this wave.
     ///
-    /// Without this, later waves cannot be harder: enemy HP is fixed per def, so
-    /// sending more of the same creeps just hands the player more bounty, which
-    /// becomes more towers. Measured -- waves 5-12 leaked nothing at all before
+    /// Without this, later waves cannot be harder: visitor HP is fixed per def, so
+    /// sending more of the same visitors just hands the player more bounty, which
+    /// becomes more stations. Measured -- waves 5-12 leaked nothing at all before
     /// this existed. See 2026-08-06-crossroads-12-waves-balance.md.
     /// </summary>
-    public required Fix32 HpScale { get; init; }
+    public required Fix32 AppetiteScale { get; init; }
 
     /// <summary>
     /// 0-100. How much the wave's start offsets are jittered, from the table's
@@ -213,7 +213,7 @@ public sealed class WaveDef
     public int PrepTicks { get; init; }
 
     /// <summary>
-    /// What a tower costs while a wave is running, as a percent of its price.
+    /// What a station costs while a wave is running, as a percent of its price.
     /// 100 = no premium. Above 100 makes reacting mid-fight a real decision
     /// rather than the default, and doubles as the scaling gold sink the
     /// economy reports asked for.
@@ -248,11 +248,11 @@ public sealed class MapDef
 
     /// <summary>
     /// Which terrain palette the view should draw this map with. **The simulation
-    /// never reads this** -- it is carried here for the same reason TowerDef.Name
+    /// never reads this** -- it is carried here for the same reason StationDef.Name
     /// is: the map file is the one place the author states it, and splitting it
     /// into a side-car would mean two files to keep in step.
     ///
-    /// Core deliberately does not know which themes exist. The registry lives in
+    /// Core deliberately does not know which themes exist. The registry patience in
     /// the view, and a map naming an unknown theme falls back to the default --
     /// caught by a test over the shipped maps rather than by a loader that would
     /// have to hold a list of colours it can never use.
@@ -267,14 +267,14 @@ public sealed class MapDef
     public required GridCell[] Spawns { get; init; }
     public required GridCell Goal { get; init; }
     public required int StartingGold { get; init; }
-    public required int StartingLives { get; init; }
+    public required int StartingPatience { get; init; }
 
     /// <summary>
-    /// Which towers this board offers, in the order the toolbar shows them, or
+    /// Which stations this board offers, in the order the toolbar shows them, or
     /// **empty for "all of them"**.
     ///
     /// Empty is the back-compatible default and it is not the same statement as
-    /// listing every tower: a map that says nothing keeps whatever the content
+    /// listing every station: a map that says nothing keeps whatever the content
     /// set grows to, while a map that lists two keeps exactly those two when a
     /// third is added. Boards that mean "these and only these" must say so.
     ///
@@ -283,19 +283,19 @@ public sealed class MapDef
     /// than a suggestion. It needs no place in the state hash because it never
     /// changes: it is part of the map, like which cells are buildable.
     /// </summary>
-    public string[] TowerIds { get; init; } = [];
+    public string[] StationIds { get; init; } = [];
 
     /// <summary>
-    /// Whether this board offers this tower. Empty roster means all of them.
+    /// Whether this board offers this station. Empty roster means all of them.
     ///
-    /// Lives here, on the data, because two callers need the same answer and they
+    /// Patience here, on the data, because two callers need the same answer and they
     /// sit on opposite sides of the Core boundary: `CommandSystem` enforces it,
-    /// and the view's tower bar draws it. A copy in the renderer is how a toolbar
-    /// starts offering a tower the sim refuses to build.
+    /// and the view's station bar draws it. A copy in the renderer is how a toolbar
+    /// starts offering a station the sim refuses to build.
     /// </summary>
     public bool Offers(ContentSet content, ushort defIndex)
-        => TowerIds.Length == 0
-           || System.Array.IndexOf(TowerIds, content.Tower(defIndex).Id) >= 0;
+        => StationIds.Length == 0
+           || System.Array.IndexOf(StationIds, content.Station(defIndex).Id) >= 0;
 
     public int Index(GridCell c) => c.Y * Width + c.X;
     public int Index(int x, int y) => y * Width + x;
@@ -306,25 +306,25 @@ public sealed class MapDef
 /// <summary>Everything the sim needs that is not state. Built before the Sim exists.</summary>
 public sealed class ContentSet
 {
-    public required TowerDef[] Towers { get; init; }
-    public required EnemyDef[] Enemies { get; init; }
+    public required StationDef[] Stations { get; init; }
+    public required VisitorDef[] Visitors { get; init; }
     public required WaveDef[] Waves { get; init; }
 
-    public TowerDef Tower(ushort index) => Towers[index];
-    public EnemyDef Enemy(ushort index) => Enemies[index];
+    public StationDef Station(ushort index) => Stations[index];
+    public VisitorDef Visitor(ushort index) => Visitors[index];
 
-    public ushort TowerIndexOf(string id)
+    public ushort StationIndexOf(string id)
     {
-        for (ushort i = 0; i < Towers.Length; i++)
-            if (Towers[i].Id == id) return i;
-        throw new KeyNotFoundException($"No tower with id '{id}'");
+        for (ushort i = 0; i < Stations.Length; i++)
+            if (Stations[i].Id == id) return i;
+        throw new KeyNotFoundException($"No station with id '{id}'");
     }
 
-    public ushort EnemyIndexOf(string id)
+    public ushort VisitorIndexOf(string id)
     {
-        for (ushort i = 0; i < Enemies.Length; i++)
-            if (Enemies[i].Id == id) return i;
-        throw new KeyNotFoundException($"No enemy with id '{id}'");
+        for (ushort i = 0; i < Visitors.Length; i++)
+            if (Visitors[i].Id == id) return i;
+        throw new KeyNotFoundException($"No visitor with id '{id}'");
     }
 }
 
@@ -349,8 +349,8 @@ public static class MapTargets
     /// supports, and therefore the largest board it supports.
     ///
     /// **Why the path band is absolute and not a fraction of the board.** The
-    /// 18-30 band is about time under fire -- how many cells a creep is exposed
-    /// for, against tower DPS -- not about geometry. Scaling it with board size
+    /// 18-30 band is about time under fire -- how many cells a visitor is exposed
+    /// for, against station DPS -- not about geometry. Scaling it with board size
     /// would keep the warning quiet on a 64x64 map while quietly claiming a
     /// combat model nothing has tested.
     ///

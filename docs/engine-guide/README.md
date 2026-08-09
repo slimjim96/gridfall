@@ -8,8 +8,8 @@ needs to know what will break.
 > editor are all built.
 >
 > Chapters 09 and 10 remain **recipes rather than descriptions**: 09's burning-status example is not
-> implemented, and 10 describes adding a tower end to end, which is accurate in shape but references
-> `frost-spire`, a tower that does not exist. Read them as procedures, not as inventory.
+> implemented, and 10 describes adding a station end to end, which is accurate in shape but references
+> `frost-spire`, a station that does not exist. Read them as procedures, not as inventory.
 >
 > Any divergence between this guide and the code is a bug in one of them. Say which one when you
 > find it.
@@ -32,7 +32,7 @@ needs to know what will break.
 | Recipe | When |
 |---|---|
 | [09 · Add a system](09-recipe-new-system.md) | New simulation behavior that needs its own tick phase slot |
-| [10 · Add a tower](10-recipe-new-tower.md) | End to end: data, behavior, view, placeholder, prompts |
+| [10 · Add a station](10-recipe-new-station.md) | End to end: data, behavior, view, placeholder, prompts |
 
 ## The three sentences that matter most
 

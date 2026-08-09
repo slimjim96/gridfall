@@ -123,7 +123,7 @@ analytically and bounds-checks against the map.
 This is the one folder in the contract that is not a cell kind, and the distinction is worth keeping
 sharp — everything else there is downstream of a simulation concept, and this is not.
 
-**Why this is inside the scope above and not creep past it.** The theme is already an opaque string
+**Why this is inside the scope above and not visitor past it.** The theme is already an opaque string
 that Core carries and never reads, so nothing new crosses the boundary; the editor gained no rule of
 its own; and it removes a real hand-edit, which is the bar every feature here has to clear. What is
 still out:
@@ -187,7 +187,7 @@ gameplay scene. `Esc` tears it down and returns to the editor with the map exact
 - The map does **not** need to be saved first. Playtesting an unsaved map is the entire point.
 - The test wave is a fixed, hardcoded ramp — 20 runners then 5 brutes. Not configurable in v1; if you
   need a specific wave, author the wave table and run the game.
-- Towers can be placed during playtest and are discarded on exit. Nothing a playtest does touches the
+- Stations can be placed during playtest and are discarded on exit. Nothing a playtest does touches the
   map being edited.
 - Playtest uses the real `Sim`, the real loader, and the real renderer. If a map crashes the loader in
   playtest, it would have crashed the game.
@@ -246,7 +246,7 @@ during a drag.
 | Goal exists | Error | Exactly one `G` |
 | At least one spawn | Error | ≥ 1 `S` |
 | Every spawn reaches the goal | Error | `PathSystem.Build` on the empty board; any spawn at `Unreachable` fails, and **that spawn is outlined** |
-| Isolated buildable pockets | Warning | Buildable cells the creeps can never path near are dead space |
+| Isolated buildable pockets | Warning | Buildable cells the visitors can never path near are dead space |
 | Shortest path, unmazed | Warning | Target 18–30 cells |
 | Buildable share | Warning | Target 35–55% of the grid |
 | Lane count | Info | 1–3 |
@@ -258,7 +258,7 @@ the same function the game uses in tick phase 2 — not a second implementation
 
 ### The route overlay
 
-`F2` draws what the flow field produces from each spawn: the route creeps would actually walk on the
+`F2` draws what the flow field produces from each spawn: the route visitors would actually walk on the
 empty board. It is the same `_flow` array the game reads, rendered by the same code as the in-game route
 highlight.
 
@@ -267,7 +267,7 @@ a lane going dark as you close it is more legible than a line of text.
 
 ### The maze estimate — `F6`, on demand
 
-The one check that cannot run live. `MapTargets` caps the longest path achievable by legal tower
+The one check that cannot run live. `MapTargets` caps the longest path achievable by legal station
 placement at **3× the unmazed path**, and finding the true worst case is a search problem, not a query.
 
 `F6` runs a **greedy approximation**: repeatedly block whichever single buildable cell lengthens the

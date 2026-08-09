@@ -14,21 +14,21 @@ namespace Gridfall.Verify;
 ///
 ///   1. Build whenever gold allows, keeping no reserve -- an idle pile of gold
 ///      is the thing the economy targets are trying to detect.
-///   2. Place where a tower covers the most cells of the CURRENT route, because
+///   2. Place where a station covers the most cells of the CURRENT route, because
 ///      coverage is what a human eyeballs. Never place where the game would
 ///      refuse.
-///   3. Buy the best damage-per-gold that is affordable right now, with no
+///   3. Buy the best serving-per-gold that is affordable right now, with no
 ///      lookahead and no saving up for something better.
-///   4. When there is nowhere useful left to build, upgrade the tower covering
+///   4. When there is nowhere useful left to build, upgrade the station covering
 ///      the most of the route instead. Board saturation is exactly the moment
 ///      upgrades are for.
-///   5. Between waves, repair a tower that is visibly about to die BEFORE
-///      building a new one. Losing a built tower costs more than not having
-///      another. A beginner notices a tower gone dark red; they do not
+///   5. Between waves, repair a station that is visibly about to die BEFORE
+///      building a new one. Losing a built station costs more than not having
+///      another. A beginner notices a station gone dark red; they do not
 ///      micro-manage scratches, so this triggers on a threshold rather than on
-///      any damage at all.
+///      any serving at all.
 ///   6. Spend down BEFORE pulling the next wave, not during it. A real player
-///      with 200 gold in hand does not start wave 1 with one tower.
+///      with 200 gold in hand does not start wave 1 with one station.
 ///   7. Never sell, never re-maze deliberately.
 ///
 /// That is a reasonable beginner who understands coverage: clearly better than
@@ -49,23 +49,23 @@ public sealed class PlayPolicy
     private const int JitterTopN = 3;
 
     /// <summary>
-    /// Repair a tower once it drops below this percentage of full health.
+    /// Repair a station once it drops below this percentage of full health.
     ///
     /// Not 100: repairing every scratch is micro no beginner does, and because
-    /// cost scales with damage taken it would also be indistinguishable from a
+    /// cost scales with serving taken it would also be indistinguishable from a
     /// continuous drain. 40% is roughly where the placeholder's darkening reads
     /// as "this one is in trouble" rather than "this one has been shot at".
     /// </summary>
     private const int RepairBelowPercent = 40;
 
     /// <summary>
-    /// Sell a tower mid-wave once it drops below this. A tower this hurt is
-    /// probably not surviving the wave, and a destroyed tower refunds nothing.
+    /// Sell a station mid-wave once it drops below this. A station this hurt is
+    /// probably not surviving the wave, and a destroyed station refunds nothing.
     /// </summary>
     private const int SalvageBelowPercent = 25;
 
     /// <summary>
-    /// Whether the player cuts doomed towers loose mid-wave. Set from the balance
+    /// Whether the player cuts doomed stations loose mid-wave. Set from the balance
     /// runner: the beginner policy never sells, so without this the sim cannot
     /// see the behaviour `salvage-value` exists to price.
     /// </summary>
@@ -114,13 +114,13 @@ public sealed class PlayPolicy
     /// </summary>
     public int GoldSpentRepairing { get; private set; }
 
-    public int TowersSalvaged { get; private set; }
+    public int StationsSalvaged { get; private set; }
 
     /// <summary>
-    /// Total route cells covered, summed over every standing tower. Tower COUNT
+    /// Total route cells covered, summed over every standing station. Station COUNT
     /// turned out not to be the thing that matters -- a winding route lets one
-    /// tower's range reach several legs at once, so a map with a third of the
-    /// towers can field the same defence.
+    /// station's range reach several legs at once, so a map with a third of the
+    /// stations can field the same defence.
     /// </summary>
     public int TotalCoverage()
     {
@@ -129,11 +129,11 @@ public sealed class PlayPolicy
         int routeLength = _sim.Path.TraceRoute(map.Index(map.Spawns[0]), _routeBuffer);
 
         int total = 0;
-        for (int k = 0; k < state.TowerCount; k++)
+        for (int k = 0; k < state.StationCount; k++)
         {
-            int slot = state.TowerSlotByOrder(k);
-            TowerDef def = _sim.Content.Tower(state.TowerDefIndex(slot));
-            total += CoverageScore(state.TowerCellIndex(slot), def, routeLength, map);
+            int slot = state.StationSlotByOrder(k);
+            StationDef def = _sim.Content.Station(state.StationDefIndex(slot));
+            total += CoverageScore(state.StationCellIndex(slot), def, routeLength, map);
         }
         return total;
     }
@@ -147,10 +147,10 @@ public sealed class PlayPolicy
         // the next wave once the gold is committed.
         //
         // The previous version made a single build attempt and started the wave
-        // immediately, so the policy entered wave 1 with ONE tower while holding
-        // 200 gold -- four towers' worth. That made the early game look like an
+        // immediately, so the policy entered wave 1 with ONE station while holding
+        // 200 gold -- four stations' worth. That made the early game look like an
         // economy problem when it was the policy failing to spend.
-        if (!state.WaveActive && state.CreepCount == 0)
+        if (!state.WaveActive && state.VisitorCount == 0)
         {
             if (_sim.TickCount < _nextBuildTick) return;
             if (TryRepair()) return;
@@ -165,15 +165,15 @@ public sealed class PlayPolicy
 
         // No repair branch here: the sim refuses a repair while a wave is running,
         // so a policy that tried would only generate rejections. The decision this
-        // mechanic creates lives entirely in the between-waves branch above.
+        // mechanic creates patience entirely in the between-waves branch above.
         if (Salvages && TrySalvage()) return;
         TryBuild();
     }
 
     /// <summary>
-    /// Cut loose the worst-hurt tower mid-wave, before it dies for nothing.
+    /// Cut loose the worst-hurt station mid-wave, before it dies for nothing.
     ///
-    /// Mid-wave only: between waves the same tower can be repaired, which is
+    /// Mid-wave only: between waves the same station can be repaired, which is
     /// cheaper than selling and rebuilding. This models the player noticing that
     /// selling still works while a wave runs and repairing does not.
     /// </summary>
@@ -182,36 +182,36 @@ public sealed class PlayPolicy
     {
         SimStateView state = _sim.State;
 
-        int bestTowerId = -1;
-        long bestHp = 0, bestMax = 1;
+        int bestStationId = -1;
+        long bestAppetite = 0, bestMax = 1;
 
-        for (int k = 0; k < state.TowerCount; k++)
+        for (int k = 0; k < state.StationCount; k++)
         {
-            int slot = state.TowerSlotByOrder(k);
-            TowerDef def = _sim.Content.Tower(state.TowerDefIndex(slot));
-            int hp = state.TowerHp(slot);
+            int slot = state.StationSlotByOrder(k);
+            StationDef def = _sim.Content.Station(state.StationDefIndex(slot));
+            int hp = state.StationStock(slot);
 
-            if (hp * 100L >= def.Hp * (long)SalvageBelowPercent) continue;
-            if (bestTowerId >= 0 && hp * bestMax >= bestHp * def.Hp) continue;
+            if (hp * 100L >= def.Stock * (long)SalvageBelowPercent) continue;
+            if (bestStationId >= 0 && hp * bestMax >= bestAppetite * def.Stock) continue;
 
-            bestTowerId = state.TowerId(slot);
-            bestHp = hp;
-            bestMax = def.Hp;
+            bestStationId = state.StationId(slot);
+            bestAppetite = hp;
+            bestMax = def.Stock;
         }
 
-        if (bestTowerId < 0) return false;
+        if (bestStationId < 0) return false;
 
         _nextBuildTick = _sim.TickCount + BuildCooldownTicks;
-        _sim.Enqueue(new SellCommand(bestTowerId));
-        TowersSalvaged++;
+        _sim.Enqueue(new SellCommand(bestStationId));
+        StationsSalvaged++;
         return true;
     }
 
     /// <summary>
-    /// Repair the worst-hurt tower that is below the threshold and affordable.
+    /// Repair the worst-hurt station that is below the threshold and affordable.
     ///
     /// Worst-hurt by health FRACTION, not by points missing: an 800-hp arrow
-    /// tower at 200 is in more danger than a 1440-hp cannon at 400, and the
+    /// station at 200 is in more danger than a 1440-hp cannon at 400, and the
     /// beginner being modelled is reading the colour, which tracks the fraction.
     /// </summary>
     /// <returns>True if a repair was queued this tick.</returns>
@@ -219,34 +219,34 @@ public sealed class PlayPolicy
     {
         SimStateView state = _sim.State;
 
-        int bestTowerId = -1;
-        long bestHp = 0, bestMax = 1;   // compared as a fraction, cross-multiplied
+        int bestStationId = -1;
+        long bestAppetite = 0, bestMax = 1;   // compared as a fraction, cross-multiplied
 
-        // Ascending tower id, so ties resolve identically every run.
-        for (int k = 0; k < state.TowerCount; k++)
+        // Ascending station id, so ties resolve identically every run.
+        for (int k = 0; k < state.StationCount; k++)
         {
-            int slot = state.TowerSlotByOrder(k);
-            TowerDef def = _sim.Content.Tower(state.TowerDefIndex(slot));
-            int hp = state.TowerHp(slot);
+            int slot = state.StationSlotByOrder(k);
+            StationDef def = _sim.Content.Station(state.StationDefIndex(slot));
+            int hp = state.StationStock(slot);
 
-            if (hp * 100L >= def.Hp * (long)RepairBelowPercent) continue;
+            if (hp * 100L >= def.Stock * (long)RepairBelowPercent) continue;
 
-            int cost = def.RepairCostFor(state.TowerLevel(slot), def.Hp - hp);
+            int cost = def.RepairCostFor(state.StationLevel(slot), def.Stock - hp);
             if (state.Gold < cost) continue;
 
-            // hp/def.Hp < bestHp/bestMax, without dividing.
-            if (bestTowerId >= 0 && hp * bestMax >= bestHp * def.Hp) continue;
+            // hp/def.Stock < bestAppetite/bestMax, without dividing.
+            if (bestStationId >= 0 && hp * bestMax >= bestAppetite * def.Stock) continue;
 
-            bestTowerId = state.TowerId(slot);
-            bestHp = hp;
-            bestMax = def.Hp;
+            bestStationId = state.StationId(slot);
+            bestAppetite = hp;
+            bestMax = def.Stock;
             _pendingRepairCost = cost;
         }
 
-        if (bestTowerId < 0) return false;
+        if (bestStationId < 0) return false;
 
         _nextBuildTick = _sim.TickCount + BuildCooldownTicks;
-        _sim.Enqueue(new RepairCommand(bestTowerId));
+        _sim.Enqueue(new RepairCommand(bestStationId));
         RepairsBought++;
         GoldSpentRepairing += _pendingRepairCost;
         return true;
@@ -257,10 +257,10 @@ public sealed class PlayPolicy
     {
         _nextBuildTick = _sim.TickCount + BuildCooldownTicks;
 
-        ushort? choice = BestAffordableTower();
-        if (choice is not { } towerIndex) return false;
+        ushort? choice = BestAffordableStation();
+        if (choice is not { } stationIndex) return false;
 
-        int cell = BestPlacement(_sim.Content.Tower(towerIndex));
+        int cell = BestPlacement(_sim.Content.Station(stationIndex));
         if (cell < 0)
         {
             // Nowhere useful to build. Before upgrades existed the policy simply
@@ -270,16 +270,16 @@ public sealed class PlayPolicy
         }
 
         _sim.Enqueue(new BuildCommand(
-            new GridCell(cell % _sim.Map.Width, cell / _sim.Map.Width), towerIndex));
+            new GridCell(cell % _sim.Map.Width, cell / _sim.Map.Width), stationIndex));
         BuildsPlaced++;
         return true;
     }
 
     /// <summary>
-    /// Upgrade the highest-coverage tower that can afford its next level.
+    /// Upgrade the highest-coverage station that can afford its next level.
     ///
     /// Deliberately only reached when building fails: the content is authored so
-    /// upgrading costs more per point of damage than a new tower, so a player who
+    /// upgrading costs more per point of serving than a new station, so a player who
     /// upgrades while good spots remain is playing badly.
     /// </summary>
     /// <returns>True if an upgrade was queued this tick.</returns>
@@ -291,57 +291,57 @@ public sealed class PlayPolicy
         int routeLength = _sim.Path.TraceRoute(map.Index(map.Spawns[0]), _routeBuffer);
         if (routeLength == 0) return false;
 
-        int bestTowerId = -1;
+        int bestStationId = -1;
         int bestScore = -1;
 
-        // Ascending tower id, so ties resolve identically every run.
-        for (int k = 0; k < state.TowerCount; k++)
+        // Ascending station id, so ties resolve identically every run.
+        for (int k = 0; k < state.StationCount; k++)
         {
-            int slot = state.TowerSlotByOrder(k);
-            TowerDef def = _sim.Content.Tower(state.TowerDefIndex(slot));
-            int level = state.TowerLevel(slot);
+            int slot = state.StationSlotByOrder(k);
+            StationDef def = _sim.Content.Station(state.StationDefIndex(slot));
+            int level = state.StationLevel(slot);
             if (level >= def.MaxLevel) continue;
             if (state.Gold < def.Upgrades[level - 1].Cost) continue;
 
-            int score = CoverageScore(state.TowerCellIndex(slot), def, routeLength, map);
+            int score = CoverageScore(state.StationCellIndex(slot), def, routeLength, map);
             if (score <= bestScore) continue;
 
             bestScore = score;
-            bestTowerId = state.TowerId(slot);
+            bestStationId = state.StationId(slot);
         }
 
-        if (bestTowerId < 0) return false;
+        if (bestStationId < 0) return false;
 
-        _sim.Enqueue(new UpgradeCommand(bestTowerId));
+        _sim.Enqueue(new UpgradeCommand(bestStationId));
         UpgradesBought++;
         return true;
     }
 
     /// <summary>
-    /// Best damage-per-gold that is affordable now. No lookahead: a policy that
+    /// Best serving-per-gold that is affordable now. No lookahead: a policy that
     /// saves up would be a different, and much harder to justify, definition of
     /// competent.
     /// </summary>
-    private ushort? BestAffordableTower()
+    private ushort? BestAffordableStation()
     {
         int gold = _sim.State.Gold;
         ushort? best = null;
         long bestValue = 0;
 
-        for (ushort i = 0; i < _sim.Content.Towers.Length; i++)
+        for (ushort i = 0; i < _sim.Content.Stations.Length; i++)
         {
             // The board's roster, from the same method CommandSystem enforces it
             // with. Skipping it here would not cheat -- the build would simply be
-            // refused -- but the policy would burn its turn choosing a tower it
+            // refused -- but the policy would burn its turn choosing a station it
             // cannot place, and the balance figures for a restricted board would
             // describe a player who never builds anything.
             if (!_sim.Map.Offers(_sim.Content, i)) continue;
 
-            TowerDef def = _sim.Content.Tower(i);
-            if (def.Cost > gold || def.Damage <= 0 || def.CooldownTicks <= 0) continue;
+            StationDef def = _sim.Content.Station(i);
+            if (def.Cost > gold || def.Serving <= 0 || def.CooldownTicks <= 0) continue;
 
-            // damage per tick per gold, scaled to stay in integers
-            long value = (long)def.Damage * 1000 / (def.CooldownTicks * (long)def.Cost);
+            // serving per tick per gold, scaled to stay in integers
+            long value = (long)def.Serving * 1000 / (def.CooldownTicks * (long)def.Cost);
             if (best is not null && value <= bestValue) continue;
 
             bestValue = value;
@@ -351,12 +351,12 @@ public sealed class PlayPolicy
     }
 
     /// <summary>
-    /// The legal cell whose tower would cover the most of the current route.
+    /// The legal cell whose station would cover the most of the current route.
     ///
     /// Coverage counted in cells, not in time-in-range: a good enough proxy for
-    /// what a human does by eye, and it does not need a damage model.
+    /// what a human does by eye, and it does not need a serving model.
     /// </summary>
-    private int BestPlacement(TowerDef def)
+    private int BestPlacement(StationDef def)
     {
         MapDef map = _sim.Map;
         PathSystem path = _sim.Path;
@@ -399,7 +399,7 @@ public sealed class PlayPolicy
         }
 
         // Then settle. Trying only the top few and giving up made the policy stop
-        // building at ~21 towers on crossroads while sitting on 3,000 gold -- not
+        // building at ~21 stations on crossroads while sitting on 3,000 gold -- not
         // because the board was full, but because its three favourite cells were
         // all chokepoints the game refuses. A real player takes a worse spot; so
         // does this now. Reporting that as an economy finding would have been
@@ -415,9 +415,9 @@ public sealed class PlayPolicy
         return -1;
     }
 
-    private int CoverageScore(int cell, TowerDef def, int routeLength, MapDef map)
+    private int CoverageScore(int cell, StationDef def, int routeLength, MapDef map)
     {
-        var towerPos = new FixVec2(
+        var stationPos = new FixVec2(
             Fix32.FromInt(cell % map.Width),
             Fix32.FromInt(cell / map.Width));
 
@@ -429,7 +429,7 @@ public sealed class PlayPolicy
                 Fix32.FromInt(routeCell % map.Width),
                 Fix32.FromInt(routeCell / map.Width));
 
-            if (FixVec2.DistanceSquared(towerPos, pos) <= def.RangeSquared) covered++;
+            if (FixVec2.DistanceSquared(stationPos, pos) <= def.RangeSquared) covered++;
         }
         return covered;
     }

@@ -5,54 +5,54 @@ using Gridfall.Core.Path;
 namespace Gridfall.Core.Systems;
 
 /// <summary>
-/// Phase 7. Applies the whole pending-damage buffer in entity id order, then
+/// Phase 7. Applies the whole pending-serving buffer in entity id order, then
 /// resolves deaths, then leaks.
 ///
-/// Deaths are resolved AFTER all damage is applied. Two towers that both land a
-/// killing blow on the same creep on the same tick produce one death and one
-/// bounty -- if damage were applied inline in phase 5, the answer would depend
-/// on tower iteration order.
+/// Deaths are resolved AFTER all serving is applied. Two stations that both land a
+/// killing blow on the same visitor on the same tick produce one death and one
+/// bounty -- if serving were applied inline in phase 5, the answer would depend
+/// on station iteration order.
 /// </summary>
-internal static class DamageSystem
+internal static class ServingSystem
 {
     /// <summary>
-    /// Tower damage, buffered by EnemyAttackSystem in phase 5. Applied in
-    /// ascending tower id, then destructions resolved -- so two creeps that both
+    /// Station serving, buffered by VisitorAttackSystem in phase 5. Applied in
+    /// ascending station id, then destructions resolved -- so two visitors that both
     /// land a killing blow on the same tick destroy it once, for the same reason
-    /// simultaneous creep kills yield one death.
+    /// simultaneous visitor kills yield one death.
     /// </summary>
-    private static void ResolveTowerDamage(
-        SimState state, ContentSet content, DamageBuffer pending,
+    private static void ResolveStationDrain(
+        SimState state, ContentSet content, ServingBuffer pending,
         PathSystem path, EventLog events, int tick)
     {
         if (pending.Count == 0) return;
 
-        pending.SortByCreepId();   // sorts by the target id field, towers here
+        pending.SortByVisitorId();   // sorts by the target id field, stations here
         var destroyed = new List<int>();
 
         for (int i = 0; i < pending.Count; i++)
         {
-            ref DamageBuffer.Record r = ref pending[i];
-            int slot = state.SlotOfTower(r.CreepId);
+            ref ServingBuffer.Record r = ref pending[i];
+            int slot = state.SlotOfStation(r.VisitorId);
             if (slot < 0) continue;
-            if (state.TowerHp[slot] <= 0) continue;   // already lethal this tick
+            if (state.StationStock[slot] <= 0) continue;   // already lethal this tick
 
-            state.TowerHp[slot] -= r.Amount;
-            events.Add(new SimEvent(tick, EventKind.TowerDamaged, r.CreepId, r.Amount));
+            state.StationStock[slot] -= r.Amount;
+            events.Add(new SimEvent(tick, EventKind.StationDepleted, r.VisitorId, r.Amount));
 
-            if (state.TowerHp[slot] <= 0) destroyed.Add(r.CreepId);
+            if (state.StationStock[slot] <= 0) destroyed.Add(r.VisitorId);
         }
         pending.Clear();
 
-        foreach (int towerId in destroyed)
+        foreach (int stationId in destroyed)
         {
-            int slot = state.SlotOfTower(towerId);
+            int slot = state.SlotOfStation(stationId);
             if (slot < 0) continue;
 
-            int cellIndex = state.TowerCellIndex[slot];
-            events.Add(new SimEvent(tick, EventKind.TowerDestroyed, towerId, state.TowerLevel[slot]));
+            int cellIndex = state.StationCellIndex[slot];
+            events.Add(new SimEvent(tick, EventKind.StationDestroyed, stationId, state.StationLevel[slot]));
 
-            state.RemoveTowerBySlot(slot);
+            state.RemoveStationBySlot(slot);
 
             // Frees the cell, so the route may shorten. Destruction can only ever
             // OPEN a path, never close one, so no block check is needed. Phase 2
@@ -61,18 +61,18 @@ internal static class DamageSystem
         }
     }
 
-    /// <param name="leakedCreepIds">Recorded by MovementSystem in phase 4.</param>
+    /// <param name="leakedVisitorIds">Recorded by MovementSystem in phase 4.</param>
     /// <param name="deadDefIndices">Filled for phase 8: one entry per death.</param>
     /// <param name="leakedDefIndices">Filled for phase 8: one entry per leak.</param>
     public static void Run(
         SimState state,
         ContentSet content,
-        DamageBuffer pending,
-        DamageBuffer pendingTowerDamage,
+        ServingBuffer pending,
+        ServingBuffer pendingStationDrain,
         PathSystem path,
         EventLog events,
         int tick,
-        List<int> leakedCreepIds,
+        List<int> leakedVisitorIds,
         List<int> scratchDeadIds,
         List<int> deadDefIndices,
         List<int> leakedDefIndices)
@@ -81,54 +81,54 @@ internal static class DamageSystem
         deadDefIndices.Clear();
         leakedDefIndices.Clear();
 
-        ResolveTowerDamage(state, content, pendingTowerDamage, path, events, tick);
+        ResolveStationDrain(state, content, pendingStationDrain, path, events, tick);
 
-        pending.SortByCreepId();
+        pending.SortByVisitorId();
         for (int i = 0; i < pending.Count; i++)
         {
-            ref DamageBuffer.Record r = ref pending[i];
-            int slot = state.SlotOfCreep(r.CreepId);
+            ref ServingBuffer.Record r = ref pending[i];
+            int slot = state.SlotOfVisitor(r.VisitorId);
             if (slot < 0) continue;
-            if (state.CreepHp[slot] <= 0) continue;   // already lethal this tick
+            if (state.VisitorAppetite[slot] <= 0) continue;   // already lethal this tick
 
-            // Per RECORD, not per tick total. Two 12-damage hits against armour 8
+            // Per RECORD, not per tick total. Two 12-serving hits against fussiness 8
             // deal 4 + 4, never 24 - 8 = 16 -- per-hit is what makes rapid-fire
-            // towers weak against armour, which is the entire design.
+            // stations weak against fussiness, which is the entire design.
             //
-            // Floored at 1: an enemy immune to a tower is a soft-lock waiting to
-            // happen, and "my towers do nothing" is not a readable failure.
-            int armour = content.Enemy(state.CreepDefIndex[slot]).Armour;
-            int amount = System.Math.Max(1, r.Amount - armour);
+            // Floored at 1: an visitor immune to a station is a soft-lock waiting to
+            // happen, and "my stations do nothing" is not a readable failure.
+            int fussiness = content.Visitor(state.VisitorDefIndex[slot]).Fussiness;
+            int amount = System.Math.Max(1, r.Amount - fussiness);
 
-            state.CreepHp[slot] -= amount;
-            events.Add(new SimEvent(tick, EventKind.CreepDamaged, r.CreepId, amount));
+            state.VisitorAppetite[slot] -= amount;
+            events.Add(new SimEvent(tick, EventKind.VisitorServed, r.VisitorId, amount));
 
-            if (state.CreepHp[slot] <= 0) scratchDeadIds.Add(r.CreepId);
+            if (state.VisitorAppetite[slot] <= 0) scratchDeadIds.Add(r.VisitorId);
         }
         pending.Clear();
 
         // Deaths, in ascending id order (inherited from the buffer's sort).
         foreach (int id in scratchDeadIds)
         {
-            int slot = state.SlotOfCreep(id);
+            int slot = state.SlotOfVisitor(id);
             if (slot < 0) continue;
-            int defIndex = state.CreepDefIndex[slot];
-            events.Add(new SimEvent(tick, EventKind.CreepDied, id, defIndex));
+            int defIndex = state.VisitorDefIndex[slot];
+            events.Add(new SimEvent(tick, EventKind.VisitorDied, id, defIndex));
             deadDefIndices.Add(defIndex);
-            state.RemoveCreepBySlot(slot);
+            state.RemoveVisitorBySlot(slot);
         }
 
-        // Leaks last, so a creep that leaked and was killed on the same tick
+        // Leaks last, so a visitor that leaked and was killed on the same tick
         // resolves exactly once -- as a death.
-        foreach (int id in leakedCreepIds)
+        foreach (int id in leakedVisitorIds)
         {
-            int slot = state.SlotOfCreep(id);
+            int slot = state.SlotOfVisitor(id);
             if (slot < 0) continue;
-            int defIndex = state.CreepDefIndex[slot];
-            events.Add(new SimEvent(tick, EventKind.CreepLeaked, id, defIndex));
+            int defIndex = state.VisitorDefIndex[slot];
+            events.Add(new SimEvent(tick, EventKind.VisitorLeaked, id, defIndex));
             leakedDefIndices.Add(defIndex);
-            state.RemoveCreepBySlot(slot);
+            state.RemoveVisitorBySlot(slot);
         }
-        leakedCreepIds.Clear();
+        leakedVisitorIds.Clear();
     }
 }

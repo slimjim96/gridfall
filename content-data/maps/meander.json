@@ -28,12 +28,12 @@
     "y": 9
   },
   "startingGold": 300,
-  "startingLives": 20,
+  "startingPatience": 20,
   "meta": {
     "author": "make-example-levels",
     "motif": "meander"
   },
-  "towers": [
-    "arrow-tower"
+  "stations": [
+    "arrow-station"
   ]
 }

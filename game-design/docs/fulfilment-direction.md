@@ -1,6 +1,6 @@
 # Direction — Fulfilment, Not Defense
 
-**Set:** 2026-08-08 · **Owner:** design-lead · **Status:** proposed · Supersedes the three options in
+**Set:** 2026-08-08 · **Owner:** design-lead · **Status:** ACCEPTED 2026-08-09 · Supersedes the three options in
 [positive-framing-direction.md](positive-framing-direction.md), which asked the right question and
 answered it less well.
 
@@ -99,7 +99,22 @@ Working names only, and the naming is genuinely the human's call:
 
 `Gridfall` still works. "Fall" reads as drifting down, which is what bubbles and leaves do.
 
-## First slice, if agreed
+## First slice — DONE 2026-08-09
+
+The reframe and the names were accepted, and the mechanical rename landed in one pass. Two things the
+spec below did not anticipate:
+
+- **Traces did not need re-recording.** The note said they would "because content ids change". They
+  did change — `arrow-tower` is `arrow-station` — but the state hash covers integers, and def indices
+  are assigned by ordinal filename sort, where `arrow-station.json` sorts before `cannon.json` exactly
+  as `arrow-tower.json` did. `replay` passed untouched, which is a stronger result: **nothing about
+  behaviour moved at all.**
+- **Two mappings produce nonsense and were extended.** `Damaged → Servinged` is not a word, and a
+  station has no *appetite*. Stations hold **stock** and become **depleted**; visitors have
+  **appetite** and receive **servings**. That follows the doc's own `Repair → Restocking` line rather
+  than inventing a vocabulary.
+
+## The slice as specified
 
 The mechanical rename in **one pass, tests green**: `Tower → Station`, `Enemy → Visitor`,
 `Damage → Serving`, `Hp → Appetite`, `Lives → Patience`, `Armour → Fussiness`. Nothing else, one

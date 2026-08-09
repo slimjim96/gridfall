@@ -85,9 +85,9 @@ public static class ContentLoader
         return (int)ticks;
     }
 
-    // ---- towers -----------------------------------------------------------
+    // ---- stations -----------------------------------------------------------
 
-    public static TowerDef[] LoadTowers(IEnumerable<(string name, string json)> files)
+    public static StationDef[] LoadStations(IEnumerable<(string name, string json)> files)
     {
         var list = new List<(string id, string name, JsonDocument doc)>();
         foreach (var (name, json) in files)
@@ -101,7 +101,7 @@ public static class ContentLoader
         // whatever order the filesystem hands us the files in.
         list.Sort((a, b) => string.CompareOrdinal(a.id, b.id));
 
-        var towers = new TowerDef[list.Count];
+        var stations = new StationDef[list.Count];
         for (int i = 0; i < list.Count; i++)
         {
             var (id, file, doc) = list[i];
@@ -111,12 +111,12 @@ public static class ContentLoader
             if (cost <= 0) throw new ContentException($"{file}: cost must be > 0");
             Fix32 range = ParseFix(RequireProperty(r, "range", file), file);
             if (range <= Fix32.Zero) throw new ContentException($"{file}: range must be > 0");
-            int damage = RequireInt(r, "damage", file);
-            if (damage < 0) throw new ContentException($"{file}: damage must be >= 0");
+            int serving = RequireInt(r, "serving", file);
+            if (serving < 0) throw new ContentException($"{file}: serving must be >= 0");
             int cooldown = SecondsToTicks(RequireProperty(r, "cooldown", file), file);
 
-            // Every tower is repairable unless a future design says otherwise, so
-            // this defaults rather than opting in the way an enemy's attackDamage
+            // Every station is repairable unless a future design says otherwise, so
+            // this defaults rather than opting in the way an visitor's attackDrain
             // does. ADR-0007 records why "unrepairable" must eventually be its own
             // field instead of a cost nobody would pay.
             int repairPercent = r.TryGetProperty("repairPercent", out var rp) ? rp.GetInt32() : 60;
@@ -126,7 +126,7 @@ public static class ContentLoader
                     "It is a percentage of the sell-and-rebuild cost, so 100 IS the wall: " +
                     "at or above it nobody would ever repair.");
 
-            towers[i] = new TowerDef
+            stations[i] = new StationDef
             {
                 Index = (ushort)i,
                 Id = id,
@@ -134,22 +134,22 @@ public static class ContentLoader
                 Cost = cost,
                 Range = range,
                 RangeSquared = range * range,
-                Damage = damage,
+                Serving = serving,
                 CooldownTicks = cooldown,
                 ProjectileSpeed = r.TryGetProperty("projectileSpeed", out var ps)
                     ? ParseFix(ps, file)
                     : Fix32.FromInt(1),
                 Targeting = ParseTargeting(r, file),
                 SellValue = r.TryGetProperty("sellValue", out var sv) ? sv.GetInt32() : cost / 2,
-                Hp = r.TryGetProperty("hp", out var thp) ? thp.GetInt32() : 100,
+                Stock = r.TryGetProperty("stock", out var thp) ? thp.GetInt32() : 100,
                 RepairPercent = repairPercent,
-                Upgrades = ParseUpgrades(r, file, damage, range),
+                Upgrades = ParseUpgrades(r, file, serving, range),
             };
             doc.Dispose();
 
-            ValidateRepairCurve(towers[i], file);
+            ValidateRepairCurve(stations[i], file);
         }
-        return towers;
+        return stations;
     }
 
     /// <summary>
@@ -164,11 +164,11 @@ public static class ContentLoader
     /// The loader is the only place underneath all three consumers: the game,
     /// the board editor, and the balance sim.
     /// </summary>
-    private static void ValidateRepairCurve(TowerDef def, string file)
+    private static void ValidateRepairCurve(StationDef def, string file)
     {
         for (int level = 1; level <= def.MaxLevel; level++)
         {
-            int toFull = def.RepairCostFor(level, def.Hp);
+            int toFull = def.RepairCostFor(level, def.Stock);
             int sellRebuild = def.SellValueAt(level);
             if (toFull < sellRebuild) continue;
 
@@ -184,11 +184,11 @@ public static class ContentLoader
     {
         Fix32 range = r.TryGetProperty("attackRange", out JsonElement ar)
             ? ParseFix(ar, file)
-            : Fix32.FromFraction(12, 10);   // just over one cell: adjacent towers
+            : Fix32.FromFraction(12, 10);   // just over one cell: adjacent stations
         return range * range;
     }
 
-    private static UpgradeLevel[] ParseUpgrades(JsonElement r, string file, int baseDamage, Fix32 baseRange)
+    private static UpgradeLevel[] ParseUpgrades(JsonElement r, string file, int baseServing, Fix32 baseRange)
     {
         if (!r.TryGetProperty("upgrades", out JsonElement arr)) return Array.Empty<UpgradeLevel>();
 
@@ -198,23 +198,23 @@ public static class ContentLoader
             int cost = RequireInt(u, "cost", file);
             if (cost <= 0) throw new ContentException($"{file}: upgrade cost must be > 0");
 
-            Fix32 dmgMul = ParseFix(RequireProperty(u, "damageMultiplier", file), file);
+            Fix32 dmgMul = ParseFix(RequireProperty(u, "servingMultiplier", file), file);
             if (dmgMul < Fix32.One)
-                throw new ContentException($"{file}: damageMultiplier {dmgMul} would weaken the tower");
+                throw new ContentException($"{file}: servingMultiplier {dmgMul} would weaken the station");
 
             Fix32 rangeMul = u.TryGetProperty("rangeMultiplier", out JsonElement rm)
                 ? ParseFix(rm, file) : Fix32.One;
 
             // Resolved once here, so the tick loop never multiplies to find a
-            // tower's damage or range -- same reason RangeSquared is precomputed.
+            // station's serving or range -- same reason RangeSquared is precomputed.
             Fix32 range = baseRange * rangeMul;
             levels.Add(new UpgradeLevel
             {
                 Cost = cost,
-                DamageMultiplier = dmgMul,
+                ServingMultiplier = dmgMul,
                 RangeMultiplier = rangeMul,
                 RangeSquared = range * range,
-                Damage = (int)(((long)baseDamage * dmgMul.Raw) >> Fix32.FractionalBits),
+                Serving = (int)(((long)baseServing * dmgMul.Raw) >> Fix32.FractionalBits),
             });
         }
         return levels.ToArray();
@@ -227,14 +227,14 @@ public static class ContentLoader
         {
             "furthest-along-path" => TargetRule.FurthestAlongPath,
             "nearest" => TargetRule.Nearest,
-            "lowest-hp" => TargetRule.LowestHp,
+            "lowest-hp" => TargetRule.LowestAppetite,
             var other => throw new ContentException($"{file}: unknown targeting rule '{other}'"),
         };
     }
 
-    // ---- enemies ----------------------------------------------------------
+    // ---- visitors ----------------------------------------------------------
 
-    public static EnemyDef[] LoadEnemies(IEnumerable<(string name, string json)> files)
+    public static VisitorDef[] LoadVisitors(IEnumerable<(string name, string json)> files)
     {
         var list = new List<(string id, string name, JsonDocument doc)>();
         foreach (var (name, json) in files)
@@ -244,35 +244,35 @@ public static class ContentLoader
         }
         list.Sort((a, b) => string.CompareOrdinal(a.id, b.id));
 
-        var enemies = new EnemyDef[list.Count];
+        var visitors = new VisitorDef[list.Count];
         for (int i = 0; i < list.Count; i++)
         {
             var (id, file, doc) = list[i];
             JsonElement r = doc.RootElement;
 
-            int hp = RequireInt(r, "hp", file);
-            if (hp <= 0) throw new ContentException($"{file}: hp must be > 0");
+            int appetite = RequireInt(r, "appetite", file);
+            if (appetite <= 0) throw new ContentException($"{file}: appetite must be > 0");
             Fix32 speed = ParseFix(RequireProperty(r, "speed", file), file);
             if (speed <= Fix32.Zero) throw new ContentException($"{file}: speed must be > 0");
 
-            enemies[i] = new EnemyDef
+            visitors[i] = new VisitorDef
             {
                 Index = (ushort)i,
                 Id = id,
                 Name = RequireString(r, "name", file),
-                Hp = hp,
+                Appetite = appetite,
                 Speed = speed,
                 Bounty = RequireInt(r, "bounty", file),
-                LivesCost = r.TryGetProperty("livesCost", out var lc) ? lc.GetInt32() : 1,
-                Armour = r.TryGetProperty("armour", out var ar) ? ar.GetInt32() : 0,
-                AttackDamage = r.TryGetProperty("attackDamage", out var ad) ? ad.GetInt32() : 0,
+                PatienceCost = r.TryGetProperty("patienceCost", out var lc) ? lc.GetInt32() : 1,
+                Fussiness = r.TryGetProperty("fussiness", out var ar) ? ar.GetInt32() : 0,
+                AttackDrain = r.TryGetProperty("attackDrain", out var ad) ? ad.GetInt32() : 0,
                 AttackCooldownTicks = r.TryGetProperty("attackCooldown", out var ac)
                     ? SecondsToTicks(ac, file) : 30,
                 AttackRangeSquared = AttackRange(r, file),
             };
             doc.Dispose();
         }
-        return enemies;
+        return visitors;
     }
 
     // ---- waves ------------------------------------------------------------
@@ -287,7 +287,7 @@ public static class ContentLoader
         return value;
     }
 
-    public static WaveDef[] LoadWaves(string json, EnemyDef[] enemies, string file)
+    public static WaveDef[] LoadWaves(string json, VisitorDef[] visitors, string file)
     {
         using JsonDocument doc = Parse(json, file);
         JsonElement wavesEl = RequireProperty(doc.RootElement, "waves", file);
@@ -314,17 +314,17 @@ public static class ContentLoader
         // One authored growth rate, compounded here rather than in the tick loop.
         // The balance targets want 1.10-1.18x wave to wave, so the content states
         // the rate and the loader turns it into a per-wave scalar.
-        Fix32 growth = doc.RootElement.TryGetProperty("hpGrowth", out JsonElement g)
+        Fix32 growth = doc.RootElement.TryGetProperty("appetiteGrowth", out JsonElement g)
             ? ParseFix(g, file)
             : Fix32.One;
 
         if (growth < Fix32.One)
-            throw new ContentException($"{file}: hpGrowth {growth} would make later waves weaker");
+            throw new ContentException($"{file}: appetiteGrowth {growth} would make later waves weaker");
 
         // The wave the ramp starts from. Waves at or before it sit at scale 1.0,
         // so the opening is flat and the curve steepens afterwards.
         //
-        // One knob could not do this. hpGrowth applies from wave 1, so the only
+        // One knob could not do this. appetiteGrowth applies from wave 1, so the only
         // way to threaten wave 12 was a rate that also inflated waves 2-4 -- and
         // waves 2-4 are where the player is broke, so they were the binding
         // constraint on the whole curve. Six passes pushed that single scalar and
@@ -332,12 +332,12 @@ public static class ContentLoader
         // ending. See 2026-08-07-early-economy-2-balance.md.
         //
         // Defaults to 1, which is exactly the previous behaviour: growth^(index-1).
-        int growthFrom = doc.RootElement.TryGetProperty("hpGrowthFrom", out JsonElement gf)
+        int growthFrom = doc.RootElement.TryGetProperty("appetiteGrowthFrom", out JsonElement gf)
             ? gf.GetInt32()
             : 1;
 
         if (growthFrom < 1)
-            throw new ContentException($"{file}: hpGrowthFrom {growthFrom} must be at least 1");
+            throw new ContentException($"{file}: appetiteGrowthFrom {growthFrom} must be at least 1");
 
         var waves = new List<WaveDef>();
         foreach (JsonElement w in wavesEl.EnumerateArray())
@@ -346,16 +346,16 @@ public static class ContentLoader
             var entries = new List<WaveEntry>();
             foreach (JsonElement e in RequireProperty(w, "entries", file).EnumerateArray())
             {
-                string enemyId = RequireString(e, "enemy", file);
-                ushort enemyIndex = ushort.MaxValue;
-                for (ushort k = 0; k < enemies.Length; k++)
-                    if (enemies[k].Id == enemyId) { enemyIndex = k; break; }
-                if (enemyIndex == ushort.MaxValue)
-                    throw new ContentException($"{file}: wave {index} names unknown enemy '{enemyId}'");
+                string visitorId = RequireString(e, "visitor", file);
+                ushort visitorIndex = ushort.MaxValue;
+                for (ushort k = 0; k < visitors.Length; k++)
+                    if (visitors[k].Id == visitorId) { visitorIndex = k; break; }
+                if (visitorIndex == ushort.MaxValue)
+                    throw new ContentException($"{file}: wave {index} names unknown visitor '{visitorId}'");
 
                 entries.Add(new WaveEntry
                 {
-                    EnemyIndex = enemyIndex,
+                    VisitorIndex = visitorIndex,
                     Count = RequireInt(e, "count", file),
                     SpacingTicks = RequireInt(e, "spacingTicks", file),
                     DelayTicks = e.TryGetProperty("delayTicks", out var d) ? d.GetInt32() : 0,
@@ -367,10 +367,10 @@ public static class ContentLoader
             Fix32 scale = Fix32.One;
             for (int i = growthFrom; i < index; i++) scale *= growth;
 
-            if (w.TryGetProperty("hpScale", out JsonElement explicitScale))
+            if (w.TryGetProperty("appetiteScale", out JsonElement explicitScale))
                 scale = ParseFix(explicitScale, file);
 
-            waves.Add(new WaveDef { Index = index, Entries = entries.ToArray(), HpScale = scale, VariancePercent = variance, PrepTicks = prepTicks, MidWaveBuildPercent = midWavePercent, EarlyCallGoldPerSecond = earlyCallGold, ClearGold = clearGold });
+            waves.Add(new WaveDef { Index = index, Entries = entries.ToArray(), AppetiteScale = scale, VariancePercent = variance, PrepTicks = prepTicks, MidWaveBuildPercent = midWavePercent, EarlyCallGoldPerSecond = earlyCallGold, ClearGold = clearGold });
         }
 
         waves.Sort((a, b) => a.Index.CompareTo(b.Index));
@@ -480,32 +480,32 @@ public static class ContentLoader
             Cells = cells,
             Goal = glyphGoal,
             StartingGold = r.TryGetProperty("startingGold", out var sg) ? sg.GetInt32() : 200,
-            StartingLives = r.TryGetProperty("startingLives", out var sl) ? sl.GetInt32() : 20,
+            StartingPatience = r.TryGetProperty("startingPatience", out var sl) ? sl.GetInt32() : 20,
         };
         draft.Spawns.AddRange(spawns);
 
-        // Absent means "every tower", which is why this is not defaulted to the
-        // full list here -- see MapDef.TowerIds. An empty array in the file is
+        // Absent means "every station", which is why this is not defaulted to the
+        // full list here -- see MapDef.StationIds. An empty array in the file is
         // rejected rather than silently read as "all": a board that offers
         // nothing is a typo every time, and it would present as an empty toolbar
         // with no explanation.
-        if (r.TryGetProperty("towers", out var tw))
+        if (r.TryGetProperty("stations", out var tw))
         {
             if (tw.ValueKind != JsonValueKind.Array)
-                throw new ContentException($"{file}: \"towers\" must be an array of tower ids");
+                throw new ContentException($"{file}: \"stations\" must be an array of station ids");
 
             foreach (JsonElement t in tw.EnumerateArray())
             {
-                string towerId = t.GetString()
-                    ?? throw new ContentException($"{file}: \"towers\" contains a non-string entry");
-                if (draft.TowerIds.Contains(towerId))
-                    throw new ContentException($"{file}: \"towers\" lists '{towerId}' twice");
-                draft.TowerIds.Add(towerId);
+                string stationId = t.GetString()
+                    ?? throw new ContentException($"{file}: \"stations\" contains a non-string entry");
+                if (draft.StationIds.Contains(stationId))
+                    throw new ContentException($"{file}: \"stations\" lists '{stationId}' twice");
+                draft.StationIds.Add(stationId);
             }
 
-            if (draft.TowerIds.Count == 0)
+            if (draft.StationIds.Count == 0)
                 throw new ContentException(
-                    $"{file}: \"towers\" is empty -- omit the field for every tower, "
+                    $"{file}: \"stations\" is empty -- omit the field for every station, "
                     + "or list the ones this board offers");
         }
 

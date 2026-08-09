@@ -7,7 +7,7 @@ becomes runtime data, and what the map format is — which is also the board edi
 ## The path a number takes
 
 ```
-content-data/towers/frost-spire.json        authored by hand or by the editor
+content-data/stations/frost-spire.json        authored by hand or by the editor
         │
         ├─ ContentLoader.Load()             validate → parse → Fix32
         ▼
@@ -29,7 +29,7 @@ Two rules that keep this honest:
 ## Defs
 
 ```csharp
-public sealed class TowerDef
+public sealed class StationDef
 {
     public readonly ushort Index;         // dense, assigned at load in sorted-name order
     public readonly string Id;            // "frost-spire" — for authoring and logs only
@@ -38,7 +38,7 @@ public sealed class TowerDef
     public readonly Fix32  RangeSquared;  // precomputed at load — never recompute in the tick loop
     public readonly int    Damage;
     public readonly int    CooldownTicks; // ticks, not seconds. Content authors write seconds.
-    public readonly int    Hp;            // structure health. Towers are destructible.
+    public readonly int    Hp;            // structure health. Stations are destructible.
     public readonly TargetRule Targeting;
 }
 ```
@@ -52,42 +52,42 @@ Three things to notice:
 3. **Time is in ticks inside Core.** The JSON says `"cooldown": 0.8` (seconds, human-friendly); the
    loader converts to `24` ticks. Rounding happens once, at load, deterministically.
 
-## Armour
+## Fussiness
 
-`"armour": 8` on an enemy def. Flat damage reduction applied **per hit** in phase 7, floored at 1:
+`"fussiness": 8` on an visitor def. Flat damage reduction applied **per hit** in phase 7, floored at 1:
 
 ```csharp
-int amount = Math.Max(1, record.Amount - enemy.Armour);
+int amount = Math.Max(1, record.Amount - visitor.Fussiness);
 ```
 
 Per hit rather than per tick total, and flat rather than percentage — both deliberate. A percentage
-scales every tower equally and changes no decisions; flat punishes many-small-hits and rewards
-few-big-hits. Applying it to a tick's total would leave rapid-fire towers almost unaffected, which is
+scales every station equally and changes no decisions; flat punishes many-small-hits and rewards
+few-big-hits. Applying it to a tick's total would leave rapid-fire stations almost unaffected, which is
 the opposite of the intent.
 
-The floor of 1 means no tower is ever useless against an enemy, only inefficient. An enemy immune to a
-tower is a soft-lock waiting to happen.
+The floor of 1 means no station is ever useless against an visitor, only inefficient. An visitor immune to a
+station is a soft-lock waiting to happen.
 
-Armour does **not** scale with `hpGrowth`. A growing armour value becomes immunity.
+Fussiness does **not** scale with `appetiteGrowth`. A growing fussiness value becomes immunity.
 
-## Enemy attacks and tower health
+## Visitor attacks and station health
 
-Enemies can destroy towers. Four fields, all optional:
+Visitors can destroy stations. Four fields, all optional:
 
 | Field | On | Default | Meaning |
 |---|---|---|---|
-| `hp` | tower | `100` | Structure health. Reaching 0 destroys the tower and frees its cell. |
-| `attackDamage` | enemy | `0` | Damage per hit. **`0` means the enemy never attacks** — this is what keeps every pre-existing enemy unchanged. |
-| `attackCooldown` | enemy | `1.0` s | Seconds between hits, converted to ticks at load. |
-| `attackRange` | enemy | `1.5` | Cells. Stored as `AttackRangeSquared`. |
+| `hp` | station | `100` | Structure health. Reaching 0 destroys the station and frees its cell. |
+| `attackDamage` | visitor | `0` | Damage per hit. **`0` means the visitor never attacks** — this is what keeps every pre-existing visitor unchanged. |
+| `attackCooldown` | visitor | `1.0` s | Seconds between hits, converted to ticks at load. |
+| `attackRange` | visitor | `1.5` | Cells. Stored as `AttackRangeSquared`. |
 
-`AttacksTowers => AttackDamage > 0` is the only switch. Resolution happens in phase 5b and damage
-applies in phase 7, exactly like creep damage — see [chapter 02](02-tick-loop.md) and
-[ADR-0006](../../engine-systems/decisions/ADR-0006-enemy-attacks-in-phase-five.md).
+`AttacksStations => AttackDamage > 0` is the only switch. Resolution happens in phase 5b and damage
+applies in phase 7, exactly like visitor damage — see [chapter 02](02-tick-loop.md) and
+[ADR-0006](../../engine-systems/decisions/ADR-0006-visitor-attacks-in-phase-five.md).
 
-Tower `hp` is large relative to `attackDamage` (shipped: 800 against 22). That ratio is deliberate —
-the balance sweep found tower loss is driven by **attack throughput** across many attackers, not by
-damage per hit, so a tower must survive a lot of individual chips. Do not "tidy" these numbers toward
+Station `hp` is large relative to `attackDamage` (shipped: 800 against 22). That ratio is deliberate —
+the balance sweep found station loss is driven by **attack throughput** across many attackers, not by
+damage per hit, so a station must survive a lot of individual chips. Do not "tidy" these numbers toward
 each other without re-running the sweep.
 
 ## Repair
@@ -98,10 +98,10 @@ each other without re-running the sweep.
 
 | Field | On | Default | Meaning |
 |---|---|---|---|
-| `repairPercent` | tower | `60` | Cost to repair from zero to full, as a **percentage of the sell-and-rebuild cost**. Must be 1–99. |
+| `repairPercent` | station | `60` | Cost to repair from zero to full, as a **percentage of the sell-and-rebuild cost**. Must be 1–99. |
 
 Repairing costs `ceil(S × repairPercent × missingHp / (200 × maxHp))`, where `S` is everything spent on
-the tower including upgrades and the `200` is 100 percent × the 2 in the sell refund. Two properties are
+the station including upgrades and the `200` is 100 percent × the 2 in the sell refund. Two properties are
 load-bearing:
 
 - **Ceiling division.** Truncating would make ten small repairs cheaper than one large one. Rounding up
@@ -116,23 +116,23 @@ line nobody would ever repair, and the failure is silent rather than loud. `repa
 underneath the game, the board editor, and the balance sim alike.
 
 **Repair is refused while a wave is running,** and that is the mechanic rather than a limitation of it.
-Tower destruction is throughput-driven, so a counter available at unlimited rate wins at any affordable
-price: repair-at-any-time drove towers lost per run to **0.0 across the entire legal range of
+Station destruction is throughput-driven, so a counter available at unlimited rate wins at any affordable
+price: repair-at-any-time drove stations lost per run to **0.0 across the entire legal range of
 `repairPercent`**, with every balance target still reading "ok". Restricting it to between waves gives
 5.8 lost per run against 9.9 with no repair at all.
 
-The knob moves the repair *bill* and not tower survival. If you are reaching for it to make towers live
+The knob moves the repair *bill* and not station survival. If you are reaching for it to make stations live
 longer, it is the wrong knob —
-[the balance report](../../content-data/docs/reports/2026-08-07-tower-repair-balance.md) has the sweep.
+[the balance report](../../content-data/docs/reports/2026-08-07-station-repair-balance.md) has the sweep.
 
 ## Selling
 
 Selling refunds `SellValueAt(level) x remainingHealth / maxHealth` -- half of everything spent, scaled
-by how much of the tower is left. **There is no knob**, deliberately: a `salvagePercent` would be a
-third control over what enemy damage costs, alongside `repairPercent` and enemy `attackDamage`, and
+by how much of the station is left. **There is no knob**, deliberately: a `salvagePercent` would be a
+third control over what visitor damage costs, alongside `repairPercent` and visitor `attackDamage`, and
 attribution across three is impossible.
 
-An **undamaged** tower refunds exactly `SellValueAt(level)`, guaranteed by an early return rather than
+An **undamaged** station refunds exactly `SellValueAt(level)`, guaranteed by an early return rather than
 by `x * Hp / Hp` happening to round correctly. Repositioning is pillar 1 and must not pay a rounding tax
 for a rule aimed at wrecks.
 
@@ -146,7 +146,7 @@ Note the rounding directions, which look inconsistent and are not:
 Both round *against* the player. Rounding toward them at either end opens a granularity exploit -- ten
 small repairs beating one large one, or ten partial sales beating one whole one.
 
-Before this scaled, cashing out a wreck paid the same as cashing out a pristine tower, which made
+Before this scaled, cashing out a wreck paid the same as cashing out a pristine station, which made
 pre-empting every destruction profitable and drove destructions per run to zero.
 [The balance report](../../content-data/docs/reports/2026-08-07-salvage-value-balance.md) has the sweep.
 
@@ -159,16 +159,16 @@ pre-empting every destruction profitable and drove destructions per run to zero.
 ]
 ```
 
-Levels above the base; an absent array means the tower cannot be upgraded. Damage and squared range for
+Levels above the base; an absent array means the station cannot be upgraded. Damage and squared range for
 every level are resolved **once at load** into `UpgradeLevel`, for the same reason `RangeSquared` is —
-the tick loop must never multiply to find a tower's stats.
+the tick loop must never multiply to find a station's stats.
 
 The design rule these numbers must satisfy: **rising cost, falling damage-per-gold.** If upgrading were
 more efficient than building, nobody would spread out and mazing would stop mattering.
 `DamagePerGold_FallsWithEachLevel` fails the build if a content author breaks it.
 
-`TowerLevel` is state on `SimState`: 1-based, hashed, snapshotted. Selling refunds half of everything
-spent via `TowerDef.SellValueAt(level)`, so upgrade-then-sell cannot profit.
+`StationLevel` is state on `SimState`: 1-based, hashed, snapshotted. Selling refunds half of everything
+spent via `StationDef.SellValueAt(level)`, so upgrade-then-sell cannot profit.
 
 ## Numbers in JSON → Fix32
 
@@ -196,7 +196,7 @@ The loader validates before the sim ever sees the data, and **fails loudly**:
 |---|---|
 | Schema: required fields present, types correct | Throw with file and JSON path |
 | Ranges: cost > 0, cooldown > 0, damage ≥ 0 | Throw |
-| References: wave tables name enemies that exist | Throw with both ids |
+| References: wave tables name visitors that exist | Throw with both ids |
 | Map: exactly one goal, at least one spawn | Throw |
 | Map: every spawn reaches the goal on the empty board | Throw |
 | Precision: any value that lost more than 1/65,536 | Warn, keep going |
@@ -228,8 +228,8 @@ implementing any validation of its own.
 
 | Glyph | Cell |
 |---|---|
-| `.` | Path-only — creeps walk it, you cannot build on it |
-| `b` | Buildable — creeps walk it until you build |
+| `.` | Path-only — visitors walk it, you cannot build on it |
+| `b` | Buildable — visitors walk it until you build |
 | `#` | Blocked — permanent scenery |
 | `S` | Spawn (also listed in `spawns` for ordering) |
 | `G` | Goal |
@@ -247,28 +247,28 @@ a content decision, not an accident of layout.
 ```json
 {
   "map": "crossroads",
-  "hpGrowth": 1.08,
+  "appetiteGrowth": 1.08,
   "waves": [
-    { "index": 1, "entries": [ { "enemy": "runner", "count": 8, "spacingTicks": 18, "spawn": 0 } ] },
-    { "index": 2, "entries": [ { "enemy": "runner", "count": 12, "spacingTicks": 15, "spawn": 0 },
-                               { "enemy": "brute",  "count": 2,  "spacingTicks": 60, "spawn": 0,
+    { "index": 1, "entries": [ { "visitor": "runner", "count": 8, "spacingTicks": 18, "spawn": 0 } ] },
+    { "index": 2, "entries": [ { "visitor": "runner", "count": 12, "spacingTicks": 15, "spawn": 0 },
+                               { "visitor": "brute",  "count": 2,  "spacingTicks": 60, "spawn": 0,
                                  "delayTicks": 120 } ] }
   ]
 }
 ```
 
-`hpGrowth` compounds wave to wave: wave N's enemies have `baseHp x growth^(N - hpGrowthFrom)`, computed
+`appetiteGrowth` compounds wave to wave: wave N's visitors have `baseHp x growth^(N - appetiteGrowthFrom)`, computed
 once at load with `Fix32` multiply and stored per wave. A single wave may override the curve with an
 explicit `hpScale`.
 
-**`hpGrowthFrom` is where the ramp starts**, defaulting to 1. Waves at or before it sit at scale 1.0.
+**`appetiteGrowthFrom` is where the ramp starts**, defaulting to 1. Waves at or before it sit at scale 1.0.
 
 ```json
-"hpGrowth": 1.14,
-"hpGrowthFrom": 4      // waves 1-4 flat, wave 5 = 1.14, wave 12 = 1.14^8
+"appetiteGrowth": 1.14,
+"appetiteGrowthFrom": 4      // waves 1-4 flat, wave 5 = 1.14, wave 12 = 1.14^8
 ```
 
-One scalar could not shape this curve. `hpGrowth` alone applies from wave 1, so wave 3 carries
+One scalar could not shape this curve. `appetiteGrowth` alone applies from wave 1, so wave 3 carries
 `growth^2` and wave 12 carries `growth^11` -- and any rate that threatened wave 12 also inflated waves
 2-4, which is where the player is broke and therefore the binding constraint on the whole curve. Six
 balance passes pushed that single number and each had to choose between a lethal opening and a trivial
@@ -277,12 +277,12 @@ ending. Splitting *where the ramp starts* from *how steep it is* is what let bot
 Wave 3 leaked 14.1% for six passes and lands at 4.3% under any late rate once the opening is flat.
 See [the pass](../../content-data/docs/reports/2026-08-07-early-economy-2-balance.md).
 
-Without it later waves cannot be harder -- enemy HP is fixed per definition, so sending more creeps of
-the same toughness just hands the player more bounty, which becomes more towers. Measured before it
+Without it later waves cannot be harder -- visitor HP is fixed per definition, so sending more visitors of
+the same toughness just hands the player more bounty, which becomes more stations. Measured before it
 existed: waves 5-12 leaked nothing at all.
 
-`SpawnSystem` applies the scalar in **long** arithmetic, not `Fix32` multiply: a tough enemy late in a
-long table can exceed Fix32's +/-32767 range, and a silently wrapped creep health shows up as "wave 30
+`SpawnSystem` applies the scalar in **long** arithmetic, not `Fix32` multiply: a tough visitor late in a
+long table can exceed Fix32's +/-32767 range, and a silently wrapped visitor health shows up as "wave 30
 is trivial" months later.
 
 Entries within a wave spawn independently on their own timers. `SpawnSystem` walks entries in array
@@ -297,7 +297,7 @@ change and re-run the balance sim.
 ```
 
 Which ground palette the view draws the map with. **The simulation never reads it** — `MapDef.Theme`
-exists for the same reason `TowerDef.Name` does: the map file is where the author states it, and a
+exists for the same reason `StationDef.Name` does: the map file is where the author states it, and a
 side-car would be a second file to keep in step. There is a test asserting two maps identical but for
 their theme hash the same at every tick.
 

@@ -27,7 +27,7 @@ public readonly struct SimStateView
     // ---- globals ----------------------------------------------------------
 
     public int Gold => _state.Gold;
-    public int Lives => _state.Lives;
+    public int Patience => _state.Patience;
     public int WaveIndex => _state.WaveIndex;
     public int PrepTicksRemaining => _state.PrepTicksRemaining;
 
@@ -39,40 +39,40 @@ public readonly struct SimStateView
     public int WaveEntryNextTick(int i) => _state.WaveEntryNextTick[i];
     public bool WaveActive => _state.WaveActive;
 
-    // ---- creeps -----------------------------------------------------------
+    // ---- visitors -----------------------------------------------------------
 
-    public int CreepCount => _state.CreepCount;
+    public int VisitorCount => _state.VisitorCount;
 
-    /// <summary>Slot of the k-th live creep in ascending id order. Iterate with this.</summary>
-    public int CreepSlotByOrder(int k) => _state.CreepSlotByOrder(k);
+    /// <summary>Slot of the k-th live visitor in ascending id order. Iterate with this.</summary>
+    public int VisitorSlotByOrder(int k) => _state.VisitorSlotByOrder(k);
 
     /// <summary>Slot for an id, or -1 if it is gone.</summary>
-    public int SlotOfCreep(int id) => _state.SlotOfCreep(id);
+    public int SlotOfVisitor(int id) => _state.SlotOfVisitor(id);
 
-    public int CreepId(int slot) => _state.CreepId[slot];
-    public ushort CreepDefIndex(int slot) => _state.CreepDefIndex[slot];
-    public int CreepCellIndex(int slot) => _state.CreepCellIndex[slot];
-    public Fix32 CreepProgress(int slot) => _state.CreepProgress[slot];
-    public byte CreepHeading(int slot) => _state.CreepHeading[slot];
-    public int CreepHp(int slot) => _state.CreepHp[slot];
+    public int VisitorId(int slot) => _state.VisitorId[slot];
+    public ushort VisitorDefIndex(int slot) => _state.VisitorDefIndex[slot];
+    public int VisitorCellIndex(int slot) => _state.VisitorCellIndex[slot];
+    public Fix32 VisitorProgress(int slot) => _state.VisitorProgress[slot];
+    public byte VisitorHeading(int slot) => _state.VisitorHeading[slot];
+    public int VisitorAppetite(int slot) => _state.VisitorAppetite[slot];
 
-    // ---- towers -----------------------------------------------------------
+    // ---- stations -----------------------------------------------------------
 
-    public int TowerCount => _state.TowerCount;
-    public int TowerSlotByOrder(int k) => _state.TowerSlotByOrder(k);
-    public int SlotOfTower(int id) => _state.SlotOfTower(id);
+    public int StationCount => _state.StationCount;
+    public int StationSlotByOrder(int k) => _state.StationSlotByOrder(k);
+    public int SlotOfStation(int id) => _state.SlotOfStation(id);
 
-    public int TowerId(int slot) => _state.TowerId[slot];
-    public ushort TowerDefIndex(int slot) => _state.TowerDefIndex[slot];
-    public int TowerCellIndex(int slot) => _state.TowerCellIndex[slot];
-    public int TowerCooldown(int slot) => _state.TowerCooldown[slot];
-    public byte TowerLevel(int slot) => _state.TowerLevel[slot];
-    public int TowerHp(int slot) => _state.TowerHp[slot];
+    public int StationId(int slot) => _state.StationId[slot];
+    public ushort StationDefIndex(int slot) => _state.StationDefIndex[slot];
+    public int StationCellIndex(int slot) => _state.StationCellIndex[slot];
+    public int StationCooldown(int slot) => _state.StationCooldown[slot];
+    public byte StationLevel(int slot) => _state.StationLevel[slot];
+    public int StationStock(int slot) => _state.StationStock[slot];
 
     // ---- projectiles ------------------------------------------------------
 
     public int ProjectileCount => _state.ProjectileCount;
     public int ProjectileId(int slot) => _state.ProjectileId[slot];
     public FixVec2 ProjectilePos(int slot) => _state.ProjectilePos[slot];
-    public int ProjectileTargetCreepId(int slot) => _state.ProjectileTargetCreepId[slot];
+    public int ProjectileTargetVisitorId(int slot) => _state.ProjectileTargetVisitorId[slot];
 }

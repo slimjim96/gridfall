@@ -25,12 +25,12 @@ public enum CommandKind : byte
 public readonly struct BuildCommand : ICommand
 {
     public readonly GridCell Cell;
-    public readonly ushort TowerDefIndex;
+    public readonly ushort StationDefIndex;
 
-    public BuildCommand(GridCell cell, ushort towerDefIndex)
+    public BuildCommand(GridCell cell, ushort stationDefIndex)
     {
         Cell = cell;
-        TowerDefIndex = towerDefIndex;
+        StationDefIndex = stationDefIndex;
     }
 
     public CommandKind Kind => CommandKind.Build;
@@ -38,8 +38,8 @@ public readonly struct BuildCommand : ICommand
 
 public readonly struct SellCommand : ICommand
 {
-    public readonly int TowerId;
-    public SellCommand(int towerId) => TowerId = towerId;
+    public readonly int StationId;
+    public SellCommand(int stationId) => StationId = stationId;
     public CommandKind Kind => CommandKind.Sell;
 }
 
@@ -49,26 +49,26 @@ public readonly struct StartWaveCommand : ICommand
 }
 
 /// <summary>
-/// Raise a tower one level. No Path field: the upgrade track is linear on
+/// Raise a station one level. No Path field: the upgrade track is linear on
 /// purpose (see the design spec) -- branching is a real design with real cost
 /// and the economy problem does not need it.
 /// </summary>
 public readonly struct UpgradeCommand : ICommand
 {
-    public readonly int TowerId;
-    public UpgradeCommand(int towerId) => TowerId = towerId;
+    public readonly int StationId;
+    public UpgradeCommand(int stationId) => StationId = stationId;
     public CommandKind Kind => CommandKind.Upgrade;
 }
 
 /// <summary>
-/// Restore a damaged tower's structure health to full. No amount field: repair
-/// is always to full, and the cost already scales with the damage taken, so a
+/// Restore a depleted station's structure health to full. No amount field: repair
+/// is always to full, and the cost already scales with the serving taken, so a
 /// partial repair is a second knob that buys no extra decision (design spec).
 /// </summary>
 public readonly struct RepairCommand : ICommand
 {
-    public readonly int TowerId;
-    public RepairCommand(int towerId) => TowerId = towerId;
+    public readonly int StationId;
+    public RepairCommand(int stationId) => StationId = stationId;
     public CommandKind Kind => CommandKind.Repair;
 }
 
@@ -82,8 +82,8 @@ public sealed class CommandQueue
     {
         public CommandKind Kind;
         public GridCell Cell;
-        public ushort TowerDefIndex;
-        public int TowerId;
+        public ushort StationDefIndex;
+        public int StationId;
     }
 
     private Entry[] _entries = new Entry[64];
@@ -100,22 +100,22 @@ public sealed class CommandQueue
             case BuildCommand b:
                 e.Kind = CommandKind.Build;
                 e.Cell = b.Cell;
-                e.TowerDefIndex = b.TowerDefIndex;
+                e.StationDefIndex = b.StationDefIndex;
                 break;
             case SellCommand s:
                 e.Kind = CommandKind.Sell;
-                e.TowerId = s.TowerId;
+                e.StationId = s.StationId;
                 break;
             case StartWaveCommand:
                 e.Kind = CommandKind.StartWave;
                 break;
             case UpgradeCommand u:
                 e.Kind = CommandKind.Upgrade;
-                e.TowerId = u.TowerId;
+                e.StationId = u.StationId;
                 break;
             case RepairCommand r:
                 e.Kind = CommandKind.Repair;
-                e.TowerId = r.TowerId;
+                e.StationId = r.StationId;
                 break;
             default:
                 throw new ArgumentException($"Unknown command type {command.GetType().Name}");

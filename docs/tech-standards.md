@@ -61,8 +61,8 @@ Fixed timestep, 30 Hz (`TickMs = 33`). Every tick runs these in exactly this ord
 1. Apply queued commands (build / sell / upgrade / start-wave)
 2. Recompute pathing **if and only if** the grid is dirty
 3. Spawn from the wave table
-4. Move creeps
-5. Tower acquisition and firing
+4. Move visitors
+5. Station acquisition and firing
 6. Projectile and effect resolution
 7. Damage, death, and leak resolution
 8. Economy and score
@@ -72,7 +72,7 @@ Rendering interpolates between ticks. Interpolation is view-side and never feeds
 
 ## The pathing rule
 
-Players place towers, which changes the walkable grid. Two invariants hold at all times:
+Players place stations, which changes the walkable grid. Two invariants hold at all times:
 
 1. **Never fully blockable.** A build that would leave no path from any spawn to the goal is rejected
    at command-apply time, before the grid mutates. The rejection is a `SimEvent`, so the UI can show it.
@@ -81,7 +81,7 @@ Players place towers, which changes the walkable grid. Two invariants hold at al
 
 ## Performance budget
 
-At 30 Hz with 300 creeps and 60 towers on a 64×64 grid: **≤ 8 ms per tick** on the dev box, with
+At 30 Hz with 300 visitors and 60 stations on a 64×64 grid: **≤ 8 ms per tick** on the dev box, with
 zero steady-state allocation in the tick loop. Pathing recompute is amortized — it runs on the dirty
 tick only, and it is the reason the flow field exists (see `engine-systems/decisions/ADR-0003`).
 
@@ -122,9 +122,9 @@ one, so verifying a new cue never perturbs a committed baseline:
 
 | Seed | Board | Baseline |
 |---|---|---|
-| `upgrades` (default) | A level-2 tower beside a level-1 one | `presentation/docs/board-baseline.png` |
-| `sappers` | Wave 7, sappers mid-attack, a tower at 28% health | `presentation/docs/sapper-baseline.png` |
-| `repair` | Between waves, a tower at 58% with its repair price on hover | `presentation/docs/repair-baseline.png` |
+| `upgrades` (default) | A level-2 station beside a level-1 one | `presentation/docs/board-baseline.png` |
+| `sappers` | Wave 7, sappers mid-attack, a station at 28% health | `presentation/docs/sapper-baseline.png` |
+| `repair` | Between waves, a station at 58% with its repair price on hover | `presentation/docs/repair-baseline.png` |
 
 ## C# conventions
 

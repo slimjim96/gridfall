@@ -18,11 +18,11 @@ namespace Gridfall.View.Units;
 /// </summary>
 public static class UnitViewFactory
 {
-    public static IUnitView CreateTower(string contentId, int entityId)
-        => Create(contentId) ?? PlaceholderFactory.CreateTower(contentId, entityId);
+    public static IUnitView CreateStation(string contentId, int entityId)
+        => Create(contentId) ?? PlaceholderFactory.CreateStation(contentId, entityId);
 
-    public static IUnitView CreateCreep(string contentId, int entityId)
-        => Create(contentId) ?? PlaceholderFactory.CreateCreep(contentId, entityId);
+    public static IUnitView CreateVisitor(string contentId, int entityId)
+        => Create(contentId) ?? PlaceholderFactory.CreateVisitor(contentId, entityId);
 
     /// <summary>Null when there is no usable asset, which is the normal case today.</summary>
     private static IUnitView? Create(string contentId)

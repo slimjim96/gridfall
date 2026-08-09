@@ -11,15 +11,15 @@ The sim knows only integers.
 
 - A cell is `(x, y)`, both `int`, origin at the north corner, `x` increasing south-east, `y` south-west.
 - Maps are up to 64×64. Cell state is a byte: buildable, path-only, blocked, spawn, goal.
-- Sub-cell positions (a creep walking between cells) are `Fix32` in cell units, never floats,
-  never pixels. `(3, 4) + (0.5, 0)` is a creep halfway along the +x edge of cell (3,4).
+- Sub-cell positions (a visitor walking between cells) are `Fix32` in cell units, never floats,
+  never pixels. `(3, 4) + (0.5, 0)` is a visitor halfway along the +x edge of cell (3,4).
 
 **The sim has no concept of screen space.** Nothing in `Gridfall.Core` mentions pixels, cameras, or Z.
 
 ## Presentation space
 
 Gridfall renders in **Godot 3D with an orthographic camera**, not in 2D sprites. The reason is depth
-sorting: in 3D the z-buffer handles overlapping towers, creeps, and terrain for free, which is the
+sorting: in 3D the z-buffer handles overlapping stations, visitors, and terrain for free, which is the
 single largest source of bugs in 2D isometric renderers.
 
 | Constant | Value | Where |
@@ -85,6 +85,6 @@ ties broken by entity id. Do not use world Y.
 
 ## Readability budget
 
-At peak wave density the design calls for, a player must be able to distinguish creep archetypes at
+At peak wave density the design calls for, a player must be able to distinguish visitor archetypes at
 default zoom. That means silhouette first, color second: **no two archetypes share a silhouette**.
 This is a `presentation` acceptance criterion, and it is checked by a human, not by an agent.

@@ -7,10 +7,10 @@ public class DeterminismTests
 {
     private static List<(int tick, ICommand cmd)> Script(Sim sim) => new()
     {
-        (5,  new BuildCommand(new GridCell(4, 3), sim.Content.TowerIndexOf("arrow-tower"))),
+        (5,  new BuildCommand(new GridCell(4, 3), sim.Content.StationIndexOf("arrow-station"))),
         (10, new StartWaveCommand()),
-        (40, new BuildCommand(new GridCell(6, 5), sim.Content.TowerIndexOf("cannon"))),
-        (90, new BuildCommand(new GridCell(8, 3), sim.Content.TowerIndexOf("arrow-tower"))),
+        (40, new BuildCommand(new GridCell(6, 5), sim.Content.StationIndexOf("cannon"))),
+        (90, new BuildCommand(new GridCell(8, 3), sim.Content.StationIndexOf("arrow-station"))),
     };
 
     private static ulong[] Run(string mapJson, uint seed, int ticks)
@@ -57,7 +57,7 @@ public class DeterminismTests
 
         foreach (Sim s in new[] { direct, viaSnapshot })
         {
-            s.Enqueue(new BuildCommand(new GridCell(4, 3), s.Content.TowerIndexOf("arrow-tower")));
+            s.Enqueue(new BuildCommand(new GridCell(4, 3), s.Content.StationIndexOf("arrow-station")));
             s.Enqueue(new StartWaveCommand());
         }
 
@@ -99,9 +99,9 @@ public class DeterminismTests
     }
 
     [Fact]
-    public void CreepRoute_IsIdenticalAcrossRuns()
+    public void VisitorRoute_IsIdenticalAcrossRuns()
     {
-        static List<int> RouteOfFirstCreep(uint seed)
+        static List<int> RouteOfFirstVisitor(uint seed)
         {
             Sim sim = TestContent.NewSim(TestContent.DoglegTieMap, seed);
             sim.Enqueue(new StartWaveCommand());
@@ -110,17 +110,17 @@ public class DeterminismTests
             for (int t = 0; t < 900; t++)
             {
                 sim.Tick();
-                int slot = sim.State.SlotOfCreep(1);   // first spawned entity
+                int slot = sim.State.SlotOfVisitor(1);   // first spawned entity
                 if (slot < 0) continue;
-                int cell = sim.State.CreepCellIndex(slot);
+                int cell = sim.State.VisitorCellIndex(slot);
                 if (route.Count == 0 || route[^1] != cell) route.Add(cell);
             }
             return route;
         }
 
-        List<int> first = RouteOfFirstCreep(1);
+        List<int> first = RouteOfFirstVisitor(1);
         Assert.NotEmpty(first);
         for (uint seed = 2; seed <= 50; seed++)
-            Assert.Equal(first, RouteOfFirstCreep(seed));
+            Assert.Equal(first, RouteOfFirstVisitor(seed));
     }
 }

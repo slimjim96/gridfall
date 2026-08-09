@@ -10,11 +10,11 @@ namespace Gridfall.View.Placeholders;
 /// </summary>
 public static class Shapes
 {
-    /// <summary>Tall thin prism -- precision, reach. Long-range towers.</summary>
+    /// <summary>Tall thin prism -- precision, reach. Long-range stations.</summary>
     public static Mesh TallPrism(float width = 0.32f, float height = 1.5f)
         => new BoxMesh { Size = new Vector3(width, height, width) };
 
-    /// <summary>Squat wide cylinder -- bulk, area. Splash towers.</summary>
+    /// <summary>Squat wide cylinder -- bulk, area. Splash stations.</summary>
     public static Mesh SquatCylinder(float radius = 0.34f, float height = 0.6f)
         => new CylinderMesh
         {
@@ -24,7 +24,7 @@ public static class Shapes
             RadialSegments = 12,
         };
 
-    /// <summary>Tapered spire -- cold, still. Support towers.</summary>
+    /// <summary>Tapered spire -- cold, still. Support stations.</summary>
     public static Mesh TaperedSpire(float radius = 0.26f, float height = 1.6f)
         => new CylinderMesh
         {
@@ -34,15 +34,15 @@ public static class Shapes
             RadialSegments = 6,
         };
 
-    /// <summary>Low sphere -- speed. Fast creeps.</summary>
+    /// <summary>Low sphere -- speed. Fast visitors.</summary>
     public static Mesh LowSphere(float radius = 0.22f)
         => new SphereMesh { Radius = radius, Height = radius * 1.6f, RadialSegments = 10, Rings = 6 };
 
-    /// <summary>Broad box -- toughness. Armoured creeps.</summary>
+    /// <summary>Broad box -- toughness. Fussinessed visitors.</summary>
     public static Mesh BroadBox(float width = 0.42f, float height = 0.36f)
         => new BoxMesh { Size = new Vector3(width, height, width * 0.8f) };
 
-    /// <summary>Squat hexagonal drum -- heavy, plated. Armoured creeps.</summary>
+    /// <summary>Squat hexagonal drum -- heavy, plated. Fussinessed visitors.</summary>
     public static Mesh PlatedDrum(float radius = 0.26f, float height = 0.34f)
         => new CylinderMesh
         {
@@ -66,9 +66,9 @@ public static class Shapes
     /// Inverted four-sided wedge, point down -- a drill. Reads as the thing that
     /// chews on your buildings.
     ///
-    /// Every other creep is rounded or points up, so "point down" is the whole
-    /// signal: the one enemy that destroys towers must be identifiable at a
-    /// glance, or a lost tower has no visible cause (pillar 4).
+    /// Every other visitor is rounded or points up, so "point down" is the whole
+    /// signal: the one visitor that destroys stations must be identifiable at a
+    /// glance, or a lost station has no visible cause (pillar 4).
     /// </summary>
     /// Tall and narrow rather than squat: the iso camera looks down, so a wide
     /// low cone shows almost nothing but its top face and reads as a flat plate.

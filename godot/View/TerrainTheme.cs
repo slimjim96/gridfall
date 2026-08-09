@@ -15,10 +15,10 @@ namespace Gridfall.View;
 ///
 /// Every theme obeys the two palette constraints or it is wrong:
 ///
-/// 1. **Terrain never competes with a unit.** Towers are the only warm saturated
+/// 1. **Terrain never competes with a unit.** Stations are the only warm saturated
 ///    things on the board. `desert` is the stress case -- it is an ochre, not an
-///    orange, and it sits well under the tower slot in both saturation and
-///    lightness. A sand-coloured board that reads as warm as a tower has broken
+///    orange, and it sits well under the station slot in both saturation and
+///    lightness. A sand-coloured board that reads as warm as a station has broken
 ///    the rule even if it looks nice in isolation.
 /// 2. **Buildable is terrain plus a subtle lift; path-only is terrain, darker.**
 ///    The three tiers must separate at default zoom without a legend.
@@ -59,11 +59,11 @@ public readonly struct TerrainTheme
 
         // The hard one, and the reason constraint 3 exists.
         //
-        // The first attempt was a sand ochre (6b5c45). It cleared the tower slot
+        // The first attempt was a sand ochre (6b5c45). It cleared the station slot
         // comfortably and still failed: it landed in the BRUTE's hue family
         // (b8a05a), and a capture showed khaki cubes nearly camouflaged on it.
-        // Terrain competing with a creep is the same failure as competing with a
-        // tower, and nothing in art-direction.md said so until now.
+        // Terrain competing with a visitor is the same failure as competing with a
+        // station, and nothing in art-direction.md said so until now.
         //
         // Clay instead of sand -- rotated toward red, away from the khaki/husk
         // band, and kept dark. Desert is the tightest theme in the set because the
@@ -86,9 +86,9 @@ public readonly struct TerrainTheme
 
         // Below the surface. The first attempt separated this from `ocean` by hue
         // -- teal instead of blue -- and a capture killed it twice over: the mint
-        // and teal creeps lost contrast, and the GOAL marker (46a07a) all but
+        // and teal visitors lost contrast, and the GOAL marker (46a07a) all but
         // disappeared into the ground. Losing a functional marker is worse than
-        // losing a creep, and neither is acceptable.
+        // losing a visitor, and neither is acceptable.
         //
         // Separated by VALUE instead: this is ocean's hue taken much darker and a
         // touch violet. Depth reading as less light rather than more green is also
@@ -112,7 +112,7 @@ public readonly struct TerrainTheme
         // first if the board background colour ever changes, since it has the least
         // room between blocked terrain and the empty scene behind it.
         // Pale cold ground. The LIGHTEST ramp in the set, and the one to re-check
-        // if a creep is ever added above the runner's mint in value -- a light
+        // if a visitor is ever added above the runner's mint in value -- a light
         // terrain is where a light unit disappears.
         ["tundra"] = new TerrainTheme
         {

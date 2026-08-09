@@ -28,7 +28,7 @@
     "y": 5
   },
   "startingGold": 300,
-  "startingLives": 20,
+  "startingPatience": 20,
   "meta": {
     "author": "make-example-levels",
     "motif": "comb"

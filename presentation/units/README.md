@@ -1,8 +1,8 @@
 # Unit Assets
 
-Final tower and creep art. **`arrow-tower` is real; everything else is still a placeholder.**
+Final station and visitor art. **`arrow-station` is real; everything else is still a placeholder.**
 
-The first shipped asset is a single-frame WebP idle sprite, `arrow-tower/idle.webp` — 662×662, one
+The first shipped asset is a single-frame WebP idle sprite, `arrow-station/idle.webp` — 662×662, one
 frame, `frameCells` 1.353. It is the reason five committed baselines were re-recorded on 2026-08-08.
 It arrived 768×768 with 53px of empty space under the base, which is why it hovered until it was run
 through [`fit-sprite.sh`](#cropping-do-not-trim-to-all-edges).
@@ -14,7 +14,7 @@ costs a slightly ragged silhouette, and it is worth fixing at the source. See th
 
 ```
 presentation/units/
-└── <content-id>/            ← must match a tower or enemy id in content-data/
+└── <content-id>/            ← must match a station or visitor id in content-data/
     ├── model.glb            ← mesh format
     │   …or…
     ├── idle.png             ← sprite format: one horizontal strip per clip
@@ -47,7 +47,7 @@ Clip names are fixed — `idle`, `move`, `fire`, `hit`, `death`. A strip named a
 can never be triggered, so it is reported and skipped. `idle` and `move` loop; the rest are one-shot
 and hand back to `idle`.
 
-**The folder name must match a content id.** `arrow_tower` or `arrowtower` matches nothing, resolves
+**The folder name must match a content id.** `arrow_station` or `arrowstation` matches nothing, resolves
 to nothing, and the game quietly keeps drawing the placeholder — no error, because nothing is wrong
 as far as the loader is concerned. `UnitAssetTests` fails the build instead.
 
@@ -56,8 +56,8 @@ as far as the loader is concerned. `UnitAssetTests` fails the build instead.
 Run the tool instead. It is in-place, so commit first or pass `--dry-run`:
 
 ```bash
-./fit-sprite.sh presentation/units/arrow-tower --dry-run   # reports, writes nothing
-./fit-sprite.sh presentation/units/arrow-tower             # crops every clip in the folder
+./fit-sprite.sh presentation/units/arrow-station --dry-run   # reports, writes nothing
+./fit-sprite.sh presentation/units/arrow-station             # crops every clip in the folder
 ```
 
 It prints the factor to multiply `frameCells` by. It deliberately does **not** edit `unit.json` —
@@ -73,7 +73,7 @@ edge sits on the ground** at the cell centre. Three rules follow:
 |---|---|
 | Frames stay **square** | Frame count is `width / height`. A strip trimmed to content is re-read as a different number of frames — 262×662 is not a tall sprite, it is a zero-frame one. |
 | Subject **horizontally centred** | The frame's centre line is the cell centre. Trimming an asymmetric subject to its own bounds walks it off the tile. |
-| Base **flush to the bottom edge** | Empty pixels below the base are float: the unit hovers `gap / side × frameCells` cells above the board. The shipped arrow tower had 53px of it and hovered 0.11 cells. |
+| Base **flush to the bottom edge** | Empty pixels below the base are float: the unit hovers `gap / side × frameCells` cells above the board. The shipped arrow station had 53px of it and hovered 0.11 cells. |
 
 So the manual recipe, if you are doing it in Photoshop rather than with the tool: **trim to the
 silhouette, then re-pad to a square canvas, subject centred horizontally, base flush to the bottom.**
@@ -99,10 +99,10 @@ alpha-*scissor* rather than alpha-*blend*. The prompts ask for it up front becau
 restored after the frames are cut.
 
 > **Corrected 2026-08-08.** This section used to say a soft fringe "forces blending, blending disables
-> depth write, and the tower stops occluding creeps entirely". That is what happens in a renderer that
+> depth write, and the station stops occluding visitors entirely". That is what happens in a renderer that
 > picks a transparency mode per asset. It is not what happens here: `SpriteUnitView` hardcodes
 > `AlphaScissor` at 0.5 and nothing switches it, so **occlusion is never at risk** and a soft fringe is
-> merely clipped at the threshold. The shipped `arrow-tower` has 0.71% soft pixels and occludes
+> merely clipped at the threshold. The shipped `arrow-station` has 0.71% soft pixels and occludes
 > correctly. The cost is a ragged edge, not a broken one — still worth asking generators for a hard
 > alpha, but it is a quality note, not a correctness one.
 
@@ -113,10 +113,10 @@ is no metadata to drift out of sync with the image.
 
 A generated `.glb` arrives with whatever the generator felt like. `MeshUnitView` normalises the
 material to the flat-matte art direction — roughness 1, metallic 0, specular off — rather than hoping,
-because one glossy metallic return would put the only specular highlight in the game on a tower.
+because one glossy metallic return would put the only specular highlight in the game on a station.
 
-It also duplicates each material before tinting, so a damaged tower darkens instead of losing its
-texture, and so tinting one tower does not tint every other tower of the same type.
+It also duplicates each material before tinting, so a damaged station darkens instead of losing its
+texture, and so tinting one station does not tint every other station of the same type.
 
 Scale and origin come from the asset: **1 unit = 1 cell, origin at the base centre.** Nothing corrects
 for a model that ignores that.
@@ -125,7 +125,7 @@ for a model that ignores that.
 
 `../units-fixtures/` holds throwaway assets — one sprite, one mesh — that exist to verify the two view
 implementations. They are **not** loaded by default, deliberately: the default shot seed builds arrow
-towers, so a fixture arrow tower would silently invalidate three committed visual baselines.
+stations, so a fixture arrow station would silently invalidate three committed visual baselines.
 
 ```bash
 ./run-game.sh --units presentation/units-fixtures --shot-seed formats --shot /tmp/x.png --shot-after 40
@@ -135,6 +135,6 @@ towers, so a fixture arrow tower would silently invalidate three committed visua
 
 [ADR-0004](../../engine-systems/decisions/ADR-0004-view-asset-abstraction.md) keeps both viable
 because Ludo.ai's usable output is not yet known. Both implementations now exist and are verified, so
-the bake-off in [`../prompts/tower-frost-spire.md`](../prompts/tower-frost-spire.md) has somewhere to
+the bake-off in [`../prompts/station-frost-spire.md`](../prompts/station-frost-spire.md) has somewhere to
 land. When the answer arrives, record it in the ADR and delete the losing half — of the prompts *and*
 of this pipeline.

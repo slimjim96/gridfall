@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Fit a unit's sprite strips to the pipeline's anchoring rule, in place.
 #
-#   ./fit-sprite.sh presentation/units/arrow-tower
-#   ./fit-sprite.sh presentation/units/arrow-tower --dry-run
+#   ./fit-sprite.sh presentation/units/arrow-station
+#   ./fit-sprite.sh presentation/units/arrow-station --dry-run
 #   ./fit-sprite.sh presentation/units/*
 #
 # Square frames, subject horizontally centred, base flush to the bottom edge --

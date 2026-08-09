@@ -7,7 +7,7 @@ namespace Gridfall.Tests;
 /// Final unit art is discovered by folder name: `presentation/units/[content-id]/`.
 ///
 /// That convention is what removes the registration step, and it is also the
-/// whole risk — a folder named `arrow_tower` or `arrowtower` matches no content
+/// whole risk — a folder named `arrow_station` or `arrowstation` matches no content
 /// id, resolves to nothing, and the game quietly keeps drawing the placeholder.
 /// Nothing errors, so nothing tells you. These tests are what tell you.
 ///
@@ -47,10 +47,10 @@ public class UnitAssetTests
         string data = Path.Combine(RepoRoot().FullName, "content-data");
 
         var ids = new HashSet<string>();
-        foreach (TowerDef tower in ContentLoader.LoadTowers(ReadAll(Path.Combine(data, "towers"))))
-            ids.Add(tower.Id);
-        foreach (EnemyDef enemy in ContentLoader.LoadEnemies(ReadAll(Path.Combine(data, "enemies"))))
-            ids.Add(enemy.Id);
+        foreach (StationDef station in ContentLoader.LoadStations(ReadAll(Path.Combine(data, "stations"))))
+            ids.Add(station.Id);
+        foreach (VisitorDef visitor in ContentLoader.LoadVisitors(ReadAll(Path.Combine(data, "visitors"))))
+            ids.Add(visitor.Id);
 
         Assert.True(ids.Count >= 2, "parsed suspiciously few content ids");
         return ids;
@@ -78,7 +78,7 @@ public class UnitAssetTests
         {
             string id = Path.GetFileName(dir);
             Assert.True(known.Contains(id),
-                $"presentation/.../{id}/ matches no tower or enemy id, so it will never be used. " +
+                $"presentation/.../{id}/ matches no station or visitor id, so it will never be used. " +
                 $"Known: {string.Join(", ", known.OrderBy(x => x))}");
         }
     }

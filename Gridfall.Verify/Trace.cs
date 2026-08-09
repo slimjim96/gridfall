@@ -26,8 +26,8 @@ public sealed class Trace
         public required string Cmd { get; init; }
         public int X { get; init; }
         public int Y { get; init; }
-        public string? Tower { get; init; }
-        public int TowerId { get; init; }
+        public string? Station { get; init; }
+        public int StationId { get; init; }
     }
 
     public static Trace Load(string path)
@@ -46,8 +46,8 @@ public sealed class Trace
                     Cmd = c.GetProperty("cmd").GetString()!,
                     X = c.TryGetProperty("x", out var x) ? x.GetInt32() : 0,
                     Y = c.TryGetProperty("y", out var y) ? y.GetInt32() : 0,
-                    Tower = c.TryGetProperty("tower", out var t) ? t.GetString() : null,
-                    TowerId = c.TryGetProperty("towerId", out var id) ? id.GetInt32() : 0,
+                    Station = c.TryGetProperty("station", out var t) ? t.GetString() : null,
+                    StationId = c.TryGetProperty("stationId", out var id) ? id.GetInt32() : 0,
                 });
             }
         }
@@ -84,8 +84,8 @@ public sealed class Trace
             string tail = i == Commands.Count - 1 ? "" : ",";
             string extra = c.Cmd switch
             {
-                "build" => $", \"x\": {c.X}, \"y\": {c.Y}, \"tower\": \"{c.Tower}\"",
-                "sell" => $", \"towerId\": {c.TowerId}",
+                "build" => $", \"x\": {c.X}, \"y\": {c.Y}, \"station\": \"{c.Station}\"",
+                "sell" => $", \"stationId\": {c.StationId}",
                 _ => "",
             };
             sb.AppendLine($"    {{ \"tick\": {c.Tick}, \"cmd\": \"{c.Cmd}\"{extra} }}{tail}");
@@ -114,13 +114,13 @@ public sealed class Trace
             switch (c.Cmd)
             {
                 case "build":
-                    sim.Enqueue(new BuildCommand(new GridCell(c.X, c.Y), content.TowerIndexOf(c.Tower!)));
+                    sim.Enqueue(new BuildCommand(new GridCell(c.X, c.Y), content.StationIndexOf(c.Station!)));
                     break;
                 case "sell":
-                    sim.Enqueue(new SellCommand(c.TowerId));
+                    sim.Enqueue(new SellCommand(c.StationId));
                     break;
                 case "repair":
-                    sim.Enqueue(new RepairCommand(c.TowerId));
+                    sim.Enqueue(new RepairCommand(c.StationId));
                     break;
                 case "startWave":
                     sim.Enqueue(new StartWaveCommand());

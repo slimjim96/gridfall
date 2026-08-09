@@ -10,7 +10,7 @@ namespace Gridfall.View.Hud;
 /// <summary>
 /// Pick a board. Shown before the first run and again when a run ends.
 ///
-/// `run-structure` chose option A — a run is one board, self-contained, lives
+/// `run-structure` chose option A — a run is one board, self-contained, patience
 /// reset — but the map was a `const` in GameplayScene, so `gauntlet` shipped
 /// unreachable and "selectable" was true only in the requirements doc. This is
 /// the selector that makes it true.

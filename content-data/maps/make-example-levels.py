@@ -43,10 +43,10 @@ LEVELS = [
     ("driftway",  "space"),
 ]
 
-# Which towers a board offers, for boards that restrict. Absent means every
-# tower -- and that is NOT the same as listing them all, because a board with no
-# entry here keeps whatever the tower set grows to, while a listed board keeps
-# exactly what it names. See MapDef.TowerIds.
+# Which stations a board offers, for boards that restrict. Absent means every
+# station -- and that is NOT the same as listing them all, because a board with no
+# entry here keeps whatever the station set grows to, while a listed board keeps
+# exactly what it names. See MapDef.StationIds.
 #
 # Lives in the generator so a roster survives regeneration. Setting it only in
 # the JSON would work until the next `make-example-levels.py`, which is the kind
@@ -55,8 +55,8 @@ ROSTERS = {
     # The gentlest board in the set, and the one a player meets first: one tool,
     # so the first thing learned is placement rather than shopping. It was also
     # the most degenerate board measured -- 0.0% of runs lost at sd 0.0 -- so
-    # there is nothing here for a second tower to make more interesting.
-    "meander": ["arrow-tower"],
+    # there is nothing here for a second station to make more interesting.
+    "meander": ["arrow-station"],
 }
 
 
@@ -414,13 +414,13 @@ def build(name, theme):
         "cells": ["".join(r) for r in g],
         "spawns": [{"x": spawn[0], "y": spawn[1]}],
         "goal": {"x": goal[0], "y": goal[1]},
-        "startingGold": 300, "startingLives": 20,
+        "startingGold": 300, "startingPatience": 20,
         "meta": {"author": "make-example-levels", "motif": name},
     }
     # Omitted when the board offers everything: an absent field and a full list
     # are different statements once a third tower exists.
     if name in ROSTERS:
-        doc["towers"] = ROSTERS[name]
+        doc["stations"] = ROSTERS[name]
     return doc, s, problems
 
 

@@ -22,7 +22,7 @@ cannot. **Everything below the Core/View boundary must be reproducible.**
 ## Never load
 
 `production/01-requirements/*` (superseded) · `presentation/**` · `content-data/waves/**` ·
-`content-data/towers/**` — values must not shape the structure
+`content-data/stations/**` — values must not shape the structure
 
 ## Steps
 
@@ -32,7 +32,7 @@ cannot. **Everything below the Core/View boundary must be reproducible.**
    number next to each. Work you cannot place is work you do not understand yet.
 3. **[model call: leaf generation]** Specify the **data**: what is stored, in what structure, who owns
    it, when it mutates. Arrays indexed by entity id, not object graphs. Give the memory shape for the
-   worst case in the performance budget (300 creeps / 60 towers / 64×64).
+   worst case in the performance budget (300 visitors / 60 stations / 64×64).
 4. **[model call: leaf generation]** Specify the **algorithm** for anything non-obvious, at the level
    of "a competent engineer could implement this without asking you". Include the complexity and when
    it runs — every tick, or only on a dirty grid?
@@ -92,7 +92,7 @@ cannot. **Everything below the Core/View boundary must be reproducible.**
   trace diff will fail a week later, in a slice that did not cause it.
 - **A hash that ignores new state.** The harness goes green while determinism is already broken. This
   is the most expensive mistake available in this project.
-- **Godot creeping into Core** for "just one convenience type."
+- **Godot visitoring into Core** for "just one convenience type."
 - **Values in the note.** If you find yourself writing `35%`, you are doing content-data's job.
 - **Skipping the ADR because it is obvious.** Write the two-line version. Obvious today is archaeology
   in three months.

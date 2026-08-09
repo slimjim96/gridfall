@@ -42,8 +42,8 @@ Something in the tick loop is reading an unstable source. Ranked by how often it
 1. **`Dictionary` or `HashSet` iteration** in a state-affecting path. Iteration order depends on
    insertion history and hash seeds. Search: `foreach.*(Dictionary|HashSet|\.Keys|\.Values)`.
 2. **Slot order instead of id order.** After the first swap-remove, slot order stops matching id order.
-   Search for `for (int i = 0; i < CreepCount; i++)` in `Systems/` — every one of those should be
-   `CreepSlotsByIdAscending()` ([Chapter 04](04-state-and-entities.md)).
+   Search for `for (int i = 0; i < VisitorCount; i++)` in `Systems/` — every one of those should be
+   `VisitorSlotsByIdAscending()` ([Chapter 04](04-state-and-entities.md)).
 3. **`System.Random`, `DateTime`, `Environment.TickCount`, `Guid.NewGuid`.** Search for all of them.
 4. **`Parallel.For` / PLINQ** anywhere in Core.
 5. **Object identity as a tie-break** — `GetHashCode()` on a reference type, or sorting by object

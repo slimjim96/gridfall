@@ -4,7 +4,7 @@ using Gridfall.Core;
 namespace Gridfall.View.Hud;
 
 /// <summary>
-/// Gold, lives, wave, and the refusal message. Reads state; changes nothing.
+/// Gold, patience, wave, and the refusal message. Reads state; changes nothing.
 /// Built in code -- no .tscn to drift out of sync with it.
 /// </summary>
 public sealed partial class Hud : CanvasLayer
@@ -33,11 +33,11 @@ public sealed partial class Hud : CanvasLayer
         _help.Position = new Vector2(16, 70);
         _help.AddThemeFontSizeOverride("font_size", 14);
         _help.Modulate = new Color(1, 1, 1, 0.55f);
-        // "1-9" rather than "1/2": the number keys select the nth tower the BOARD
+        // "1-9" rather than "1/2": the number keys select the nth station the BOARD
         // offers, and a board may offer one or five. The bar itself shows which
         // key is which, so this line only has to say that keys are how you pick.
         _help.Text = "left click: build   right click: sell   middle click: repair   " +
-                     "space: start wave   1-9: tower   r: routes";
+                     "space: start wave   1-9: station   r: routes";
         AddChild(_help);
 
         // Centred, large, and the only thing on screen that ever stops the game.
@@ -59,10 +59,10 @@ public sealed partial class Hud : CanvasLayer
     }
 
     /// <summary>
-    /// What repairing the hovered tower would cost, or nothing if there is no
-    /// damaged tower under the cursor.
+    /// What repairing the hovered station would cost, or nothing if there is no
+    /// depleted station under the cursor.
     ///
-    /// This is the discoverability claim: a player who can see a tower is hurt
+    /// This is the discoverability claim: a player who can see a station is hurt
     /// must also be able to see what fixing it costs, without a wiki. The caller
     /// passes the cost rather than computing it here -- the view must not own a
     /// second copy of the cost formula.
@@ -93,13 +93,13 @@ public sealed partial class Hud : CanvasLayer
     /// mid-wave premium exists to make reacting late a decision, and a decision
     /// the player cannot see the cost of is just a surprise -- pillar 4.
     /// </summary>
-    public void Refresh(SimStateView state, string towerName, int cost, bool premium, float delta)
+    public void Refresh(SimStateView state, string stationName, int cost, bool premium, float delta)
     {
         string price = premium ? $"{cost} +premium" : cost.ToString();
 
-        _stats.Text = $"gold {state.Gold}    lives {state.Lives}    wave {state.WaveIndex}    " +
-                      $"creeps {state.CreepCount}    towers {state.TowerCount}    " +
-                      $"[{towerName} {price}]";
+        _stats.Text = $"gold {state.Gold}    patience {state.Patience}    wave {state.WaveIndex}    " +
+                      $"visitors {state.VisitorCount}    stations {state.StationCount}    " +
+                      $"[{stationName} {price}]";
 
         // Amber, the "an offer, not a warning" slot -- the premium is a price to
         // weigh, not a refusal. Danger is reserved and would misread.
@@ -123,8 +123,8 @@ public sealed partial class Hud : CanvasLayer
             Core.Events.RejectReason.NotBuildable => "You can't build there.",
             Core.Events.RejectReason.Occupied => "Something is already there.",
             Core.Events.RejectReason.OutOfBounds => "Off the board.",
-            Core.Events.RejectReason.CapacityExceeded => "Too many towers.",
-            Core.Events.RejectReason.NotDamaged => "Not damaged.",
+            Core.Events.RejectReason.CapacityExceeded => "Too many stations.",
+            Core.Events.RejectReason.NotDepleted => "Not depleted.",
             Core.Events.RejectReason.WaveInProgress => "Not while a wave is running.",
             _ => "Can't do that.",
         };

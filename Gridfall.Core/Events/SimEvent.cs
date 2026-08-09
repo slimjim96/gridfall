@@ -4,30 +4,30 @@ public enum EventKind : byte
 {
     None = 0,
     WaveStarted,
-    CreepSpawned,
+    VisitorSpawned,
     PathRecomputed,
     BuildPlaced,
     BuildRejected,
-    TowerSold,
-    TowerUpgraded,
-    TowerDamaged,
-    TowerDestroyed,
-    TowerRepaired,
+    StationSold,
+    StationUpgraded,
+    StationDepleted,
+    StationDestroyed,
+    StationRepaired,
     UpgradeRejected,
     RepairRejected,
-    TowerFired,
-    CreepDamaged,
-    CreepDied,
-    CreepLeaked,
-    CreepStranded,
+    StationFired,
+    VisitorServed,
+    VisitorDied,
+    VisitorLeaked,
+    VisitorStranded,
     GoldChanged,
-    LivesChanged,
+    PatienceChanged,
     CapacityExceeded,
     WaveCleared,
     GameOver,
 
     /// <summary>
-    /// The last wave of the run has been cleared with lives remaining.
+    /// The last wave of the run has been cleared with patience remaining.
     ///
     /// Emitted on the same transition as the final WaveCleared, so it needs no
     /// stored flag and cannot fire twice. Like GameOver, the sim reports it and
@@ -44,25 +44,25 @@ public enum RejectReason : byte
     Occupied = 3,
     InsufficientGold = 4,
     WouldSealLane = 5,
-    UnknownTower = 6,
+    UnknownStation = 6,
     CapacityExceeded = 7,
     AlreadyMaxLevel = 8,
-    NoSuchTower = 9,
-    NotDamaged = 10,
+    NoSuchStation = 9,
+    NotDepleted = 10,
     WaveInProgress = 11,
     /// <summary>
-    /// The tower exists, but this board does not offer it. Distinct from
-    /// UnknownTower on purpose: "no such tower" is a bug in the caller, and
+    /// The station exists, but this board does not offer it. Distinct from
+    /// UnknownStation on purpose: "no such station" is a bug in the caller, and
     /// "not on this board" is a rule the player is allowed to be told about.
     /// </summary>
-    TowerNotOnThisBoard = 12,
+    StationNotOnThisBoard = 12,
 }
 
 /// <summary>
 /// A fact the view can react to. Flat struct: no allocation, no virtual dispatch,
 /// and the log is a contiguous array the renderer walks once.
 ///
-/// Emit facts, not instructions. CreepDied(id), never PlayDeathAnimation(id) --
+/// Emit facts, not instructions. VisitorDied(id), never PlayDeathAnimation(id) --
 /// Core does not know animations exist (engine guide 05).
 /// </summary>
 public readonly struct SimEvent

@@ -4,12 +4,12 @@
   "ticks": 3000,
   "checkpointEvery": 100,
   "commands": [
-    { "tick": 5, "cmd": "build", "x": 2, "y": 3, "tower": "arrow-tower" },
-    { "tick": 6, "cmd": "build", "x": 6, "y": 5, "tower": "arrow-tower" },
+    { "tick": 5, "cmd": "build", "x": 2, "y": 3, "station": "arrow-station" },
+    { "tick": 6, "cmd": "build", "x": 6, "y": 5, "station": "arrow-station" },
     { "tick": 10, "cmd": "startWave" },
-    { "tick": 400, "cmd": "build", "x": 9, "y": 3, "tower": "arrow-tower" },
+    { "tick": 400, "cmd": "build", "x": 9, "y": 3, "station": "arrow-station" },
     { "tick": 900, "cmd": "startWave" },
-    { "tick": 1400, "cmd": "build", "x": 14, "y": 5, "tower": "cannon" },
+    { "tick": 1400, "cmd": "build", "x": 14, "y": 5, "station": "cannon" },
     { "tick": 2000, "cmd": "startWave" }
   ],
   "hashes": {

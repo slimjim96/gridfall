@@ -16,9 +16,9 @@ namespace Gridfall.View.Units;
 ///
 /// ## Tinting without destroying the asset's own materials
 ///
-/// Level and damage tint by duplicating each surface's material and multiplying
+/// Level and serving tint by duplicating each surface's material and multiplying
 /// its albedo, never by MaterialOverride — an override would replace whatever
-/// texture the model shipped with, so a damaged tower would lose its art
+/// texture the model shipped with, so a depleted station would lose its art
 /// entirely rather than darken.
 /// </summary>
 public sealed class MeshUnitView : IUnitView
@@ -73,7 +73,7 @@ public sealed class MeshUnitView : IUnitView
 
     /// <summary>
     /// An unknown clip is ignored, per IUnitView. A generated model that shipped
-    /// with no "fire" must not throw the first time a tower shoots.
+    /// with no "fire" must not throw the first time a station shoots.
     /// </summary>
     public void PlayClip(string clip)
     {
@@ -139,8 +139,8 @@ public sealed class MeshUnitView : IUnitView
             for (int surface = 0; surface < instance.Mesh.GetSurfaceCount(); surface++)
             {
                 // Duplicate: the loaded material may be shared between surfaces
-                // or between instances, and tinting one damaged tower must not
-                // tint every other tower of the same type.
+                // or between instances, and tinting one depleted station must not
+                // tint every other station of the same type.
                 if (instance.GetActiveMaterial(surface) is not StandardMaterial3D source) continue;
 
                 var copy = (StandardMaterial3D)source.Duplicate();
@@ -150,7 +150,7 @@ public sealed class MeshUnitView : IUnitView
                 // of the board reaches that through Palette.Matte; a generated
                 // .glb reaches it through nothing at all, and one glossy metallic
                 // return would put the only specular highlight in the game on a
-                // tower. Cheaper to enforce here than to police in every prompt.
+                // station. Cheaper to enforce here than to police in every prompt.
                 copy.Roughness = 1.0f;
                 copy.Metallic = 0.0f;
                 copy.SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled;
@@ -167,7 +167,7 @@ public sealed class MeshUnitView : IUnitView
     /// Multiplied onto whatever albedo the asset already has, so a textured model
     /// darkens rather than turning into a flat colour.
     ///
-    /// Identical curve to PlaceholderUnitView and SpriteUnitView: the damage cue
+    /// Identical curve to PlaceholderUnitView and SpriteUnitView: the serving cue
     /// must not depend on which format a unit happens to ship in.
     /// </summary>
     private void ApplyTint()
@@ -177,7 +177,7 @@ public sealed class MeshUnitView : IUnitView
         if (_healthFraction < 1f)
         {
             float hurt = 1f - _healthFraction;
-            tint = tint.Lerp(Palette.Damaged, hurt * 0.9f).Darkened(hurt * 0.45f);
+            tint = tint.Lerp(Palette.Depleted, hurt * 0.9f).Darkened(hurt * 0.45f);
         }
 
         foreach (StandardMaterial3D material in _tintable) material.AlbedoColor = tint;

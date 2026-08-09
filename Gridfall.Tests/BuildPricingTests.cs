@@ -16,11 +16,11 @@ public class BuildPricingTests
         ContentSet baseline = TestContent.BuildContent();
         return new ContentSet
         {
-            Towers = baseline.Towers,
-            Enemies = baseline.Enemies,
+            Stations = baseline.Stations,
+            Visitors = baseline.Visitors,
             Waves = baseline.Waves.Select(w => new WaveDef
             {
-                Index = w.Index, Entries = w.Entries, HpScale = w.HpScale,
+                Index = w.Index, Entries = w.Entries, AppetiteScale = w.AppetiteScale,
                 MidWaveBuildPercent = percent,
             }).ToArray(),
         };
@@ -30,23 +30,23 @@ public class BuildPricingTests
     public void BetweenWaves_ThePriceIsTheBasePrice()
     {
         var sim = new Sim(TestContent.Map(TestContent.ArenaMap), WithPremium(150), 1);
-        ushort tower = sim.Content.TowerIndexOf("arrow-tower");
+        ushort station = sim.Content.StationIndexOf("arrow-station");
 
         Assert.False(sim.State.WaveActive);
-        Assert.Equal(sim.Content.Tower(tower).Cost, sim.BuildCostOf(tower));
+        Assert.Equal(sim.Content.Station(station).Cost, sim.BuildCostOf(station));
     }
 
     [Fact]
     public void DuringAWave_ThePremiumApplies()
     {
         var sim = new Sim(TestContent.Map(TestContent.ArenaMap), WithPremium(150), 1);
-        ushort tower = sim.Content.TowerIndexOf("arrow-tower");
+        ushort station = sim.Content.StationIndexOf("arrow-station");
 
         sim.Enqueue(new StartWaveCommand());
         sim.Tick();
 
         Assert.True(sim.State.WaveActive);
-        Assert.Equal(sim.Content.Tower(tower).Cost * 150 / 100, sim.BuildCostOf(tower));
+        Assert.Equal(sim.Content.Station(station).Cost * 150 / 100, sim.BuildCostOf(station));
     }
 
     [Fact]
@@ -55,15 +55,15 @@ public class BuildPricingTests
         // The whole point. A HUD showing one number while the sim deducts
         // another is worse than showing nothing.
         var sim = new Sim(TestContent.Map(TestContent.ArenaMap), WithPremium(150), 1);
-        ushort tower = sim.Content.TowerIndexOf("arrow-tower");
+        ushort station = sim.Content.StationIndexOf("arrow-station");
 
         sim.Enqueue(new StartWaveCommand());
         sim.Tick();
 
-        int quoted = sim.BuildCostOf(tower);
+        int quoted = sim.BuildCostOf(station);
         int before = sim.State.Gold;
 
-        sim.Enqueue(new BuildCommand(new GridCell(2, 2), tower));
+        sim.Enqueue(new BuildCommand(new GridCell(2, 2), station));
         sim.Tick();
 
         Assert.Equal(before - quoted, sim.State.Gold);
@@ -73,12 +73,12 @@ public class BuildPricingTests
     public void NoPremiumConfigured_MeansNoPriceChangeEver()
     {
         var sim = new Sim(TestContent.Map(TestContent.ArenaMap), WithPremium(100), 1);
-        ushort tower = sim.Content.TowerIndexOf("arrow-tower");
-        int baseCost = sim.Content.Tower(tower).Cost;
+        ushort station = sim.Content.StationIndexOf("arrow-station");
+        int baseCost = sim.Content.Station(station).Cost;
 
-        Assert.Equal(baseCost, sim.BuildCostOf(tower));
+        Assert.Equal(baseCost, sim.BuildCostOf(station));
         sim.Enqueue(new StartWaveCommand());
         sim.Tick();
-        Assert.Equal(baseCost, sim.BuildCostOf(tower));
+        Assert.Equal(baseCost, sim.BuildCostOf(station));
     }
 }

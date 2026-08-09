@@ -25,9 +25,9 @@ public readonly struct GridCell : IEquatable<GridCell>
 /// <summary>What a cell is. One byte, stored in the map's cell array.</summary>
 public enum CellKind : byte
 {
-    /// <summary>Creeps walk it, you cannot build on it.</summary>
+    /// <summary>Visitors walk it, you cannot build on it.</summary>
     PathOnly = 0,
-    /// <summary>Creeps walk it until you build on it.</summary>
+    /// <summary>Visitors walk it until you build on it.</summary>
     Buildable = 1,
     /// <summary>Permanent scenery. Never walkable, never buildable.</summary>
     Blocked = 2,

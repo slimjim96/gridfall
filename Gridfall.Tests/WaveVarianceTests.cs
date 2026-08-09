@@ -19,11 +19,11 @@ public class WaveVarianceTests
         WaveDef[] waves = baseline.Waves
             .Select(w => new WaveDef
             {
-                Index = w.Index, Entries = w.Entries, HpScale = w.HpScale, VariancePercent = percent,
+                Index = w.Index, Entries = w.Entries, AppetiteScale = w.AppetiteScale, VariancePercent = percent,
             })
             .ToArray();
 
-        return new ContentSet { Towers = baseline.Towers, Enemies = baseline.Enemies, Waves = waves };
+        return new ContentSet { Stations = baseline.Stations, Visitors = baseline.Visitors, Waves = waves };
     }
 
     private static int[] StartTicks(ContentSet content, uint seed)
@@ -73,7 +73,7 @@ public class WaveVarianceTests
     public void Variance_NeverPullsAGroupEarlierThanAuthored()
     {
         // Jitter is a delay, never an advance. Pulling a group earlier could put
-        // an enemy on the board before the wave was meant to have started.
+        // an visitor on the board before the wave was meant to have started.
         int[] authored = StartTicks(WithVariance(0), 3);
         int[] varied = StartTicks(WithVariance(100), 3);
 
@@ -85,17 +85,17 @@ public class WaveVarianceTests
     [Fact]
     public void WaveVariance_OutsideRangeIsRefused()
     {
-        EnemyDef[] enemies = TestContent.BuildContent().Enemies.ToArray();
+        VisitorDef[] visitors = TestContent.BuildContent().Visitors.ToArray();
         const string body = """
-        { "waves": [ { "index": 1, "entries": [ { "enemy": "runner", "count": 1, "spacingTicks": 5 } ] } ]
+        { "waves": [ { "index": 1, "entries": [ { "visitor": "runner", "count": 1, "spacingTicks": 5 } ] } ]
         """;
 
         foreach (int bad in new[] { -1, 101 })
             Assert.Throws<ContentException>(
-                () => ContentLoader.LoadWaves(body + $", \"waveVariance\": {bad} }}", enemies, "t.json"));
+                () => ContentLoader.LoadWaves(body + $", \"waveVariance\": {bad} }}", visitors, "t.json"));
 
         // The ends are legal.
-        Assert.Equal(0, ContentLoader.LoadWaves(body + ", \"waveVariance\": 0 }", enemies, "t.json")[0].VariancePercent);
-        Assert.Equal(100, ContentLoader.LoadWaves(body + ", \"waveVariance\": 100 }", enemies, "t.json")[0].VariancePercent);
+        Assert.Equal(0, ContentLoader.LoadWaves(body + ", \"waveVariance\": 0 }", visitors, "t.json")[0].VariancePercent);
+        Assert.Equal(100, ContentLoader.LoadWaves(body + ", \"waveVariance\": 100 }", visitors, "t.json")[0].VariancePercent);
     }
 }

@@ -17,10 +17,10 @@ enforced by the compiler rather than by review.
 ```csharp
 public interface ICommand { }
 
-public readonly struct BuildCommand   : ICommand { public Vector2I Cell; public ushort TowerDef; }
-public readonly struct SellCommand    : ICommand { public int TowerId; }
-public readonly struct UpgradeCommand : ICommand { public int TowerId; public byte Path; }
-public readonly struct RepairCommand  : ICommand { public int TowerId; }
+public readonly struct BuildCommand   : ICommand { public Vector2I Cell; public ushort StationDef; }
+public readonly struct SellCommand    : ICommand { public int StationId; }
+public readonly struct UpgradeCommand : ICommand { public int StationId; public byte Path; }
+public readonly struct RepairCommand  : ICommand { public int StationId; }
 public readonly struct StartWaveCommand : ICommand { }
 ```
 
@@ -54,8 +54,8 @@ cannot see reads as an unresponsive game — that is a design rule, but this is 
 
 **A rejection can also be a mechanic.** `RepairCommand` is refused whenever a wave is running
 (`RejectReason.WaveInProgress`), and that refusal is the entire point of the feature rather than an
-error path: repair available at unlimited rate drove tower destruction to zero at every legal price
-([`tower-repair`](../../production/06-release/tower-repair-v1.md)). When a refusal carries design weight
+error path: repair available at unlimited rate drove station destruction to zero at every legal price
+([`station-repair`](../../production/06-release/station-repair-v1.md)). When a refusal carries design weight
 like this, say so where the player meets it — the HUD names the rule on hover, not only after a click
 that was going to fail.
 
@@ -77,22 +77,22 @@ contiguous array the renderer walks once.
 | Kind | Emitted in phase | Meaning |
 |---|---|---|
 | `WaveStarted` | 3 | A wave began |
-| `CreepSpawned` | 3 | Entity id A, def B |
+| `VisitorSpawned` | 3 | Entity id A, def B |
 | `PathRecomputed` | 2 | New field version A |
-| `BuildPlaced` / `BuildRejected` | 1 | Cell, tower def / reject reason |
-| `TowerSold` | 1 | Tower A sold for refund B. B scales with remaining health (`salvage-value`) |
-| `TowerUpgraded` / `UpgradeRejected` | 1 | Tower A, new level B / reject reason A, tower B |
-| `TowerRepaired` / `RepairRejected` | 1 | Tower A, health B restored / reject reason A, tower B |
-| `CreepStranded` | 4 | Creep A has no route. Should be impossible — the block check exists to prevent it |
-| `TowerFired` | 5 | Tower A targeted creep B |
-| `CreepDamaged` / `CreepDied` | 7 | Creep A, amount B / creep A, def B |
-| `TowerDamaged` | 7 | Tower A took B damage from an enemy attack |
-| `TowerDestroyed` | 7 | Tower A destroyed at level B. Its cell is free, but pathing updates **next** tick — phase 2 has already run (ADR-0006) |
-| `CreepLeaked` | 7 | Creep A reached the goal |
+| `BuildPlaced` / `BuildRejected` | 1 | Cell, station def / reject reason |
+| `StationSold` | 1 | Station A sold for refund B. B scales with remaining health (`salvage-value`) |
+| `StationUpgraded` / `UpgradeRejected` | 1 | Station A, new level B / reject reason A, station B |
+| `StationRepaired` / `RepairRejected` | 1 | Station A, health B restored / reject reason A, station B |
+| `VisitorStranded` | 4 | Visitor A has no route. Should be impossible — the block check exists to prevent it |
+| `StationFired` | 5 | Station A targeted visitor B |
+| `VisitorDamaged` / `VisitorDied` | 7 | Visitor A, amount B / visitor A, def B |
+| `StationDamaged` | 7 | Station A took B damage from an visitor attack |
+| `StationDestroyed` | 7 | Station A destroyed at level B. Its cell is free, but pathing updates **next** tick — phase 2 has already run (ADR-0006) |
+| `VisitorLeaked` | 7 | Visitor A reached the goal |
 | `GoldChanged` / `LivesChanged` | 8 | New value A, delta B |
 | `GameOver` | 8 | Lives reached zero |
 | `CapacityExceeded` | 3, 6 | A cap was hit |
-| `WaveCleared` | 9 | Wave A has no creeps left alive |
+| `WaveCleared` | 9 | Wave A has no visitors left alive |
 
 ### Rules for events
 
@@ -102,7 +102,7 @@ contiguous array the renderer walks once.
   gone — the renderer must not rely on catching up later.
 - **Events are output, not state.** The log is not hashed. Two runs that produce the same state must
   produce the same events, and there is a test for that, but the hash covers state alone.
-- **Emit facts, not instructions.** `CreepDied(id)` — not `PlayDeathAnimation(id)`. Core does not know
+- **Emit facts, not instructions.** `VisitorDied(id)` — not `PlayDeathAnimation(id)`. Core does not know
   animations exist, and the day you want a different reaction you change one file in the view layer.
 
 ## Why the view drives off events, not diffs
@@ -110,13 +110,13 @@ contiguous array the renderer walks once.
 The tempting alternative is polling: compare this frame's state to last frame's and animate the
 difference. It fails in two specific ways.
 
-1. **Two things in one tick.** A creep takes damage twice and dies. The diff shows a dead creep; the
+1. **Two things in one tick.** A visitor takes damage twice and dies. The diff shows a dead visitor; the
    event stream shows both hits and the death, in order.
 2. **Catch-up ticks.** After a stall the accumulator runs four ticks in one frame. The diff shows the
    net result of four ticks. The events show all four ticks' worth, so audio and VFX stay correct.
 
 So: **audio and VFX subscribe to events; sprites and positions read state.** Continuous things
-(where a creep is) come from state and get interpolated; discrete things (that it just died) come from
+(where a visitor is) come from state and get interpolated; discrete things (that it just died) come from
 events.
 
 ## SimStateView
@@ -129,15 +129,15 @@ public readonly struct SimStateView
     public int WaveIndex { get; }
     public bool WaveActive { get; }
 
-    public int CreepCount { get; }
-    public int CreepSlotByOrder(int k);      // iterate with this -- ascending id
-    public int SlotOfCreep(int id);          // -1 if gone
-    public int CreepId(int slot);
-    public int CreepCellIndex(int slot);
-    public Fix32 CreepProgress(int slot);
-    public byte CreepHeading(int slot);
-    public int CreepHp(int slot);
-    // towers and projectiles follow the same shape
+    public int VisitorCount { get; }
+    public int VisitorSlotByOrder(int k);      // iterate with this -- ascending id
+    public int SlotOfVisitor(int id);          // -1 if gone
+    public int VisitorId(int slot);
+    public int VisitorCellIndex(int slot);
+    public Fix32 VisitorProgress(int slot);
+    public byte VisitorHeading(int slot);
+    public int VisitorAppetite(int slot);
+    // stations and projectiles follow the same shape
 }
 ```
 

@@ -8,7 +8,7 @@ namespace Gridfall.Tests;
 /// <summary>
 /// A run has to be able to end. Before this, GameOver fired into nothing and
 /// clearing the last wave produced no signal at all — so the game could neither
-/// be lost nor won, and kept running at zero lives indefinitely.
+/// be lost nor won, and kept running at zero patience indefinitely.
 /// </summary>
 public class RunEndTests
 {
@@ -60,13 +60,13 @@ public class RunEndTests
     [Fact]
     public void RunWaves_TruncatesTheTable()
     {
-        EnemyDef[] enemies = ShippedEnemies();
+        VisitorDef[] visitors = ShippedVisitors();
         string json = File.ReadAllText(Path.Combine(RepoRoot(), "content-data", "waves", "crossroads.json"));
 
-        int full = ContentLoader.LoadWaves(json, enemies, "crossroads.json").Length;
+        int full = ContentLoader.LoadWaves(json, visitors, "crossroads.json").Length;
 
         string truncated = json.TrimEnd().TrimEnd('}') + ", \"runWaves\": 5 }";
-        Assert.Equal(5, ContentLoader.LoadWaves(truncated, enemies, "t.json").Length);
+        Assert.Equal(5, ContentLoader.LoadWaves(truncated, visitors, "t.json").Length);
         Assert.True(full > 5, "fixture should have more waves than the truncation");
     }
 
@@ -74,24 +74,24 @@ public class RunEndTests
     public void RunWaves_OutsideTheAuthoredTableIsRefused()
     {
         // Silently clamping would let a typo shorten a run and look intentional.
-        EnemyDef[] enemies = ShippedEnemies();
+        VisitorDef[] visitors = ShippedVisitors();
         string json = File.ReadAllText(Path.Combine(RepoRoot(), "content-data", "waves", "crossroads.json"));
 
         foreach (int bad in new[] { 0, 99 })
         {
             string broken = json.TrimEnd().TrimEnd('}') + $", \"runWaves\": {bad} }}";
-            Assert.Throws<ContentException>(() => ContentLoader.LoadWaves(broken, enemies, "t.json"));
+            Assert.Throws<ContentException>(() => ContentLoader.LoadWaves(broken, visitors, "t.json"));
         }
     }
 
     /// <summary>
-    /// The real roster, not TestContent's — the shipped wave tables name enemies
+    /// The real roster, not TestContent's — the shipped wave tables name visitors
     /// (mite, sapper) that the test fixture does not carry.
     /// </summary>
-    private static EnemyDef[] ShippedEnemies()
+    private static VisitorDef[] ShippedVisitors()
     {
-        string dir = Path.Combine(RepoRoot(), "content-data", "enemies");
-        return ContentLoader.LoadEnemies(
+        string dir = Path.Combine(RepoRoot(), "content-data", "visitors");
+        return ContentLoader.LoadVisitors(
             Directory.GetFiles(dir, "*.json").OrderBy(f => f, StringComparer.Ordinal)
                 .Select(f => (Path.GetFileName(f), File.ReadAllText(f))));
     }

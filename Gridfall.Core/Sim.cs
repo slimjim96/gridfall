@@ -26,11 +26,11 @@ public sealed class Sim
     private readonly SimRandom _random;
     private readonly CommandQueue _queue = new();
     private readonly EventLog _events = new();
-    private readonly DamageBuffer _pending = new();
-    private readonly DamageBuffer _pendingTowerDamage = new();
+    private readonly ServingBuffer _pending = new();
+    private readonly ServingBuffer _pendingStationDrain = new();
 
     // Reused across ticks so the steady-state loop allocates nothing.
-    private readonly List<int> _leakedCreepIds = new(64);
+    private readonly List<int> _leakedVisitorIds = new(64);
     private readonly List<int> _scratchDeadIds = new(64);
     private readonly List<int> _deadDefIndices = new(64);
     private readonly List<int> _leakedDefIndices = new(64);
@@ -43,22 +43,22 @@ public sealed class Sim
         _path = new PathSystem(map);
         _random = new SimRandom(seed);
 
-        // The map file and the tower files are loaded independently, so this is
+        // The map file and the station files are loaded independently, so this is
         // the first moment both are in hand -- and the last moment a typo in a
-        // roster is cheap. Left unchecked it would present as a tower that is
+        // roster is cheap. Left unchecked it would present as a station that is
         // missing from the toolbar for no stated reason, on one board.
-        foreach (string towerId in map.TowerIds)
-            if (!content.Towers.Any(t => t.Id == towerId))
+        foreach (string stationId in map.StationIds)
+            if (!content.Stations.Any(t => t.Id == stationId))
                 throw new Content.ContentException(
-                    $"map '{map.Id}' offers tower '{towerId}', which does not exist. "
-                    + $"Known: {string.Join(", ", content.Towers.Select(t => t.Id))}");
+                    $"map '{map.Id}' offers station '{stationId}', which does not exist. "
+                    + $"Known: {string.Join(", ", content.Stations.Select(t => t.Id))}");
 
         // The window before wave 1 counts too -- 300 gold and nowhere to spend
         // it under time pressure is the first decision of the run.
         ArmPrepTimer();
 
         _state.Gold = map.StartingGold;
-        _state.Lives = map.StartingLives;
+        _state.Patience = map.StartingPatience;
         // No rebuild here: the PathSystem constructor builds its own field. Calling
         // ForceRebuild as well bumps Version to 2 at tick 0, and Version is hashed,
         // so every hash in every recorded trace shifts. The harness caught exactly
@@ -74,11 +74,11 @@ public sealed class Sim
     public SimStateView State => new(_state);
 
     /// <summary>
-    /// A tower's current price, mid-wave premium included. Read-only: the view
+    /// A station's current price, mid-wave premium included. Read-only: the view
     /// needs the number to display and must not re-derive it.
     /// </summary>
-    public int BuildCostOf(ushort towerIndex)
-        => Systems.CommandSystem.BuildCost(_content.Tower(towerIndex), _state, _content);
+    public int BuildCostOf(ushort stationIndex)
+        => Systems.CommandSystem.BuildCost(_content.Station(stationIndex), _state, _content);
 
     /// <summary>
     /// The mutable state, for first-party tooling only: the test suite proving
@@ -108,15 +108,15 @@ public sealed class Sim
             _events.Add(new SimEvent(TickCount, EventKind.PathRecomputed, _path.Version));
         SpawnSystem.Run(_state, _map, _content, _path, _events, TickCount);             // 3
         MovementSystem.Run(_state, _map, _content, _path, _events, TickCount,
-            _leakedCreepIds);                                                           // 4
-        // Phase 5 has two participants. Towers fire FIRST, so a tower destroyed
+            _leakedVisitorIds);                                                           // 4
+        // Phase 5 has two participants. Stations fire FIRST, so a station destroyed
         // this tick still gets its shot off -- fairer, and easier to reason
         // about than the reverse. Order is fixed and load-bearing (ADR-0006).
         TargetingSystem.Run(_state, _map, _content, _path, _events, TickCount);         // 5a
-        EnemyAttackSystem.Run(_state, _map, _content, _pendingTowerDamage);             // 5b
+        VisitorAttackSystem.Run(_state, _map, _content, _pendingStationDrain);             // 5b
         ProjectileSystem.Run(_state, _map, _pending);                                   // 6
-        DamageSystem.Run(_state, _content, _pending, _pendingTowerDamage, _path,
-            _events, TickCount, _leakedCreepIds,
+        ServingSystem.Run(_state, _content, _pending, _pendingStationDrain, _path,
+            _events, TickCount, _leakedVisitorIds,
             _scratchDeadIds, _deadDefIndices, _leakedDefIndices);                       // 7
         EconomySystem.Run(_state, _content, _events, TickCount,
             _deadDefIndices, _leakedDefIndices);                                        // 8
@@ -156,7 +156,7 @@ public sealed class Sim
                 _events.Add(new SimEvent(TickCount, EventKind.GoldChanged, _state.Gold, cleared.ClearGold));
             }
 
-            if (_state.WaveIndex >= _content.Waves.Length && _state.Lives > 0)
+            if (_state.WaveIndex >= _content.Waves.Length && _state.Patience > 0)
                 _events.Add(new SimEvent(TickCount, EventKind.RunComplete, _state.WaveIndex));
             else
                 ArmPrepTimer();

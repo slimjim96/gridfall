@@ -54,7 +54,7 @@ int Usage()
                                    time-to-clear against the balance targets.
                                    The policy is a competent BEGINNER, so the numbers
                                    are a floor on difficulty, not a verdict.
-                                   --salvage makes it cut doomed towers loose mid-wave.
+                                   --salvage makes it cut doomed stations loose mid-wave.
                                    Salvaging must never come out AHEAD on gold
                                    destroyed -- if it does, cashing out wrecks is
                                    profitable again (salvage-value).
@@ -63,7 +63,7 @@ int Usage()
       waves [--map <id>]           Cadence sheet: when each group spawns, wave by wave.
 
       curve --map <id> [--growth N] [--bounty N]
-                                   Income against enemy strength, wave by wave.
+                                   Income against visitor strength, wave by wave.
                                    Pure content analysis, no simulation.
 
       perf [--map <id>]            Tick cost against the 8ms budget.
@@ -146,19 +146,19 @@ int Record()
     MapDef map = ContentFiles.LoadMap(root, mapId);
     ContentSet content = ContentFiles.LoadContent(root, mapId);
 
-    // A scripted pass: build a few towers, run three waves. Enough to exercise
-    // pathing, targeting, damage, economy, and the wave scheduler.
+    // A scripted pass: build a few stations, run three waves. Enough to exercise
+    // pathing, targeting, serving, economy, and the wave scheduler.
     // Cells must actually be buildable on the target map, or the script silently
     // does nothing and the trace records an undefended board. The rejection
     // count printed below is there so that failure is never silent again.
     var commands = new List<Trace.TraceCommand>
     {
-        new() { Tick = 5,    Cmd = "build", X = 2,  Y = 3, Tower = "arrow-tower" },
-        new() { Tick = 6,    Cmd = "build", X = 6,  Y = 5, Tower = "arrow-tower" },
+        new() { Tick = 5,    Cmd = "build", X = 2,  Y = 3, Station = "arrow-station" },
+        new() { Tick = 6,    Cmd = "build", X = 6,  Y = 5, Station = "arrow-station" },
         new() { Tick = 10,   Cmd = "startWave" },
-        new() { Tick = 400,  Cmd = "build", X = 9,  Y = 3, Tower = "arrow-tower" },
+        new() { Tick = 400,  Cmd = "build", X = 9,  Y = 3, Station = "arrow-station" },
         new() { Tick = 900,  Cmd = "startWave" },
-        new() { Tick = 1400, Cmd = "build", X = 14, Y = 5, Tower = "cannon" },
+        new() { Tick = 1400, Cmd = "build", X = 14, Y = 5, Station = "cannon" },
         new() { Tick = 2000, Cmd = "startWave" },
     };
 
@@ -186,8 +186,8 @@ int Record()
                     rejected++;
                     rejectReasons.Add($"tick {e.Tick} {e.Cell} {(RejectReason)e.A}");
                     break;
-                case EventKind.CreepDied: kills++; break;
-                case EventKind.CreepLeaked: leaks++; break;
+                case EventKind.VisitorDied: kills++; break;
+                case EventKind.VisitorLeaked: leaks++; break;
             }
         }
 
@@ -199,18 +199,18 @@ int Record()
 
     Console.WriteLine($"Recorded {name}: {ticks} ticks, {trace.Hashes.Count} checkpoints -> {path}");
     Console.WriteLine($"  builds   {built} placed, {rejected} rejected");
-    Console.WriteLine($"  creeps   {kills} killed, {leaks} leaked");
-    Console.WriteLine($"  final    gold {sim.State.Gold}, lives {sim.State.Lives}, hash {sim.Hash():x16}");
+    Console.WriteLine($"  visitors   {kills} killed, {leaks} leaked");
+    Console.WriteLine($"  final    gold {sim.State.Gold}, patience {sim.State.Patience}, hash {sim.Hash():x16}");
 
     foreach (string reason in rejectReasons) Console.WriteLine($"    rejected: {reason}");
 
     // A trace where nothing was built exercises pathing and spawning but never
-    // targeting, projectiles, damage, or the economy. Recording one by accident
+    // targeting, projectiles, serving, or the economy. Recording one by accident
     // is how a harness ends up guarding a third of the engine.
     if (built == 0)
-        Console.WriteLine("  WARNING: no tower was placed -- this trace does not cover combat.");
+        Console.WriteLine("  WARNING: no station was placed -- this trace does not cover combat.");
     if (kills == 0)
-        Console.WriteLine("  WARNING: nothing died -- this trace does not cover damage or bounties.");
+        Console.WriteLine("  WARNING: nothing died -- this trace does not cover serving or bounties.");
 
     return 0;
 }
@@ -233,25 +233,25 @@ int Balance()
     for (int i = 0; i < waveCount; i++) perWaveTicks[i] = new List<int>();
 
     int totalSpawned = 0, totalLeaked = 0, runsLost = 0, totalBuilds = 0, noPlacement = 0, refused = 0, upgrades = 0;
-    int repairs = 0, repairGold = 0, towersDestroyed = 0, salvaged = 0, salvageGold = 0;
-    // Investment the enemy took off the board and the player could not recover.
-    // "Towers lost" counts destructions only, and a tower SOLD at 1 hp is not
+    int repairs = 0, repairGold = 0, stationsDestroyed = 0, salvaged = 0, salvageGold = 0;
+    // Investment the visitor took off the board and the player could not recover.
+    // "Stations lost" counts destructions only, and a station SOLD at 1 hp is not
     // destroyed -- so that number reads 0 while the same gold is still gone.
-    // This is the invariant tower-combat actually installed, measured in the one
+    // This is the invariant station-combat actually installed, measured in the one
     // unit that both routes share.
     long goldDestroyed = 0;
-    var towersStanding = new List<int>();
+    var stationsStanding = new List<int>();
     var coverage = new List<int>();
     var goldAtWave = new List<int>[waveCount];
-    var towersAtWave = new List<int>[waveCount];
+    var stationsAtWave = new List<int>[waveCount];
     var spentByWave = new List<int>[waveCount];
     for (int i = 0; i < waveCount; i++)
     {
         goldAtWave[i] = new List<int>();
-        towersAtWave[i] = new List<int>();
+        stationsAtWave[i] = new List<int>();
         spentByWave[i] = new List<int>();
     }
-    var finalLives = new List<int>();
+    var finalPatience = new List<int>();
     // WHICH wave killed the run, not just how many died. balance-targets.md has
     // carried separate early (0-5%) and late (15-30%) runs-lost targets since it
     // was written, and nothing has ever measured the split.
@@ -263,10 +263,10 @@ int Balance()
         var policy = new PlayPolicy(sim, baseSeed + (uint)run);
         int earned = 0;
 
-        // towerId -> (def, level), rebuilt from events so it needs no new state
+        // stationId -> (def, level), rebuilt from events so it needs no new state
         // in the sim and no accessor the view does not already have.
-        var towerDefOf = new Dictionary<int, ushort>();
-        var towerLevelOf = new Dictionary<int, int>();
+        var stationDefOf = new Dictionary<int, ushort>();
+        var stationLevelOf = new Dictionary<int, int>();
 
         int wave = 0;
         int waveStartTick = 0;
@@ -289,7 +289,7 @@ int Balance()
                     // Defence actually on the board, and cumulative income --
                     // the two numbers that separate "the player is poor" from
                     // "the wave is too strong".
-                    towersAtWave[wave].Add(sim.State.TowerCount);
+                    stationsAtWave[wave].Add(sim.State.StationCount);
                     spentByWave[wave].Add(earned);
                 }
             }
@@ -297,17 +297,17 @@ int Balance()
             foreach (SimEvent e in sim.Events.Span)
             {
                 if (wave < 0 || wave >= waveCount) continue;
-                if (e.Kind == EventKind.CreepSpawned) { perWaveSpawned[wave]++; totalSpawned++; }
-                if (e.Kind == EventKind.CreepLeaked) { perWaveLeaked[wave]++; totalLeaked++; }
+                if (e.Kind == EventKind.VisitorSpawned) { perWaveSpawned[wave]++; totalSpawned++; }
+                if (e.Kind == EventKind.VisitorLeaked) { perWaveLeaked[wave]++; totalLeaked++; }
                 if (e.Kind == EventKind.GoldChanged && e.B > 0) earned += e.B;
-                if (e.Kind == EventKind.BuildPlaced) { towerDefOf[e.A] = (ushort)e.B; towerLevelOf[e.A] = 1; }
-                if (e.Kind == EventKind.TowerUpgraded) towerLevelOf[e.A] = e.B;
-                if (e.Kind == EventKind.TowerDestroyed)
+                if (e.Kind == EventKind.BuildPlaced) { stationDefOf[e.A] = (ushort)e.B; stationLevelOf[e.A] = 1; }
+                if (e.Kind == EventKind.StationUpgraded) stationLevelOf[e.A] = e.B;
+                if (e.Kind == EventKind.StationDestroyed)
                 {
-                    towersDestroyed++;
+                    stationsDestroyed++;
                     goldDestroyed += SpentOn(e.A);   // destroyed: the whole investment
                 }
-                if (e.Kind == EventKind.TowerSold)
+                if (e.Kind == EventKind.StationSold)
                 {
                     salvageGold += e.B;
                     goldDestroyed += SpentOn(e.A) - e.B;   // salvaged: whatever the refund missed
@@ -319,25 +319,25 @@ int Balance()
                 }
             }
 
-            if (sim.State.Lives <= 0) break;
+            if (sim.State.Patience <= 0) break;
         }
 
-        int SpentOn(int towerId)
-            => towerDefOf.TryGetValue(towerId, out ushort d)
-                ? content.Tower(d).TotalSpentAt(towerLevelOf.GetValueOrDefault(towerId, 1))
+        int SpentOn(int stationId)
+            => stationDefOf.TryGetValue(stationId, out ushort d)
+                ? content.Station(d).TotalSpentAt(stationLevelOf.GetValueOrDefault(stationId, 1))
                 : 0;
 
         totalBuilds += policy.BuildsPlaced;
-        towersStanding.Add(sim.State.TowerCount);
+        stationsStanding.Add(sim.State.StationCount);
         coverage.Add(policy.TotalCoverage());
         noPlacement += policy.NoPlacementFound;
         refused += policy.BuildsRefused;
         upgrades += policy.UpgradesBought;
         repairs += policy.RepairsBought;
         repairGold += policy.GoldSpentRepairing;
-        salvaged += policy.TowersSalvaged;
-        finalLives.Add(sim.State.Lives);
-        if (sim.State.Lives <= 0) { runsLost++; lostAtWave.Add(sim.State.WaveIndex); }
+        salvaged += policy.StationsSalvaged;
+        finalPatience.Add(sim.State.Patience);
+        if (sim.State.Patience <= 0) { runsLost++; lostAtWave.Add(sim.State.WaveIndex); }
     }
 
     double leakRate = totalSpawned == 0 ? 0 : 100.0 * totalLeaked / totalSpawned;
@@ -345,19 +345,19 @@ int Balance()
 
     Console.WriteLine($"Balance report -- map '{mapId}', {runs} runs, seed {baseSeed}");
     Console.WriteLine($"  policy          competent-beginner (coverage placement, best dps/gold, no reserve)");
-    Console.WriteLine($"  towers built    {totalBuilds / (double)runs:F1} avg per run, {towersStanding.Average():F1} standing at end");
+    Console.WriteLine($"  stations built    {totalBuilds / (double)runs:F1} avg per run, {stationsStanding.Average():F1} standing at end");
     Console.WriteLine($"  upgrades bought {upgrades / (double)runs:F1} avg per run");
     Console.WriteLine($"  repairs bought  {repairs / (double)runs:F1} avg per run, " +
                       $"{repairGold / (double)runs:F0} gold spent on them");
     // The number this slice exists to keep above zero. Repair that drives it to
-    // zero has not balanced tower-combat, it has switched it off.
-    Console.WriteLine($"  towers lost     {towersDestroyed / (double)runs:F1} avg per run");
-    Console.WriteLine($"  towers salvaged {salvaged / (double)runs:F1} avg per run, " +
+    // zero has not balanced station-combat, it has switched it off.
+    Console.WriteLine($"  stations lost     {stationsDestroyed / (double)runs:F1} avg per run");
+    Console.WriteLine($"  stations salvaged {salvaged / (double)runs:F1} avg per run, " +
                       $"{salvageGold / (double)runs:F0} gold refunded");
     Console.WriteLine($"  gold destroyed  {goldDestroyed / (double)runs:F0} avg per run " +
-                      $"-- investment the enemy took and the player could not recover");
+                      $"-- investment the visitor took and the player could not recover");
     Console.WriteLine($"  coverage        {coverage.Average():F0} route-cells covered in total, " +
-                      $"{coverage.Average() / System.Math.Max(1, towersStanding.Average()):F1} per tower");
+                      $"{coverage.Average() / System.Math.Max(1, stationsStanding.Average()):F1} per station");
     Console.WriteLine($"  no placement    {noPlacement / (double)runs:F0} attempts found nowhere to go ({refused / (double)runs:F0} of them blocked by the seal check)");
     Console.WriteLine();
     Console.WriteLine($"  {"metric",-22} {"value",-14} target");
@@ -378,13 +378,13 @@ int Balance()
     Console.WriteLine($"  {$"  in waves 1-{earlyThrough}",-22} {earlyRate,6:F1}%        0-5%         {Verdict(earlyRate <= 5.0)}");
     Console.WriteLine($"  {$"  in waves {earlyThrough + 1}-{waveCount}",-22} {lateRate,6:F1}%        15-30%       {Verdict(lateRate is >= 15.0 and <= 30.0)}");
     // The SPREAD matters as much as the mean. A map where every run ends with
-    // the same lives has no difficulty curve, only a threshold: when the mean
+    // the same patience has no difficulty curve, only a threshold: when the mean
     // crosses zero, every run crosses at once. That is what a cliff IS, and the
     // mean alone cannot show it (gauntlet-cliff).
-    double livesMean = finalLives.Average();
-    double livesSd = System.Math.Sqrt(finalLives.Sum(v => (v - livesMean) * (v - livesMean)) / runs);
-    Console.WriteLine($"  {"lives left (avg)",-22} {livesMean,6:F1}   " +
-                      $"sd {livesSd:F1}, range {finalLives.Min()}-{finalLives.Max()}");
+    double patienceMean = finalPatience.Average();
+    double patienceSd = System.Math.Sqrt(finalPatience.Sum(v => (v - patienceMean) * (v - patienceMean)) / runs);
+    Console.WriteLine($"  {"patience left (avg)",-22} {patienceMean,6:F1}   " +
+                      $"sd {patienceSd:F1}, range {finalPatience.Min()}-{finalPatience.Max()}");
     if (lostAtWave.Count > 0)
     {
         Console.WriteLine($"  {"lost runs died at wave",-22} {lostAtWave.Average(),6:F1} avg " +
@@ -407,7 +407,7 @@ int Balance()
         Console.WriteLine($"  {"  waves that can kill",-22} {histogram.Count(c => c > 0),6} of {waveCount}");
     }
     Console.WriteLine();
-    Console.WriteLine($"  {"wave",-6} {"spawned",-9} {"leaked",-9} {"leak%",-8} {"ticks",-8} {"gold",-7} {"towers",-8} {"earned so far",-14}");
+    Console.WriteLine($"  {"wave",-6} {"spawned",-9} {"leaked",-9} {"leak%",-8} {"ticks",-8} {"gold",-7} {"stations",-8} {"earned so far",-14}");
 
     for (int w = 0; w < waveCount; w++)
     {
@@ -415,9 +415,9 @@ int Balance()
         string ticks = perWaveTicks[w].Count > 0 ? $"{perWaveTicks[w].Average():F0}" : "-";
         string gold = goldAtWave[w].Count > 0 ? $"{goldAtWave[w].Average():F0}" : "-";
         string flag = wl > 15.0 ? "  <-- over the 15% per-wave target" : "";
-        string towers = towersAtWave[w].Count > 0 ? $"{towersAtWave[w].Average():F1}" : "-";
+        string stations = stationsAtWave[w].Count > 0 ? $"{stationsAtWave[w].Average():F1}" : "-";
         string earnedSo = spentByWave[w].Count > 0 ? $"{spentByWave[w].Average():F0}" : "-";
-        Console.WriteLine($"  {w + 1,-6} {perWaveSpawned[w],-9} {perWaveLeaked[w],-9} {wl,-8:F1} {ticks,-8} {gold,-7} {towers,-8} {earnedSo,-14}{flag}");
+        Console.WriteLine($"  {w + 1,-6} {perWaveSpawned[w],-9} {perWaveLeaked[w],-9} {wl,-8:F1} {ticks,-8} {gold,-7} {stations,-8} {earnedSo,-14}{flag}");
     }
 
     Console.WriteLine();
@@ -431,7 +431,7 @@ int Balance()
 }
 
 /// <summary>
-/// Income against enemy strength, wave by wave, computed straight from the
+/// Income against visitor strength, wave by wave, computed straight from the
 /// content. No simulation: this is arithmetic over the wave table, so it is
 /// exact and answers a question the balance sim cannot.
 ///
@@ -448,21 +448,21 @@ int Curve()
     double growthOverride = double.TryParse(Opt("growth"), out double g) ? g : 0;
     double bountyScale = double.TryParse(Opt("bounty"), out double b) ? b : 1.0;
 
-    // What a gold piece buys, in damage per tick, from the best tower available.
-    double bestDamagePerGold = 0;
-    foreach (TowerDef t in content.Towers)
+    // What a gold piece buys, in serving per tick, from the best station available.
+    double bestServingPerGold = 0;
+    foreach (StationDef t in content.Stations)
     {
-        if (t.Damage <= 0 || t.CooldownTicks <= 0) continue;
-        double v = t.Damage / (double)t.CooldownTicks / t.Cost;
-        if (v > bestDamagePerGold) bestDamagePerGold = v;
+        if (t.Serving <= 0 || t.CooldownTicks <= 0) continue;
+        double v = t.Serving / (double)t.CooldownTicks / t.Cost;
+        if (v > bestServingPerGold) bestServingPerGold = v;
     }
 
     Console.WriteLine($"Income vs difficulty -- map '{mapId}'");
-    Console.WriteLine($"  best damage/tick per gold: {bestDamagePerGold:F5}"
+    Console.WriteLine($"  best serving/tick per gold: {bestServingPerGold:F5}"
                       + (growthOverride > 0 ? $"   hpGrowth override {growthOverride}" : "")
                       + (bountyScale != 1.0 ? $"   bounty x{bountyScale}" : ""));
     Console.WriteLine();
-    Console.WriteLine($"  {"wave",-5} {"creeps",-7} {"wave HP",-9} {"income",-8} {"cum income",-11} " +
+    Console.WriteLine($"  {"wave",-5} {"visitors",-7} {"wave HP",-9} {"income",-8} {"cum income",-11} " +
                       $"{"capacity",-9} {"cap/HP",-8} {"vs wave 1",-9}");
 
     double cumIncome = 0;
@@ -473,27 +473,27 @@ int Curve()
         WaveDef wave = content.Waves[w];
         double scale = growthOverride > 0
             ? System.Math.Pow(growthOverride, w)
-            : wave.HpScale.Raw / 65536.0;
+            : wave.AppetiteScale.Raw / 65536.0;
 
-        int creeps = 0;
-        double waveHp = 0, income = 0;
+        int visitors = 0;
+        double waveAppetite = 0, income = 0;
         foreach (WaveEntry e in wave.Entries)
         {
-            EnemyDef def = content.Enemy(e.EnemyIndex);
-            creeps += e.Count;
-            waveHp += e.Count * def.Hp * scale;
+            VisitorDef def = content.Visitor(e.VisitorIndex);
+            visitors += e.Count;
+            waveAppetite += e.Count * def.Appetite * scale;
             income += e.Count * def.Bounty * bountyScale;
         }
 
-        // Capacity is what CUMULATIVE income could buy, because towers persist.
+        // Capacity is what CUMULATIVE income could buy, because stations persist.
         // That is the asymmetry: the player accumulates, the wave does not.
-        double capacity = cumIncome * bestDamagePerGold;
-        double ratio = waveHp > 0 ? capacity / waveHp : 0;
+        double capacity = cumIncome * bestServingPerGold;
+        double ratio = waveAppetite > 0 ? capacity / waveAppetite : 0;
         // Normalise against wave 2, not wave 1: before wave 1 the player has
         // earned nothing, so its ratio is zero and divides into nonsense.
         if (w == 1) firstRatio = ratio;
 
-        Console.WriteLine($"  {wave.Index,-5} {creeps,-7} {waveHp,-9:F0} {income,-8:F0} {cumIncome,-11:F0} " +
+        Console.WriteLine($"  {wave.Index,-5} {visitors,-7} {waveAppetite,-9:F0} {income,-8:F0} {cumIncome,-11:F0} " +
                           $"{capacity,-9:F1} {ratio,-8:F4} " +
                           (firstRatio > 0 && w >= 1 ? $"{ratio / firstRatio,-9:F2}x" : "-"));
 
@@ -503,7 +503,7 @@ int Curve()
     Console.WriteLine();
     Console.WriteLine("  cap/HP rising means the player outgrows the wave. Flat means they track.");
     Console.WriteLine("  The last column is that ratio relative to wave 2 -- 1.00x throughout is balance.");
-    Console.WriteLine("  Capacity uses CUMULATIVE income because towers persist and a wave does not --");
+    Console.WriteLine("  Capacity uses CUMULATIVE income because stations persist and a wave does not --");
     Console.WriteLine("  that asymmetry is the whole problem, and no sink or stat can remove it.");
     return 0;
 }
@@ -514,21 +514,21 @@ int Perf()
     MapDef map = ContentFiles.LoadMap(root, mapId);
     ContentSet content = ContentFiles.LoadContent(root, mapId);
 
-    // Load the board up: as many towers as gold allows, then run waves on repeat
+    // Load the board up: as many stations as gold allows, then run waves on repeat
     // so the tick loop is doing real work rather than idling.
     var sim = new Sim(map, content, 1);
     sim.MutableState.Gold = 100000;
-    ushort arrow = content.TowerIndexOf("arrow-tower");
+    ushort arrow = content.StationIndexOf("arrow-station");
     for (int y = 0; y < map.Height; y++)
         for (int x = 0; x < map.Width; x++)
             if (map.Cells[map.Index(x, y)] == CellKind.Buildable)
                 sim.Enqueue(new BuildCommand(new GridCell(x, y), arrow));
     sim.Tick();
 
-    int towers = sim.State.TowerCount;
+    int stations = sim.State.StationCount;
     for (int w = 0; w < 3; w++) sim.Enqueue(new StartWaveCommand());
 
-    for (int t = 0; t < 200; t++) sim.Tick();   // warm up, let creeps accumulate
+    for (int t = 0; t < 200; t++) sim.Tick();   // warm up, let visitors accumulate
 
     var sw = System.Diagnostics.Stopwatch.StartNew();
     const int measured = 5000;
@@ -540,7 +540,7 @@ int Perf()
         // The policy is a reasonable beginner, and a beginner uses the build
         // window. Calling immediately made the timer invisible to the sim while
         // still charging the mid-wave premium -- 81% runs lost, all artifact.
-        if (!sim.State.WaveActive && sim.State.CreepCount == 0 && sim.State.PrepTicksRemaining == 0)
+        if (!sim.State.WaveActive && sim.State.VisitorCount == 0 && sim.State.PrepTicksRemaining == 0)
             sim.Enqueue(new StartWaveCommand());
         sim.Tick();
         long elapsed = System.Diagnostics.Stopwatch.GetTimestamp() - start;
@@ -551,13 +551,13 @@ int Perf()
     double avgMs = sw.Elapsed.TotalMilliseconds / measured;
     double worstMs = worstTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
 
-    Console.WriteLine($"Perf -- map '{mapId}', {towers} towers, {measured} ticks");
+    Console.WriteLine($"Perf -- map '{mapId}', {stations} stations, {measured} ticks");
     Console.WriteLine($"  average  {avgMs:F4} ms/tick");
     Console.WriteLine($"  worst    {worstMs:F4} ms/tick   (budget 8.0000 ms)");
     Console.WriteLine($"  headroom {8.0 / worstMs:F0}x on the worst tick");
     Console.WriteLine();
     Console.WriteLine("  Measured on this machine only, and on a 20x9 map -- the 8 ms budget is");
-    Console.WriteLine("  written for 64x64 with 300 creeps and 60 towers. Not the same test.");
+    Console.WriteLine("  written for 64x64 with 300 visitors and 60 stations. Not the same test.");
 
     return worstMs <= 8.0 ? 0 : 1;
 }
@@ -623,13 +623,13 @@ int WaveReport()
 }
 
 /// <summary>
-/// How many towers a board can hold, built the way a competent player builds:
+/// How many stations a board can hold, built the way a competent player builds:
 /// take the cell covering the most of the CURRENT route, refuse anything that
 /// would wall the route off, repeat until nothing legal is left.
 ///
-/// A ceiling, not an outcome. The balance sim's "towers standing" mixes this up
-/// with how many the enemy destroyed; this is what the board permits before a
-/// single creep walks.
+/// A ceiling, not an outcome. The balance sim's "stations standing" mixes this up
+/// with how many the visitor destroyed; this is what the board permits before a
+/// single visitor walks.
 ///
 /// Uses the game's own <c>WouldRemainConnected</c> rather than a second opinion
 /// about what seals a lane, and re-traces the route after every placement --
@@ -664,7 +664,7 @@ int DefenceCapacity(MapDef map, double range)
                 if (dx * dx + dy * dy <= range * range) covered++;
             }
 
-            // A tower covering nothing is not defence, and counting it would
+            // A station covering nothing is not defence, and counting it would
             // make capacity a synonym for "buildable cells".
             if (covered <= 0 || covered <= bestCover) continue;
             if (!path.WouldRemainConnected(i)) continue;
@@ -729,14 +729,14 @@ int MapReport()
 
         int floor = Gridfall.Core.Content.MapValidator.GeometricFloor(map.Spawns[0], map.Goal);
 
-        // Route cells one tower can cover, from its best buildable cell.
+        // Route cells one station can cover, from its best buildable cell.
         //
-        // Range is fixed in cells while boards are not, so the same tower covers
+        // Range is fixed in cells while boards are not, so the same station covers
         // a shrinking fraction of the route as a board grows. Buildable-per-route
         // measures how much defence a map PERMITS; this measures how much one
-        // tower BUYS, which is the number wave design actually depends on.
+        // station BUYS, which is the number wave design actually depends on.
         ContentSet content = ContentFiles.LoadContent(root, mapId);
-        TowerDef cheapest = content.Towers.OrderBy(x => x.Cost).First();
+        StationDef cheapest = content.Stations.OrderBy(x => x.Cost).First();
         double range = cheapest.Range.ToFloat();
 
         // The ACTUAL route, walked from the spawn down the distance field.
@@ -787,7 +787,7 @@ int MapReport()
         // `cover` measures the BEST cell; this measures how many cells are worth
         // anything. A map can pass every band and still be unwinnable if its
         // buildable area sits away from the route -- `spiral` is 52% buildable,
-        // inside the band, and 89 of its cells are a courtyard the creeps never
+        // inside the band, and 89 of its cells are a courtyard the visitors never
         // come near. It lost 100% of 150 runs.
         //
         // A viability floor, NOT a difficulty predictor: across twelve maps the
@@ -809,7 +809,7 @@ int MapReport()
             warnings.Add($"only {usefulPct}% of buildable is within range of the route -- "
                          + "the rest is dead space and the map may be unwinnable");
 
-        // Defence capacity: how many towers this board can actually hold, built
+        // Defence capacity: how many stations this board can actually hold, built
         // the way a competent player builds -- best route coverage first, each one
         // checked against the game's own seal rule, until nothing legal is left.
         //
@@ -834,7 +834,7 @@ int MapReport()
 
         // Buildable cells per route cell. The buildable-percentage band does not
         // capture this, and crossroads passes that band at 4.0 here -- roughly
-        // three towers per cell of route, which no enemy design survives.
+        // three stations per cell of route, which no visitor design survives.
         // Proposed band 1.5-2.0; reported, not yet enforced (map-density-target).
         double density = shortest > 0 ? buildable / (double)shortest : 0;
         if (density > 2.0)
@@ -843,7 +843,7 @@ int MapReport()
         string verdict = warnings.Count == 0 ? "ok" : string.Join("; ", warnings);
         string lengthening = Gridfall.Core.Content.MapValidator.Tenths(shortest, floor) + "x";
         // Capacity normalised by route length: how many layers of defence the
-        // board lets you stack against the distance a creep has to walk. Raw
+        // board lets you stack against the distance a visitor has to walk. Raw
         // capacity cannot be compared across boards of different route lengths,
         // and this is the form that orders by outcome.
         double capPerRoute = shortest > 0 ? capacity / (double)shortest : 0;

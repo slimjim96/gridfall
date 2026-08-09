@@ -174,7 +174,7 @@ public static class MapValidator
         => findings.Any(f => f.Severity == MapSeverity.Error);
 
     /// <summary>
-    /// Greedy approximation of the longest path a legal tower layout can force.
+    /// Greedy approximation of the longest path a legal station layout can force.
     ///
     /// A LOWER BOUND, not the answer: finding the true worst case is a search,
     /// not a query. Over the target proves the map fails; under it proves

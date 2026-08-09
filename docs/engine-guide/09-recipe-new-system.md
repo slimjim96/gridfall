@@ -29,13 +29,13 @@ Burning does not. It slots into 6.
 ## 3 · Define the state
 
 ```csharp
-// SimState.cs — parallel to the existing creep arrays
-public Fix32[] CreepBurnDps;        // 0 == not burning
-public int[]   CreepBurnEndTick;
-public Fix32[] CreepBurnAccum;      // the sub-unit accumulator — see Chapter 03
+// SimState.cs — parallel to the existing visitor arrays
+public Fix32[] VisitorBurnDps;        // 0 == not burning
+public int[]   VisitorBurnEndTick;
+public Fix32[] VisitorBurnAccum;      // the sub-unit accumulator — see Chapter 03
 ```
 
-Three arrays rather than a `BurnStatus` object per creep: no allocation, and the hash stays a loop over
+Three arrays rather than a `BurnStatus` object per visitor: no allocation, and the hash stays a loop over
 arrays.
 
 The accumulator is not optional. Burning applies a fraction of a point per tick, and truncating that to
@@ -45,17 +45,17 @@ zero every tick means burning deals no damage at all — the classic fixed-point
 ## 4 · Hash it, in the same commit
 
 ```csharp
-// SimState.Hash(), inside the creep loop
-h = FnvHash.Combine(h, CreepBurnDps[slot], CreepBurnEndTick[slot], CreepBurnAccum[slot]);
+// SimState.Hash(), inside the visitor loop
+h = FnvHash.Combine(h, VisitorBurnDps[slot], VisitorBurnEndTick[slot], VisitorBurnAccum[slot]);
 ```
 
 ```csharp
 [Fact]
 public void Hash_Covers_Burn()
 {
-    var sim = TestSim.WithOneCreep();
+    var sim = TestSim.WithOneVisitor();
     ulong before = sim.Hash();
-    sim.State.CreepBurnDps[0] = Fix32.FromInt(1);
+    sim.State.VisitorBurnDps[0] = Fix32.FromInt(1);
     Assert.NotEqual(before, sim.Hash());
 }
 ```
@@ -69,25 +69,25 @@ worst-case outcome: green harness, broken determinism.
 // Gridfall.Core/Systems/BurnSystem.cs — phase 6
 internal static class BurnSystem
 {
-    public static void Run(SimState s, DamageBuffer pending, int tick)
+    public static void Run(SimState s, ServingBuffer pending, int tick)
     {
-        foreach (int slot in s.CreepSlotsByIdAscending())      // id order, always
+        foreach (int slot in s.VisitorSlotsByIdAscending())      // id order, always
         {
-            if (s.CreepBurnDps[slot].Raw == 0) continue;
+            if (s.VisitorBurnDps[slot].Raw == 0) continue;
 
-            if (tick >= s.CreepBurnEndTick[slot])
+            if (tick >= s.VisitorBurnEndTick[slot])
             {
-                s.CreepBurnDps[slot] = default;
-                s.CreepBurnAccum[slot] = default;
+                s.VisitorBurnDps[slot] = default;
+                s.VisitorBurnAccum[slot] = default;
                 continue;
             }
 
-            s.CreepBurnAccum[slot] += s.CreepBurnDps[slot] * Sim.TickSeconds;
-            if (s.CreepBurnAccum[slot] >= Fix32.One)
+            s.VisitorBurnAccum[slot] += s.VisitorBurnDps[slot] * Sim.TickSeconds;
+            if (s.VisitorBurnAccum[slot] >= Fix32.One)
             {
-                int whole = s.CreepBurnAccum[slot].ToInt();
-                s.CreepBurnAccum[slot] -= Fix32.FromInt(whole);
-                pending.Add(s.CreepId[slot], whole, DamageSource.Burn);
+                int whole = s.VisitorBurnAccum[slot].ToInt();
+                s.VisitorBurnAccum[slot] -= Fix32.FromInt(whole);
+                pending.Add(s.VisitorId[slot], whole, DamageSource.Burn);
             }
         }
     }
@@ -115,8 +115,8 @@ reason down — here and in the architecture note.
 ## 7 · Emit events, don't dictate visuals
 
 ```csharp
-_events.Add(new SimEvent(tick, EventKind.CreepBurnApplied, creepId, durationTicks));
-_events.Add(new SimEvent(tick, EventKind.CreepBurnExpired, creepId, 0));
+_events.Add(new SimEvent(tick, EventKind.VisitorBurnApplied, visitorId, durationTicks));
+_events.Add(new SimEvent(tick, EventKind.VisitorBurnExpired, visitorId, 0));
 ```
 
 Facts, not instructions ([Chapter 05](05-commands-and-events.md)). What the fire looks like is

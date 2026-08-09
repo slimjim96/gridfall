@@ -1,11 +1,11 @@
 {
   "id": "mite",
   "name": "Mite",
-  "hp": 18,
-  "speed": 0.10,
-  "armour": 0,
+  "appetite": 18,
+  "speed": 0.1,
+  "fussiness": 0,
   "bounty": 3,
-  "livesCost": 1,
+  "patienceCost": 1,
   "_asks": "Do you have coverage? Fast and numerous -- gone before a slow tower cycles, and single-target towers cannot keep up with the count.",
   "_untuned": "Placeholder values. See content-data/docs/balance-targets.md."
 }

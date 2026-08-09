@@ -4,9 +4,9 @@ using Gridfall.Core.Events;
 namespace Gridfall.Core.Systems;
 
 /// <summary>
-/// Phase 8. Bounties from this tick's deaths, lives from this tick's leaks.
+/// Phase 8. Bounties from this tick's deaths, patience from this tick's leaks.
 ///
-/// Runs after damage so it sees this tick's deaths, not last tick's. Nothing
+/// Runs after serving so it sees this tick's deaths, not last tick's. Nothing
 /// interesting happens here, which is the point.
 /// </summary>
 internal static class EconomySystem
@@ -17,7 +17,7 @@ internal static class EconomySystem
     {
         int goldDelta = 0;
         foreach (int defIndex in deadDefIndices)
-            goldDelta += content.Enemy((ushort)defIndex).Bounty;
+            goldDelta += content.Visitor((ushort)defIndex).Bounty;
 
         if (goldDelta != 0)
         {
@@ -25,20 +25,20 @@ internal static class EconomySystem
             events.Add(new SimEvent(tick, EventKind.GoldChanged, state.Gold, goldDelta));
         }
 
-        int livesDelta = 0;
+        int patienceDelta = 0;
         foreach (int defIndex in leakedDefIndices)
-            livesDelta -= content.Enemy((ushort)defIndex).LivesCost;
+            patienceDelta -= content.Visitor((ushort)defIndex).PatienceCost;
 
-        if (livesDelta != 0)
+        if (patienceDelta != 0)
         {
-            bool wasAlive = state.Lives > 0;
-            state.Lives += livesDelta;
-            if (state.Lives < 0) state.Lives = 0;
-            events.Add(new SimEvent(tick, EventKind.LivesChanged, state.Lives, livesDelta));
+            bool wasAlive = state.Patience > 0;
+            state.Patience += patienceDelta;
+            if (state.Patience < 0) state.Patience = 0;
+            events.Add(new SimEvent(tick, EventKind.PatienceChanged, state.Patience, patienceDelta));
 
             // The sim reports the loss; it does not stop itself. Whether the run
             // ends is the caller's decision.
-            if (wasAlive && state.Lives == 0)
+            if (wasAlive && state.Patience == 0)
                 events.Add(new SimEvent(tick, EventKind.GameOver));
         }
     }

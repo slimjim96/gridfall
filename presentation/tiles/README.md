@@ -37,7 +37,7 @@ Implemented in [`godot/View/TileLibrary.cs`](../../godot/View/TileLibrary.cs).
 
 ## A tile changes how a cell looks and nothing else
 
-`CellKind` decides every rule — what creeps walk on, what you can build on, what the pathfinder
+`CellKind` decides every rule — what visitors walk on, what you can build on, what the pathfinder
 treats as solid. A tile is chosen *after* those decisions and cannot influence them. There is no
 code path by which an image reaches the simulation, and `TheThemeIsNotSimulationState` in
 `Gridfall.Tests` holds the line: two maps identical but for their theme hash identically at tick 0.

@@ -128,15 +128,15 @@ public class PathingTests
     public void Build_ThatWouldSealTheLane_IsRefusedAndLeavesTheGridUnchanged()
     {
         Sim sim = TestContent.NewSim(TestContent.PinchMap);
-        ushort towerDef = sim.Content.TowerIndexOf("arrow-tower");
+        ushort stationDef = sim.Content.StationIndexOf("arrow-station");
 
         byte[] costBefore = sim.Path.CostSpan.ToArray();
         int goldBefore = sim.State.Gold;
 
-        sim.Enqueue(new BuildCommand(new GridCell(5, 3), towerDef));
+        sim.Enqueue(new BuildCommand(new GridCell(5, 3), stationDef));
         sim.Tick();
 
-        Assert.Equal(0, sim.State.TowerCount);
+        Assert.Equal(0, sim.State.StationCount);
         Assert.Equal(goldBefore, sim.State.Gold);
         Assert.True(costBefore.AsSpan().SequenceEqual(sim.Path.CostSpan));
 
@@ -149,12 +149,12 @@ public class PathingTests
     public void Build_ThatOnlyLengthensTheRoute_IsAccepted()
     {
         Sim sim = TestContent.NewSim(TestContent.ArenaMap);
-        ushort towerDef = sim.Content.TowerIndexOf("arrow-tower");
+        ushort stationDef = sim.Content.StationIndexOf("arrow-station");
 
-        sim.Enqueue(new BuildCommand(new GridCell(4, 3), towerDef));
+        sim.Enqueue(new BuildCommand(new GridCell(4, 3), stationDef));
         sim.Tick();
 
-        Assert.Equal(1, sim.State.TowerCount);
+        Assert.Equal(1, sim.State.StationCount);
         Assert.Contains(sim.Events.Span.ToArray(), e => e.Kind == Core.Events.EventKind.BuildPlaced);
     }
 
@@ -167,7 +167,7 @@ public class PathingTests
         sim.Tick();
         Assert.Equal(version, sim.Path.Version);   // nothing changed: no rebuild
 
-        sim.Enqueue(new BuildCommand(new GridCell(4, 3), sim.Content.TowerIndexOf("arrow-tower")));
+        sim.Enqueue(new BuildCommand(new GridCell(4, 3), sim.Content.StationIndexOf("arrow-station")));
         sim.Tick();
         Assert.Equal(version + 1, sim.Path.Version);
 

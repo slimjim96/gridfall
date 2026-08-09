@@ -20,7 +20,7 @@ public readonly struct FixVec2 : IEquatable<FixVec2>
 
     /// <summary>
     /// Prefer this over Length for every range and proximity test. A square root
-    /// per creep per tower per tick buys nothing (engine guide 03).
+    /// per visitor per station per tick buys nothing (engine guide 03).
     /// </summary>
     public Fix32 LengthSquared() => X * X + Y * Y;
 

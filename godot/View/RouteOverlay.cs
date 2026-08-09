@@ -6,11 +6,11 @@ using Gridfall.Core.Path;
 namespace Gridfall.View;
 
 /// <summary>
-/// Draws the route creeps take, and the route they *would* take if you built on
+/// Draws the route visitors take, and the route they *would* take if you built on
 /// the cell under the cursor.
 ///
-/// Pillar 1 says the maze is the game. Until now the player could place a tower
-/// and infer the consequence from watching creeps afterwards; this makes the
+/// Pillar 1 says the maze is the game. Until now the player could place a station
+/// and infer the consequence from watching visitors afterwards; this makes the
 /// consequence visible before committing, which is the difference between a
 /// puzzle and a guess.
 ///
@@ -141,7 +141,7 @@ public sealed partial class RouteOverlay : Node3D
     /// Drop the drawn route entirely.
     ///
     /// For the editor: a draft with no goal has no flow field, so there is no
-    /// route to draw and leaving the last one up would show creeps walking to a
+    /// route to draw and leaving the last one up would show visitors walking to a
     /// goal that is not there any more.
     /// </summary>
     public void Clear()

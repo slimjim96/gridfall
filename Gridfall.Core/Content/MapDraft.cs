@@ -6,7 +6,7 @@ namespace Gridfall.Core.Content;
 /// A map being edited. `MapDef` is immutable and validated; this is the mutable
 /// thing the board editor paints on, and it is allowed to be temporarily broken.
 ///
-/// Serialisation lives here so the editor writes exactly the format the loader
+/// Serialisation patience here so the editor writes exactly the format the loader
 /// reads -- one definition of the map format, not two (engine guide 07).
 /// </summary>
 public sealed class MapDraft
@@ -24,7 +24,7 @@ public sealed class MapDraft
     public int Height;
     public CellKind[] Cells = Array.Empty<CellKind>();
     public int StartingGold = 200;
-    public int StartingLives = 20;
+    public int StartingPatience = 20;
 
     /// <summary>
     /// Spawn ORDER is content, not layout: the block check and wave assignment
@@ -35,11 +35,11 @@ public sealed class MapDraft
     public GridCell Goal = GridCell.Invalid;
 
     /// <summary>
-    /// Tower ids this board offers, in toolbar order. Empty means all of them --
-    /// see MapDef.TowerIds. Carried through From/ToMapDef/ToJson so the editor
+    /// Station ids this board offers, in toolbar order. Empty means all of them --
+    /// see MapDef.StationIds. Carried through From/ToMapDef/ToJson so the editor
     /// cannot silently strip a roster off a map somebody opens and saves.
     /// </summary>
-    public readonly List<string> TowerIds = new();
+    public readonly List<string> StationIds = new();
 
     public int Index(int x, int y) => y * Width + x;
     public int Index(GridCell c) => c.Y * Width + c.X;
@@ -80,11 +80,11 @@ public sealed class MapDraft
             Height = map.Height,
             Cells = (CellKind[])map.Cells.Clone(),
             StartingGold = map.StartingGold,
-            StartingLives = map.StartingLives,
+            StartingPatience = map.StartingPatience,
             Goal = map.Goal,
         };
         draft.Spawns.AddRange(map.Spawns);
-        draft.TowerIds.AddRange(map.TowerIds);
+        draft.StationIds.AddRange(map.StationIds);
         return draft;
     }
 
@@ -102,8 +102,8 @@ public sealed class MapDraft
         Spawns = Spawns.ToArray(),
         Goal = Goal,
         StartingGold = StartingGold,
-        StartingLives = StartingLives,
-        TowerIds = TowerIds.ToArray(),
+        StartingPatience = StartingPatience,
+        StationIds = StationIds.ToArray(),
     };
 
     /// <summary>
@@ -201,12 +201,12 @@ public sealed class MapDraft
         sb.AppendLine("],");
         sb.AppendLine($"  \"goal\": {{ \"x\": {Goal.X}, \"y\": {Goal.Y} }},");
         sb.AppendLine($"  \"startingGold\": {StartingGold},");
-        sb.AppendLine($"  \"startingLives\": {StartingLives},");
-        // Omitted entirely when empty, because "" and "every tower" are different
-        // statements -- writing `"towers": []` would turn "all of them" into "none
+        sb.AppendLine($"  \"startingPatience\": {StartingPatience},");
+        // Omitted entirely when empty, because "" and "every station" are different
+        // statements -- writing `"stations": []` would turn "all of them" into "none
         // of them" the next time this file is read.
-        if (TowerIds.Count > 0)
-            sb.AppendLine($"  \"towers\": [{string.Join(", ", TowerIds.Select(t => $"\"{t}\""))}],");
+        if (StationIds.Count > 0)
+            sb.AppendLine($"  \"stations\": [{string.Join(", ", StationIds.Select(t => $"\"{t}\""))}],");
         sb.AppendLine("  \"meta\": { \"author\": \"board-editor\" }");
         sb.AppendLine("}");
         return sb.ToString();

@@ -31,7 +31,7 @@ what you are touching.
 
 Two recipes there are step-by-step and cross several workspaces:
 [add a system](../docs/engine-guide/09-recipe-new-system.md) and
-[add a tower end to end](../docs/engine-guide/10-recipe-new-tower.md).
+[add a station end to end](../docs/engine-guide/10-recipe-new-station.md).
 
 ## The shape every workflow shares
 

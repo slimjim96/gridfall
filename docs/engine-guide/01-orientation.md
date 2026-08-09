@@ -50,7 +50,7 @@ Gridfall.Core
 ├── Math/    Fix32.cs, FixVec2.cs, FixMath.cs
 ├── Path/    FlowField.cs, PathSystem.cs
 ├── Systems/ one file per tick phase: CommandSystem, SpawnSystem, MovementSystem, …
-├── Content/ TowerDef, EnemyDef, WaveTable, MapDef + the loaders
+├── Content/ StationDef, VisitorDef, WaveTable, MapDef + the loaders
 └── Events/  SimEvent and its variants
 ```
 
@@ -59,9 +59,9 @@ it does, in the order it runs. If you cannot say which phase your new file belon
 [Chapter 02](02-tick-loop.md) before writing it.
 
 Usually that is one file per phase. Phase 5 is the exception: `TargetingSystem` then
-`EnemyAttackSystem`, because combat runs in both directions and acquiring a target is the same
+`VisitorDrainSystem`, because combat runs in both directions and acquiring a target is the same
 operation with the roles swapped. Their order within the phase is fixed and load-bearing
-([ADR-0006](../../engine-systems/decisions/ADR-0006-enemy-attacks-in-phase-five.md)). **Adding a phase
+([ADR-0006](../../engine-systems/decisions/ADR-0006-visitor-attacks-in-phase-five.md)). **Adding a phase
 still requires an ADR; adding a second system to an existing one required this one.**
 
 ## The public surface

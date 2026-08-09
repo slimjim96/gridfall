@@ -25,7 +25,7 @@ public class MapDraftTests
         Assert.Equal(original.Spawns, reloaded.Spawns);
         Assert.Equal(original.Cells, reloaded.Cells);
         Assert.Equal(original.StartingGold, reloaded.StartingGold);
-        Assert.Equal(original.StartingLives, reloaded.StartingLives);
+        Assert.Equal(original.StartingPatience, reloaded.StartingPatience);
     }
 
     [Fact]

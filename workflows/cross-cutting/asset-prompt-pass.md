@@ -5,7 +5,7 @@
 
 ## Fires when
 
-A new tower, creep, terrain type, or effect exists as a **placeholder** and needs the prompt set that
+A new station, visitor, terrain type, or effect exists as a **placeholder** and needs the prompt set that
 will eventually replace it. Also fires when the style anchor changes and a set must be regenerated.
 
 Write the prompts **while the asset is fresh**. The design intent — "cold, still, unsettling" — is in
