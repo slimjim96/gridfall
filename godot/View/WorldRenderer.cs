@@ -79,7 +79,8 @@ public sealed partial class WorldRenderer : Node3D
         surface.Begin(Mesh.PrimitiveType.Triangles);
         foreach (GridCell cell in cells)
         {
-            Vector3 c = IsoGrid.CellCentre(cell.X, cell.Y, IsoGrid.DecalHeight + 0.006f);
+            Vector3 c = IsoGrid.CellCentre(cell.X, cell.Y,
+                IsoGrid.TerrainHeight(_map, cell) + IsoGrid.DecalHeight + 0.006f);
             const float h = IsoGrid.CellSize * 0.46f;
             Color colour = Palette.Danger.SrgbToLinear();
             surface.SetColor(colour);
@@ -109,7 +110,8 @@ public sealed partial class WorldRenderer : Node3D
     public void ShowHover(GridCell cell, bool legal)
     {
         _hover.Visible = true;
-        _hover.Position = IsoGrid.CellCentre(cell.X, cell.Y, IsoGrid.DecalHeight);
+        _hover.Position = IsoGrid.CellCentre(cell.X, cell.Y,
+            IsoGrid.TerrainHeight(_map, cell) + IsoGrid.DecalHeight);
         ((StandardMaterial3D)_hover.MaterialOverride).AlbedoColor =
             legal ? Palette.BuildPreviewOk : Palette.Danger;
     }
@@ -139,7 +141,8 @@ public sealed partial class WorldRenderer : Node3D
         const float Thickness = 0.05f;
 
         float radius = radiusCells * IsoGrid.CellSize;
-        Vector3 centre = IsoGrid.CellCentre(cell.X, cell.Y, IsoGrid.DecalHeight + 0.004f);
+        Vector3 centre = IsoGrid.CellCentre(cell.X, cell.Y,
+            IsoGrid.TerrainHeight(_map, cell) + IsoGrid.DecalHeight + 0.004f);
         Color colour = (legal ? Palette.BuildPreviewOk : Palette.Danger).SrgbToLinear();
         colour.A = 0.85f;
 
@@ -204,7 +207,11 @@ public sealed partial class WorldRenderer : Node3D
                 // wall counted as occupied and lost its tile -- a stone theme
                 // rendered its walls in flat ramp colour and looked untextured.
                 bool occupied = kind != CellKind.Blocked && _path is not null && _path.IsBlocked(index);
-                float height = kind == CellKind.Blocked ? 0.28f : occupied ? 0.10f : 0.0f;
+                // Terrain first, then what is standing on it. A wall on a plateau
+                // must still read as a wall, which is why the kind raise is added
+                // rather than replaced -- see docs/iso-grid.md §Elevation.
+                float height = IsoGrid.TerrainHeight(_map, x, y)
+                             + (kind == CellKind.Blocked ? 0.28f : occupied ? 0.10f : 0.0f);
 
                 Color colour = _theme.ColourFor(kind);
 

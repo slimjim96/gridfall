@@ -33,6 +33,35 @@ public static class IsoGrid
     /// <summary>Ground decals sit here to avoid z-fighting with the terrain.</summary>
     public const float DecalHeight = 0.01f;
 
+    /// <summary>
+    /// World units per elevation level. See docs/iso-grid.md §Elevation.
+    ///
+    /// 0.22 sits just under the 0.28 a blocked cell is raised by, so a wall still
+    /// reads as taller than the terrace it stands on rather than merging into it.
+    /// </summary>
+    public const float HeightStep = 0.22f;
+
+    /// <summary>World height of an elevation level.</summary>
+    public static float HeightOf(int level) => level * HeightStep;
+
+    /// <summary>
+    /// The height of the terrain surface at a cell — what anything standing on
+    /// the board sits on top of.
+    ///
+    /// One definition, used by the renderer, the unit layer, the route overlay
+    /// and every decal. A second copy is how a build preview ends up buried in a
+    /// hillside while the station on the same cell floats above it.
+    ///
+    /// Does NOT include the kind raise (blocked +0.28, occupied +0.10). That is
+    /// the renderer saying what is standing on the ground, not the ground itself.
+    /// </summary>
+    public static float TerrainHeight(MapDef map, int x, int y)
+        => map.Heights.Length == 0 || x < 0 || y < 0 || x >= map.Width || y >= map.Height
+            ? 0f
+            : HeightOf(map.HeightAt(map.Index(x, y)));
+
+    public static float TerrainHeight(MapDef map, GridCell cell) => TerrainHeight(map, cell.X, cell.Y);
+
     /// <summary>Cells of slack beyond the board that the camera may pan to.</summary>
     public const float PanMarginCells = 2.0f;
 
@@ -160,23 +189,51 @@ public static class IsoGrid
     /// Out-of-bounds is a valid answer ("no cell"), not an error.
     /// </summary>
     public static bool TryPick(Camera3D camera, Vector2 screenPoint, MapDef map, out GridCell cell)
-        => TryPick(camera, screenPoint, map.Width, map.Height, out cell);
+        => TryPick(camera, screenPoint, map.Width, map.Height, map.Heights, out cell);
 
-    /// <summary>Dimensions rather than a MapDef, for the editor's mutable draft.</summary>
-    public static bool TryPick(Camera3D camera, Vector2 screenPoint, int width, int height, out GridCell cell)
+    /// <summary>Dimensions and heights rather than a MapDef, for the editor's mutable draft.</summary>
+    public static bool TryPick(Camera3D camera, Vector2 screenPoint,
+                               int width, int height, byte[] heights, out GridCell cell)
     {
         Vector3 origin = camera.ProjectRayOrigin(screenPoint);
         Vector3 direction = camera.ProjectRayNormal(screenPoint);
 
-        var ground = new Plane(Vector3.Up, 0f);
-        Vector3? hit = ground.IntersectsRay(origin, direction);
-        if (hit is null)
-        {
-            cell = GridCell.Invalid;
-            return false;
-        }
+        bool flat = heights is null || heights.Length != width * height;
+        float at = 0f;
+        cell = GridCell.Invalid;
 
-        cell = WorldToGrid(hit.Value);
-        return cell.X >= 0 && cell.Y >= 0 && cell.X < width && cell.Y < height;
+        // On a flat board this is one plane intersection, exactly as before.
+        //
+        // On an elevated one it has to iterate: a ray tested against y = 0 flies
+        // over raised terrain and lands behind it -- about 1.7 cells per unit of
+        // height at a 30-degree pitch -- so clicking a hilltop would select a
+        // cell somewhere up the slope. Intersect, read the height of whatever
+        // cell that hit, intersect again there. Converges in two or three passes
+        // and stops as soon as it stops moving. Still only plane intersections:
+        // no physics query, nothing worth measuring.
+        //
+        // See docs/iso-grid.md §Picking.
+        for (int pass = 0; pass < 4; pass++)
+        {
+            Vector3? hit = new Plane(Vector3.Up, at).IntersectsRay(origin, direction);
+            if (hit is null) return false;
+
+            cell = WorldToGrid(hit.Value);
+            bool inBounds = cell.X >= 0 && cell.Y >= 0 && cell.X < width && cell.Y < height;
+
+            // Out of bounds is a real answer ("no cell"), and there is no height
+            // to read there, so stop rather than loop against nothing.
+            if (flat || !inBounds) return inBounds;
+
+            float next = HeightOf(heights![cell.Y * width + cell.X]);
+            if (Mathf.IsEqualApprox(next, at)) return true;
+            at = next;
+        }
+        return true;
     }
+
+    /// <summary>Flat-board pick. Kept for callers with no height field.</summary>
+    public static bool TryPick(Camera3D camera, Vector2 screenPoint, int width, int height, out GridCell cell)
+        => TryPick(camera, screenPoint, width, height, System.Array.Empty<byte>(), out cell);
+
 }

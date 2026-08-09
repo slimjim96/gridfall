@@ -682,7 +682,8 @@ public sealed partial class GameplayScene : Node3D
         if (worstSlot >= 0)
         {
             int c = _driver.State.StationCellIndex(worstSlot);
-            Vector3 world = IsoGrid.CellCentre(c % _driver.Map.Width, c / _driver.Map.Width);
+            Vector3 world = IsoGrid.CellCentre(c % _driver.Map.Width, c / _driver.Map.Width,
+                IsoGrid.TerrainHeight(_driver.Map, c % _driver.Map.Width, c / _driver.Map.Width));
             Vector2 screen = _camera.UnprojectPosition(world);
             worstAt = $"cell({c % _driver.Map.Width},{c / _driver.Map.Width}) " +
                       $"screen({screen.X:F0},{screen.Y:F0}) hp={worst:P0}";

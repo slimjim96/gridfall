@@ -20,6 +20,20 @@ namespace Gridfall.View;
 /// </summary>
 public sealed partial class RouteOverlay : Node3D
 {
+    /// <summary>
+    /// Draw the route through terrain and units. **Editor only.**
+    ///
+    /// There it is diagnostic UI answering "where will they walk", and on an
+    /// elevated board the depth-tested version disappears behind the very hills
+    /// it describes: one level of 0.22 hides 0.38 of a cell at a 30-degree pitch,
+    /// which is most of a marker, so `stepwell` showed three of twenty-two.
+    ///
+    /// The GAME leaves it off. There the same markers would draw over a visitor's
+    /// feet and over stations, and a player aid that punches through the units it
+    /// sits among is worse than one that occasionally hides behind a wall.
+    /// </summary>
+    public bool SeeThrough;
+
     private const float LiveHeight = IsoGrid.DecalHeight + 0.002f;
     private const float PreviewHeight = IsoGrid.DecalHeight + 0.004f;
     private const int MaxRouteCells = 4096;
@@ -77,7 +91,9 @@ public sealed partial class RouteOverlay : Node3D
         }
 
         _live.Mesh = any ? Commit(surface) : null;
-        _live.MaterialOverride = UnshadedVertexColour();
+        StandardMaterial3D liveMaterial = UnshadedVertexColour();
+        liveMaterial.NoDepthTest = SeeThrough;
+        _live.MaterialOverride = liveMaterial;
         _liveBuiltForVersion = _path.Version;
 
         // The preview was computed against the old field; it is stale now.
@@ -126,7 +142,9 @@ public sealed partial class RouteOverlay : Node3D
         }
 
         _preview.Mesh = any ? Commit(surface) : null;
-        _preview.MaterialOverride = UnshadedVertexColour();
+        StandardMaterial3D previewMaterial = UnshadedVertexColour();
+        previewMaterial.NoDepthTest = SeeThrough;
+        _preview.MaterialOverride = previewMaterial;
         _preview.Visible = Visible3D;
     }
 
@@ -159,7 +177,7 @@ public sealed partial class RouteOverlay : Node3D
         int y = cellIndex / _map.Width;
 
         float half = size * 0.5f * IsoGrid.CellSize;
-        Vector3 centre = IsoGrid.CellCentre(x, y, height);
+        Vector3 centre = IsoGrid.CellCentre(x, y, IsoGrid.TerrainHeight(_map, x, y) + height);
 
         var a = new Vector3(centre.X - half, height, centre.Z - half);
         var b = new Vector3(centre.X + half, height, centre.Z - half);
@@ -188,6 +206,7 @@ public sealed partial class RouteOverlay : Node3D
         StandardMaterial3D material = Palette.Matte(Colors.White, unshaded: true);
         material.VertexColorUseAsAlbedo = true;
         material.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+
         return material;
     }
 }

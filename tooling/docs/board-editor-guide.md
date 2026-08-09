@@ -87,6 +87,24 @@ than per cell.
 
 ---
 
+## 2b. Sculpt the ground — `,` and `.`
+
+`.` raises the cell under the cursor, `,` lowers it, both brush-sized. Levels run 0–9.
+
+**Elevation is decoration.** The simulation is computed on the flat grid
+([`docs/iso-grid.md`](../../docs/iso-grid.md) §Elevation), so no amount of sculpting can change how a
+board plays, break a route, or invalidate a map — which is why this does not re-run the validator.
+Sculpt freely.
+
+Two things worth knowing:
+
+- **The route overlay draws through terrain in the editor** (`F2`), and only in the editor. A wall one
+  level higher hides about 0.38 of a cell at this camera pitch, so a depth-tested overlay disappears
+  behind the hills it is describing. The game leaves it off, because there the same markers would draw
+  over a visitor's feet.
+- **A board with no hills writes no `heights` field at all.** Sculpting up and back down leaves the map
+  file exactly as it was.
+
 ## 3. Change how the board looks — `F4`, `F7`
 
 `F4` cycles the theme. The brush bar says which one you are on and where it came from:
@@ -235,6 +253,7 @@ dotnet run --project Gridfall.Verify -- maps
 | `Home` | Recentre on the board |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | Undo / redo (50) |
 | `Ctrl+S` | Save · `Ctrl+N` New |
+| `,` / `.` | Lower / raise the ground under the cursor (brush-sized) |
 | `F1` | Toggle this key list on screen |
 | `F2` | Toggle the route overlay |
 | `F3` | Toggle the validation panel |

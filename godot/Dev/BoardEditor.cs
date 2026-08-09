@@ -90,7 +90,7 @@ public sealed partial class BoardEditor : Node3D
         _world = new WorldRenderer();
         AddChild(_world);
 
-        _routes = new RouteOverlay();
+        _routes = new RouteOverlay { SeeThrough = true };
         AddChild(_routes);
 
         _hud = new EditorHud();
@@ -207,6 +207,11 @@ public sealed partial class BoardEditor : Node3D
             case Key.Key3: _brush = CellKind.Blocked; break;
             case Key.Key4: _brush = CellKind.Spawn; break;
             case Key.Key5: _brush = CellKind.Goal; break;
+            // Sculpting. Comma/period rather than +/- because they need no
+            // modifier on any keyboard layout, and elevation is a thing you nudge
+            // repeatedly rather than type once.
+            case Key.Comma: RaiseUnderCursor(-1); return;
+            case Key.Period: RaiseUnderCursor(+1); return;
             case Key.Bracketleft: _brushSize = 1; break;
             case Key.Bracketright: _brushSize = 3; break;
             case Key.F4: CycleTheme(); break;
@@ -243,9 +248,32 @@ public sealed partial class BoardEditor : Node3D
         }
     }
 
+    /// <summary>
+    /// Raise or lower the cell under the cursor, brush-sized.
+    ///
+    /// Elevation is view-only (docs/iso-grid.md §Elevation), so this cannot make
+    /// a legal map illegal and deliberately does not re-validate. It does mark
+    /// the draft dirty and rebuild, because the whole point is seeing it.
+    /// </summary>
+    private void RaiseUnderCursor(int delta)
+    {
+        if (!IsoGrid.TryPick(_camera, GetViewport().GetMousePosition(),
+                             _draft.Width, _draft.Height, _draft.Heights, out GridCell cell)) return;
+
+        PushUndo();
+        int radius = _brushSize / 2;
+        for (int dy = -radius; dy <= radius; dy++)
+            for (int dx = -radius; dx <= radius; dx++)
+                _draft.Raise(new GridCell(cell.X + dx, cell.Y + dy), delta);
+
+        _dirty = true;
+        RebuildEverything();
+        _hud.SetStatus($"elevation {_draft.HeightAt(cell)} at {cell.X},{cell.Y}  (, and . to sculpt)");
+    }
+
     private void PaintUnderCursor()
     {
-        if (!IsoGrid.TryPick(_camera, GetViewport().GetMousePosition(), _draft.Width, _draft.Height,
+        if (!IsoGrid.TryPick(_camera, GetViewport().GetMousePosition(), _draft.Width, _draft.Height, _draft.Heights,
                 out GridCell centre)) return;
 
         CellKind kind = _erasing ? CellKind.Buildable : _brush;

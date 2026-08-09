@@ -286,6 +286,27 @@ public sealed class MapDef
     public string[] StationIds { get; init; } = [];
 
     /// <summary>
+    /// Per-cell elevation level, row-major, 0–9. Empty means a flat board.
+    ///
+    /// **The simulation never reads this**, exactly like <see cref="Theme"/>. It
+    /// is carried here because the map file is the one place an author states it
+    /// and a side-car would be a second file to keep in step — not because Core
+    /// has any use for it. Movement, pathing, range and the state hash are all
+    /// computed on the flat grid, so a board with hills plays identically to the
+    /// same board flat, and adding elevation re-records no traces.
+    ///
+    /// If elevation ever becomes simulation input — a station on a rise reaching
+    /// further, composing with the shipped "height means range" rule — that is a
+    /// different field with a different standing, and an ADR. Do not quietly
+    /// start reading this one.
+    /// </summary>
+    public byte[] Heights { get; init; } = [];
+
+    /// <summary>Elevation level of a cell, or 0 on a flat board.</summary>
+    public byte HeightAt(int index) => Heights.Length == 0 ? (byte)0 : Heights[index];
+
+
+    /// <summary>
     /// Whether this board offers this station. Empty roster means all of them.
     ///
     /// Patience here, on the data, because two callers need the same answer and they

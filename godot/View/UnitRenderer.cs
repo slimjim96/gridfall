@@ -141,7 +141,8 @@ public sealed partial class UnitRenderer : Node3D
             int slot = state.StationSlotByOrder(k);
             int id = state.StationId(slot);
             int cellIndex = state.StationCellIndex(slot);
-            Vector3 world = IsoGrid.CellCentre(cellIndex % map.Width, cellIndex / map.Width);
+            Vector3 world = IsoGrid.CellCentre(cellIndex % map.Width, cellIndex / map.Width,
+                IsoGrid.TerrainHeight(map, cellIndex % map.Width, cellIndex / map.Width));
 
             // Both no-op unless the value actually changed, so this is cheap
             // enough to push every frame rather than tracking dirty flags.
@@ -209,7 +210,15 @@ public sealed partial class UnitRenderer : Node3D
         (int dx, int dy) = Directions.Offsets[state.VisitorHeading(slot)];
         float progress = state.VisitorProgress(slot).ToFloat();
 
-        return IsoGrid.CellCentre(cx, cy) + new Vector3(dx * progress, 0f, dy * progress) * IsoGrid.CellSize;
+        // Height interpolates with the step, not on arrival. Snapping at the cell
+        // boundary makes a visitor climbing a terrace pop upward a whole level in
+        // one frame; lerping walks it up the face.
+        float from = IsoGrid.TerrainHeight(map, cx, cy);
+        float to = IsoGrid.TerrainHeight(map, cx + dx, cy + dy);
+        float lift = Mathf.Lerp(from, to, progress);
+
+        return IsoGrid.CellCentre(cx, cy, lift)
+             + new Vector3(dx * progress, 0f, dy * progress) * IsoGrid.CellSize;
     }
 
     private void ReleaseMissing(Dictionary<int, Tracked> tracked, System.Func<int, bool> isAlive)

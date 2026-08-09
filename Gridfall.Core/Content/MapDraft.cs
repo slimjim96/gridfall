@@ -41,6 +41,13 @@ public sealed class MapDraft
     /// </summary>
     public readonly List<string> StationIds = new();
 
+    /// <summary>
+    /// Per-cell elevation, row-major, 0-9. Empty means flat. View-only; see
+    /// MapDef.Heights. Carried through From/ToMapDef/ToJson so the editor cannot
+    /// silently flatten a board somebody opens and saves.
+    /// </summary>
+    public byte[] Heights = Array.Empty<byte>();
+
     public int Index(int x, int y) => y * Width + x;
     public int Index(GridCell c) => c.Y * Width + c.X;
     public bool InBounds(int x, int y) => x >= 0 && y >= 0 && x < Width && y < Height;
@@ -85,6 +92,7 @@ public sealed class MapDraft
         };
         draft.Spawns.AddRange(map.Spawns);
         draft.StationIds.AddRange(map.StationIds);
+        draft.Heights = (byte[])map.Heights.Clone();
         return draft;
     }
 
@@ -104,6 +112,7 @@ public sealed class MapDraft
         StartingGold = StartingGold,
         StartingPatience = StartingPatience,
         StationIds = StationIds.ToArray(),
+        Heights = (byte[])Heights.Clone(),
     };
 
     /// <summary>
@@ -113,6 +122,26 @@ public sealed class MapDraft
     /// `spawns` array disagrees with its `S` cells -- a failure mode the loader
     /// rejects and a hand-editor hits constantly.
     /// </summary>
+    /// <summary>
+    /// Raise or lower a cell's elevation, clamped to 0-9.
+    ///
+    /// Allocates the height field on first use so a board that is never
+    /// sculpted keeps writing no `heights` at all -- flat has to stay the
+    /// absence of the field, not a field of zeroes.
+    /// </summary>
+    public void Raise(GridCell cell, int delta)
+    {
+        if (!InBounds(cell)) return;
+        if (Heights.Length != Width * Height) Heights = new byte[Width * Height];
+
+        int level = Heights[Index(cell)] + delta;
+        Heights[Index(cell)] = (byte)(level < 0 ? 0 : level > 9 ? 9 : level);
+    }
+
+    /// <summary>Elevation level of a cell, 0 on a flat board.</summary>
+    public int HeightAt(GridCell cell)
+        => Heights.Length == Width * Height && InBounds(cell) ? Heights[Index(cell)] : 0;
+
     public void Paint(GridCell cell, CellKind kind)
     {
         if (!InBounds(cell)) return;
@@ -214,6 +243,20 @@ public sealed class MapDraft
         sb.Append($"  \"goal\": {{ \"x\": {Goal.X}, \"y\": {Goal.Y} }},").Append(Nl);
         sb.Append($"  \"startingGold\": {StartingGold},").Append(Nl);
         sb.Append($"  \"startingPatience\": {StartingPatience},").Append(Nl);
+        // Omitted when flat, so a board with no hills reads exactly as it did
+        // before elevation existed.
+        if (Heights.Length == Width * Height && System.Array.Exists(Heights, h => h != 0))
+        {
+            sb.Append("  \"heights\": [").Append(Nl);
+            for (int y = 0; y < Height; y++)
+            {
+                var row = new StringBuilder(Width);
+                for (int x = 0; x < Width; x++) row.Append((char)('0' + Heights[Index(x, y)]));
+                sb.Append($"    \"{row}\"{(y == Height - 1 ? "" : ",")}").Append(Nl);
+            }
+            sb.Append("  ],").Append(Nl);
+        }
+
         // Omitted entirely when empty, because "" and "every station" are different
         // statements -- writing `"stations": []` would turn "all of them" into "none
         // of them" the next time this file is read.

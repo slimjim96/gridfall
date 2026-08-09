@@ -54,6 +54,34 @@ terraces are two rows thick and step in, so the silhouette is a staircase.
 redesign, and `chambers`, `braid` and `stepwell` are still 0.0%. That is the same decoupling everything
 else in this report ran into — see the balance report.
 
+## The ground climbs now
+
+Every generated level carries a **height field** — per-cell elevation, 0–4, authored as digit rows
+beside `cells` in the map file. It is **view-only** (`docs/iso-grid.md` §Elevation): the simulation runs
+on the flat grid, so a board with hills hashes identically to the same board flat, and adding elevation
+re-recorded no traces. `crossroads` and `gauntlet` are hand-authored and stay flat.
+
+| Style | Boards | What it does |
+|---|---|---|
+| `basin` | `meander`, `switchback`, `stepwell` | Goal sits low; the route descends into it |
+| `summit` | `spiral`, `ringfort` | Goal sits high; the route climbs to it |
+| `terrace` | `chambers`, `driftway` | Broad steps across the board, ignoring the route |
+| `rolling` | `comb`, `braid`, `atoll` | Gentle relief, no overall direction |
+
+Three things had to be true for it to look like ground rather than noise, and each was a wrong turn
+first:
+
+- **Height follows walking distance to the goal, not straight-line distance.** The ground then bends
+  around the board's own shape instead of cutting through its walls.
+- **Noise has to be spatially correlated.** Independent per-cell jitter was tried first and reads as
+  static — a field of one-cell pillars. It is drawn on a coarse lattice and smoothstepped between.
+- **The route is carved flat, with a level shelf either side.** Pulling the shoulders to *within* one
+  level was not enough: at a 30° pitch one level of 0.22 hides 0.38 of a cell, and a route marker is
+  0.46 wide, so most of the path vanished behind the ground it was drawn on. Scenery keeps its height,
+  so walls still tower over the road they line.
+
+Seeded from the map name, so regeneration is byte-identical.
+
 ## They are NOT balanced, and the spread is the finding
 
 Wave tables are copied from `crossroads` and not re-tuned. Re-measured 2026-08-08, all twelve, 150 runs each — see

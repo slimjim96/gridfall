@@ -25,6 +25,7 @@ and the three bands. A motif that cannot satisfy them is reported, not shipped.
 
 import json
 import os
+import random
 from collections import deque
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -381,6 +382,142 @@ def thin(g, spawn, goal, target=52, floor_pct=37):
                     g[y][x] = "b"
 
 
+# ---- elevation --------------------------------------------------------------
+
+# How the ground climbs, per motif. Elevation is VIEW-ONLY -- the simulation is
+# computed on the flat grid (docs/iso-grid.md §Elevation), so none of this can
+# change how a board plays. It only has to look like somewhere.
+#
+#   basin    goal sits low, the board rises away from it -- the route descends
+#   summit   goal sits high, the route climbs to it. For centre-goal boards.
+#   terrace  broad steps across the board, ignoring the route
+#   rolling  gentle seeded relief, no overall direction
+ELEVATION = {
+    "meander":    "basin",
+    "spiral":     "summit",     # goal is the middle: climbing to it is the motif
+    "chambers":   "terrace",
+    "switchback": "basin",
+    "comb":       "rolling",
+    "ringfort":   "summit",     # a fort should stand ON something
+    "braid":      "rolling",
+    "stepwell":   "basin",      # already a staircase in plan; now in fact
+    "atoll":      "rolling",    # islands want to be islands
+    "driftway":   "terrace",
+}
+
+MAX_LEVEL = 4
+NOISE_AMPLITUDE = 1.1
+
+
+def elevations(g, spawn, goal, style, seed):
+    """Per-cell elevation levels, row-major, 0..MAX_LEVEL.
+
+    Seeded from the map name so regeneration is byte-identical -- the maps are
+    committed, and hills that changed every run would make regeneration a diff.
+
+    Three passes, and the order matters:
+
+      1. A base field from the style, driven by WALKING distance to the goal, so
+         the ground follows the board's shape rather than a straight line.
+      2. Smooth noise for variety. Per-cell independent jitter was tried first
+         and reads as static -- a field of one-cell pillars, not terrain. Noise
+         has to be spatially correlated to look like ground, so it is drawn on a
+         coarse lattice and interpolated.
+      3. The route is carved FLAT into whatever that produces, and its
+         neighbours are pulled toward it. A path is the one thing on the board
+         that must stay legible, and a route that jumps a level every other cell
+         reads as broken geometry rather than as a climb.
+    """
+    h, w = len(g), len(g[0])
+    rng = random.Random(seed)
+
+    # Walking distance to the goal, not straight-line.
+    walkable = lambda x, y: 0 <= x < w and 0 <= y < h and g[y][x] != "#"
+    dist = {goal: 0}
+    q = deque([goal])
+    while q:
+        x, y = q.popleft()
+        for dx, dy in ((0, -1), (1, 0), (0, 1), (-1, 0)):
+            n = (x + dx, y + dy)
+            if walkable(*n) and n not in dist:
+                dist[n] = dist[(x, y)] + 1
+                q.append(n)
+
+    far = max(dist.values()) if dist else 1
+
+    def reach(x, y):
+        # Blocked cells have no walking distance, so they borrow the nearest one
+        # that does. Without this every wall sits at level 0 and the scenery
+        # sinks into the floor it is meant to stand on.
+        if (x, y) in dist:
+            return dist[(x, y)]
+        near = [dist[(nx, ny)]
+                for nx, ny in ((x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y),
+                               (x + 1, y + 1), (x - 1, y - 1), (x + 1, y - 1), (x - 1, y + 1))
+                if (nx, ny) in dist]
+        return min(near) if near else far
+
+    # ---- 1. base field ------------------------------------------------------
+    base = [[0.0] * w for _ in range(h)]
+    for y in range(h):
+        for x in range(w):
+            t = reach(x, y) / far if far else 0.0      # 0 at the goal, 1 furthest
+            if style == "basin":     base[y][x] = t * MAX_LEVEL
+            elif style == "summit":  base[y][x] = (1.0 - t) * MAX_LEVEL
+            elif style == "terrace": base[y][x] = (x + y) / (w + h) * MAX_LEVEL
+            else:                    base[y][x] = MAX_LEVEL * 0.45
+
+    # ---- 2. smooth noise ----------------------------------------------------
+    # Value noise: random at every LATTICE-th cell, bilinear between. Cheap, and
+    # correlated over a few cells, which is the whole difference between "hills"
+    # and "static".
+    LATTICE = 4
+    gw, gh = w // LATTICE + 2, h // LATTICE + 2
+    lattice = [[rng.uniform(-1.0, 1.0) for _ in range(gw)] for _ in range(gh)]
+    for y in range(h):
+        for x in range(w):
+            fx, fy = x / LATTICE, y / LATTICE
+            x0, y0 = int(fx), int(fy)
+            tx, ty = fx - x0, fy - y0
+            tx = tx * tx * (3 - 2 * tx)                # smoothstep, so the
+            ty = ty * ty * (3 - 2 * ty)                # lattice does not show
+            a = lattice[y0][x0] * (1 - tx) + lattice[y0][x0 + 1] * tx
+            b = lattice[y0 + 1][x0] * (1 - tx) + lattice[y0 + 1][x0 + 1] * tx
+            base[y][x] += (a * (1 - ty) + b * ty) * NOISE_AMPLITUDE
+
+    levels = [[max(0, min(MAX_LEVEL, int(round(v)))) for v in row] for row in base]
+
+    # ---- 3. carve the route -------------------------------------------------
+    route = route_of(g, spawn, goal)
+    if route:
+        # Take the base height at each step, then walk it so it never changes by
+        # more than one level per cell: a staircase, never a cliff.
+        profile = [levels[y][x] for x, y in route]
+        for i in range(1, len(profile)):
+            profile[i] = max(profile[i - 1] - 1, min(profile[i - 1] + 1, profile[i]))
+        for (x, y), v in zip(route, profile):
+            levels[y][x] = v
+
+        # Cut a flat shelf either side of it. Pulling shoulders to WITHIN one
+        # level was tried and is not enough: at a 30-degree pitch one level of
+        # 0.22 hides 0.38 of a cell behind it, and the route marker is 0.46 of a
+        # cell wide, so most of the path vanished behind the ground it was drawn
+        # on. Levelling the ring makes it a road cut into the hillside, which is
+        # both legible and the thing the elevation was for.
+        on_route = {(x, y): v for (x, y), v in zip(route, profile)}
+        for (x, y), v in list(on_route.items()):
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in on_route:
+                        # Scenery keeps its height -- a wall beside the road should
+                        # still tower over it. Only walkable ground is levelled.
+                        if g[ny][nx] != "#":
+                            levels[ny][nx] = v
+
+    return levels
+
+
 def build(name, theme):
     g, spawn, goal = MOTIFS[name]()
 
@@ -421,6 +558,9 @@ def build(name, theme):
     # are different statements once a third tower exists.
     if name in ROSTERS:
         doc["stations"] = ROSTERS[name]
+
+    levels = elevations(g, spawn, goal, ELEVATION.get(name, "rolling"), seed=name)
+    doc["heights"] = ["".join(str(v) for v in row) for row in levels]
     return doc, s, problems
 
 

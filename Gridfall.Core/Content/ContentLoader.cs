@@ -509,6 +509,42 @@ public static class ContentLoader
                     + "or list the ones this board offers");
         }
 
+        // Elevation: digit rows parallel to `cells`, one character per cell.
+        //
+        // Same shape as the cell rows on purpose -- an author edits them side by
+        // side and a diff lines up. Absent means a flat board, which is what
+        // every map written before elevation existed says by omission.
+        if (r.TryGetProperty("heights", out var hs))
+        {
+            if (hs.ValueKind != JsonValueKind.Array)
+                throw new ContentException($"{file}: \"heights\" must be an array of digit rows");
+
+            var levels = new byte[width * height];
+            int row = 0;
+            foreach (JsonElement line in hs.EnumerateArray())
+            {
+                string text = line.GetString()
+                    ?? throw new ContentException($"{file}: \"heights\" row {row} is not a string");
+                if (row >= height)
+                    throw new ContentException($"{file}: \"heights\" has more rows than the map is tall");
+                if (text.Length != width)
+                    throw new ContentException(
+                        $"{file}: \"heights\" row {row} is {text.Length} long, expected {width}");
+
+                for (int x = 0; x < width; x++)
+                {
+                    if (text[x] < '0' || text[x] > '9')
+                        throw new ContentException(
+                            $"{file}: \"heights\" row {row} has '{text[x]}', expected a digit 0-9");
+                    levels[row * width + x] = (byte)(text[x] - '0');
+                }
+                row++;
+            }
+            if (row != height)
+                throw new ContentException($"{file}: \"heights\" has {row} rows, expected {height}");
+            draft.Heights = levels;
+        }
+
         // ONE verdict. The board editor calls this same validator live as you
         // paint, so it can never disagree with the loader about what is legal.
         foreach (MapFinding finding in MapValidator.Validate(draft))
