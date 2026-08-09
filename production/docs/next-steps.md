@@ -80,6 +80,17 @@ it and the whole balance archive describes a different game — separate them *b
 every board has **one spawn**, so the attacker has no spatial decision; and the player's toolkit is
 five archetypes.
 
+**Decided:** each mode leans toward the human, and `balance-targets.md` already quantifies that lean —
+inverted mode gets the same band pointed the other way. The dial is the defence AI's budget, which is
+**mode-local** and already in the harness (`--cap`, `--perWave`).
+[Measured curve](../../content-data/docs/reports/2026-08-09-inverted-mode-difficulty.md): the band is
+reachable, and **no global number can serve four boards** — the budget is per-board content.
+
+That sweep also turned up something bigger than the dial: **board quality is mode-independent.** `comb`
+has exactly 1 of 12 waves able to end a run at *every* setting of *both* dials, as it does in normal
+mode. A board that is a gate is a gate in both directions — so §5 below is now a shared dependency
+rather than housekeeping.
+
 **Do nothing before the ADR**: where the opponent lives and what part of it is simulation state.
 
 ### 3. Ten stations — requirements are written, and wave 0 is yours
@@ -111,11 +122,17 @@ so this is additive.
 One thing to know first: the route is carved flat with a level shelf either side, for readability. The
 moment height affects range, that shelf becomes a **balance** decision rather than a cosmetic one.
 
-### 5. Content judgement on the level set
+### 5. Content judgement on the level set — now serving two modes
 
 Five of ten boards are degenerate (0.0% lost, sd ≤ 0.4) and `comb` sits at 42%. §Settled explains why
 knob-tuning cannot fix that and why no map metric predicts it. What is left is a person deciding
 whether these ten are the shipped set, a smaller tuned set, or generator output kept as examples.
+
+**Worth more than it was, as of 2026-08-09.** The inverted-mode sweep found that a board which is a
+single-wave gate is a gate *in both directions*, at every setting of every dial — `comb` is 1 of 12
+lethal waves whichever chair the human sits in. So this is not a normal-mode chore that inverted mode
+will need repeating; it is one piece of work serving both, and the boards that fail one mode's quality
+bar are exactly the ones that fail the other's.
 
 ### 6. Two presentation calls nobody has made
 

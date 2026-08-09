@@ -8,6 +8,40 @@ Open threads live in [`next-steps.md`](next-steps.md), not here.
 
 ---
 
+## 2026-08-09 · the inverted mode's difficulty dial
+
+The game will ship both directions, and each mode leans toward the human. Two mode-local dials added to
+the harness — the defence AI's total budget and its per-wave allowance — and swept.
+
+**The band is reachable and no single number reaches it.** `crossroads` puts the attacker at 73% wins
+at 20,000g; `meander` needs 15,000; `spiral` jumps 29% → 100% in one step and `comb` 43% → 100%, so
+neither has an in-band setting at all. **The defence budget is per-board content, not a difficulty
+slider.**
+
+**Board quality is mode-independent, and that is worth more than the dial.** `comb` has exactly 1 of 12
+waves able to end a run at *every* setting of *both* dials, exactly as in normal mode. `crossroads` has
+6–10 either way. A board that is a single-wave gate is a gate in both directions and no tuning changes
+it — so fixing the level set is one piece of work serving two modes, not a chore to be repeated.
+
+**A correction I nearly shipped.** The first sweep ran 350–4,000g, showed every `comb` run ending on
+wave 5 at every setting, and I concluded the lifetime cap was the wrong *shape* of dial — that it makes
+a defence stop rather than be weaker. Wrote it into the code before checking. It does not hold: natural
+spend on these boards is 15,000–20,000g, so the entire sweep sat below the range where the knob does
+anything but starve the opening. In the real band the two dials are comparable. The rate dial is still
+better, but for a reason measurement did not supply, and it is now labelled a principle rather than a
+result.
+
+**And a method error worth not repeating.** The first sweep reported the cap had *no effect at any
+value* — identical everything from 250 to 3,000. `dotnet run --no-build` had reused a Release binary
+compiled before the flag existed, so the harness measured the previous version of itself. Same family
+as the board-editor capture that painted over the map it was told to capture.
+
+**The tell was that the result was too clean.** A knob that genuinely does nothing usually does nothing
+*noisily* — some run, somewhere, wobbles. Eight settings agreeing to the decimal is not a finding, it is
+a build artefact.
+
+---
+
 ## 2026-08-09 · rivers, bridges, and two design calls
 
 Five boards have rivers now, with bridges where the routes already crossed. View-only, and this time

@@ -134,6 +134,58 @@ visitors, and for the same reason: five archetypes differentiated mostly by hit 
 not a toolkit. This is the **third** independent thread to arrive at "the visitor roster needs a real
 spread" — the fussiness measurement and the `station-pool` axis argument are the other two.
 
+## The asymmetry is deliberate: whichever chair the human sits in gets the advantage
+
+**Decided 2026-08-09.** The same content cannot serve both directions, because it is not supposed to:
+*each mode leans toward the human.*
+
+This sounds like it needs two content sets. It does not — `balance-targets.md` **already quantifies the
+lean**, and has since it was written:
+
+> Runs lost, first half of the table: **0–5%**. Second half: **15–30%**.
+
+That is not a neutral target. It says the defending human should win roughly three runs in four, and
+should lose enough late to make it matter. Inverted mode needs the **same numbers pointed the other
+way** — the attacking human wins 70–85% of runs, and the losses arrive late.
+
+So there is one band, stated twice, and the tuning problem is: what makes the attacker's side reach it?
+
+### The knob is mode-local by construction
+
+| Knob | Touches | Available in |
+|---|---|---|
+| **The defence's total budget** | nothing shared — no station, visitor, wave or map | inverted only |
+| The attacker's budget curve | a new `cost` on `VisitorDef`; additive, ignored by normal mode | inverted only |
+| The wave table | the attacker's *script* in normal mode, its *price list* in inverted | both, two readings |
+| Station, visitor, map data | everything | **both — do not tune these per mode** |
+
+**The defence's budget is the right primary dial**, and the reason is that it cannot leak. Turning it
+changes nothing normal mode can observe, so the twelve committed balance figures stay valid while
+inverted mode is tuned from scratch. Tuning a station's cost or a visitor's appetite for inverted mode
+would move both directions at once and put the whole balance archive back in play.
+
+Both shapes are already in the harness — `Verify balance --cap N` (total) and `--perWave N` (rate).
+Uncapped is the default and reproduces the shipped figures byte for byte.
+
+### What the curve actually looks like — measured
+
+Full sweep: [inverted-mode difficulty](../../content-data/docs/reports/2026-08-09-inverted-mode-difficulty.md).
+Three results shape the requirements below:
+
+- **The dial reaches the band.** `crossroads` puts the attacker at 73% wins at 20,000g total, or 89% at
+  550 g/wave. The mode is tunable.
+- **One number cannot serve four boards.** `spiral` jumps 29% → 100% in a single step and `comb`
+  43% → 100%; neither has an in-band setting at all, and `crossroads` and `meander` need different
+  numbers from each other. **The defence budget is per-board content, not a global difficulty slider** —
+  which is the direct answer to "each scenario should lean toward the player."
+- **Board quality is mode-independent.** `comb` has exactly **1 of 12** waves able to end a run at
+  *every* setting of *both* dials, as it does in normal mode; `crossroads` has 6–10 either way. A board
+  that is a gate is a gate in both directions.
+
+That last one changes what the level set is worth. Fixing it is not a normal-mode chore that inverted
+mode will need repeating — it is **one piece of work serving both**, and the boards that fail one
+mode's quality bar are exactly the ones that fail the other's.
+
 ## Constraints
 
 1. **One simulation, both directions.** No second `Sim`, no fork of the tick order, no mode flag inside
@@ -146,6 +198,8 @@ spread" — the fussiness measurement and the `station-pool` axis argument are t
 4. Content serves both directions: a wave table is the attacker's *script* in normal mode and the
    attacker's *price list* in inverted mode. One file, two readings.
 5. No new visitor trait invented here. Name the gap; `content-data` and `engine-systems` fill it.
+6. **The defence's budget is per-board data**, authored beside the map like its station roster — not a
+   global difficulty slider. Measurement says no global value can put even two of four boards in band.
 
 ## Acceptance Criteria
 

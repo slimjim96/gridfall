@@ -57,6 +57,28 @@ accident. Growing the tables to 20 waves was the alternative and was **not** cho
 **Idle gold** is the interesting one. High idle gold means the player has money and no decision — the
 economy has stopped generating choices, which fails pillar 5 before it fails any math.
 
+### The same band, pointed the other way (inverted mode, 2026-08-09)
+
+The game ships **both directions** ([`inverted-mode`](../../production/01-requirements/inverted-mode-requirements.md)),
+and the design decision is that **each mode leans toward the human**.
+
+That needs no second set of targets, because the table above is *already* a lean: "0–5% lost early,
+15–30% late" says the defending human should win roughly three runs in four. Inverted mode gets the
+same numbers read from the other chair:
+
+| Metric | Normal mode (human defends) | Inverted mode (human attacks) |
+|---|---|---|
+| Runs lost, first half | 0–5% | **the attacker loses 0–5%** |
+| Runs lost, second half | 15–30% | **the attacker loses 15–30%** |
+| Leak rate | ≤ 4% — visitors that got past you | **the attacker's SCORE.** The target is whatever reaches the bands above |
+
+**Do not tune station, visitor or map data per mode.** They are shared, and moving one to fix inverted
+mode puts every figure in this document back in play. The mode-local dial is **the defence AI's total
+budget** — `Verify balance --cap N` — which touches nothing normal mode can observe. Uncapped is the
+default and reproduces the shipped figures byte for byte.
+
+Measured curve: [inverted-mode difficulty](reports/2026-08-09-inverted-mode-difficulty.md).
+
 ## Station targets
 
 | Property | Target |

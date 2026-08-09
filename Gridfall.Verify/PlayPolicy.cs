@@ -77,6 +77,45 @@ public sealed class PlayPolicy
     /// </summary>
     public static bool Salvages;
 
+    /// <summary>
+    /// Total gold this player may ever commit, or <c>int.MaxValue</c> for no cap.
+    ///
+    /// **This is the inverted mode's difficulty dial, measured early.** When the
+    /// human is the attacker, the defence is an opponent rather than a
+    /// measurement, and an opponent that plays a full economy wins essentially
+    /// always -- the shipped corpus says an attacker delivers 0.0-1.6% of its
+    /// visitors. Capping what the defence may spend is the one lever that is
+    /// **mode-local by construction**: it changes no station, no visitor, no wave
+    /// and no map, so normal mode cannot move when it is turned.
+    ///
+    /// Counted as gold COMMITTED, not gold deducted. A queued command the sim
+    /// then refuses still counts against the cap, because the alternative is a
+    /// policy that discovers its budget by trying -- and a refused build already
+    /// costs a real player the same tick either way.
+    /// </summary>
+    public static int SpendCap = int.MaxValue;
+
+    /// <summary>
+    /// Gold this player may commit **per wave**, or <c>int.MaxValue</c> for no
+    /// limit. Refills when a wave starts.
+    ///
+    /// The other shape of the same dial: a RATE rather than a total.
+    ///
+    /// Preferred on principle, not on evidence. A rate does not depend on how
+    /// long a run is, so the same number means the same thing on a 12-wave table
+    /// and a 20-wave one, and a defence cannot exhaust itself and simply fade.
+    /// **But measurement did not show it dominating** -- on `crossroads` in the
+    /// band that matters the two produce comparable spreads (8 of 12 waves able
+    /// to end a run, either way).
+    ///
+    /// The collapse a lifetime cap *can* cause is real and is an artefact of
+    /// setting it far below the run's natural spend: at 2000g on `comb`, 100% of
+    /// runs end on wave 5 because the allowance is gone by then. Natural spend
+    /// on these boards is 15,000-20,000g, so that is a badly chosen number
+    /// rather than a badly shaped knob.
+    /// </summary>
+    public static int SpendPerWave = int.MaxValue;
+
 
     /// <summary>
     /// Cap on seal checks per build attempt. Each one is a BFS, and on a
@@ -115,6 +154,28 @@ public sealed class PlayPolicy
     /// measurement.
     /// </summary>
     public int BoughtOf(int defIndex) => _boughtByDef[defIndex];
+
+    /// <summary>Gold committed so far, against <see cref="SpendCap"/>.</summary>
+    public int GoldCommitted { get; private set; }
+
+    /// <summary>
+    /// Whether this purchase fits inside the cap, and books it if so.
+    ///
+    /// One place, called by every spend. Three call sites each doing their own
+    /// arithmetic is how a budget ends up enforced on builds and quietly ignored
+    /// on upgrades.
+    /// </summary>
+    private bool Afford(int cost)
+    {
+        if (GoldCommitted + (long)cost > SpendCap) return false;
+        if (_committedThisWave + (long)cost > SpendPerWave) return false;
+        GoldCommitted += cost;
+        _committedThisWave += cost;
+        return true;
+    }
+
+    private int _committedThisWave;
+    private int _allowanceWave = -1;
 
     /// <summary>
     /// Attempts that found no cell worth building on. A high count means the
@@ -167,6 +228,16 @@ public sealed class PlayPolicy
         // start on any tick and the mid-wave build branch below is entitled to
         // know what is currently walking at it.
         _census.ObserveWavesStarted(state.WaveIndex);
+
+        // The per-wave allowance refills when the wave number moves, which
+        // includes the build window BEFORE wave 1 -- a defence that could not
+        // build until the first visitor was walking would be measuring the
+        // opening, not the allowance.
+        if (state.WaveIndex != _allowanceWave)
+        {
+            _allowanceWave = state.WaveIndex;
+            _committedThisWave = 0;
+        }
 
         // Between waves: spend down first, one purchase per tick, and only pull
         // the next wave once the gold is committed.
@@ -269,6 +340,7 @@ public sealed class PlayPolicy
         }
 
         if (bestStationId < 0) return false;
+        if (!Afford(_pendingRepairCost)) return false;
 
         _nextBuildTick = _sim.TickCount + BuildCooldownTicks;
         _sim.Enqueue(new RepairCommand(bestStationId));
@@ -293,6 +365,8 @@ public sealed class PlayPolicy
             NoPlacementFound++;
             return TryUpgrade();
         }
+
+        if (!Afford(_sim.Content.Station(stationIndex).Cost)) return false;
 
         _sim.Enqueue(new BuildCommand(
             new GridCell(cell % _sim.Map.Width, cell / _sim.Map.Width), stationIndex));
@@ -319,6 +393,7 @@ public sealed class PlayPolicy
 
         int bestStationId = -1;
         int bestScore = -1;
+        int bestCost = 0;
 
         // Ascending station id, so ties resolve identically every run.
         for (int k = 0; k < state.StationCount; k++)
@@ -327,16 +402,20 @@ public sealed class PlayPolicy
             StationDef def = _sim.Content.Station(state.StationDefIndex(slot));
             int level = state.StationLevel(slot);
             if (level >= def.MaxLevel) continue;
-            if (state.Gold < def.Upgrades[level - 1].Cost) continue;
+
+            int cost = def.Upgrades[level - 1].Cost;
+            if (state.Gold < cost) continue;
 
             int score = CoverageScore(state.StationCellIndex(slot), def, routeLength, map);
             if (score <= bestScore) continue;
 
             bestScore = score;
             bestStationId = state.StationId(slot);
+            bestCost = cost;
         }
 
         if (bestStationId < 0) return false;
+        if (!Afford(bestCost)) return false;
 
         _sim.Enqueue(new UpgradeCommand(bestStationId));
         UpgradesBought++;

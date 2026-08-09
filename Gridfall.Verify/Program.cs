@@ -48,7 +48,7 @@ int Usage()
                                    the old one diverged and have decided the new
                                    behaviour is correct.
 
-      balance --map <id> [--runs N] [--seed N] [--salvage]
+      balance --map <id> [--runs N] [--seed N] [--salvage] [--cap N]
                                    Headless N-run wave sim driven by a scripted player;
                                    reports leak rate, per-wave leaks, gold curve and
                                    time-to-clear against the balance targets.
@@ -58,6 +58,18 @@ int Usage()
                                    Salvaging must never come out AHEAD on gold
                                    destroyed -- if it does, cashing out wrecks is
                                    profitable again (salvage-value).
+                                   --cap N     total gold the player may ever commit
+                                   --perWave N gold per wave, refilled each wave
+                                   Read the report from the OTHER SIDE and these are
+                                   the inverted mode's difficulty dials: leak rate
+                                   is the attacker's score, and runs lost is how
+                                   often the attacker wins. Natural spend on the
+                                   shipped boards is 15,000-20,000g -- a --cap far
+                                   below that does not weaken the defence, it makes
+                                   it run out, and every run then ends on the same
+                                   wave. --perWave is a rate and does not depend on
+                                   how long the table is. Uncapped is the shipped
+                                   measurement and the default for both.
 
       maps                         Geometry report for every map against MapTargets.
       waves [--map <id>]           Cadence sheet: when each group spawns, wave by wave.
@@ -222,6 +234,11 @@ int Balance()
     uint baseSeed = uint.TryParse(Opt("seed"), out uint s) ? s : 1u;
 
     PlayPolicy.Salvages = Flag("salvage");
+    // The inverted mode's difficulty dial. Uncapped is the shipped measurement
+    // and must stay the default, or every committed figure in the repo changes
+    // meaning the day someone adds a flag.
+    PlayPolicy.SpendCap = int.TryParse(Opt("cap"), out int capGold) ? capGold : int.MaxValue;
+    PlayPolicy.SpendPerWave = int.TryParse(Opt("perWave"), out int perWave) ? perWave : int.MaxValue;
 
     MapDef map = ContentFiles.LoadMap(root, mapId);
     ContentSet content = ContentFiles.LoadContent(root, mapId);
@@ -347,7 +364,9 @@ int Balance()
     double leakRate = totalSpawned == 0 ? 0 : 100.0 * totalLeaked / totalSpawned;
     double lostRate = 100.0 * runsLost / runs;
 
-    Console.WriteLine($"Balance report -- map '{mapId}', {runs} runs, seed {baseSeed}");
+    Console.WriteLine($"Balance report -- map '{mapId}', {runs} runs, seed {baseSeed}"
+                      + (PlayPolicy.SpendCap == int.MaxValue ? "" : $", defence cap {PlayPolicy.SpendCap}g")
+                      + (PlayPolicy.SpendPerWave == int.MaxValue ? "" : $", defence {PlayPolicy.SpendPerWave}g/wave"));
     Console.WriteLine($"  policy          competent-beginner (coverage placement, best serving/gold");
     Console.WriteLine($"                  against waves already met, no reserve)");
     Console.WriteLine($"  stations built    {totalBuilds / (double)runs:F1} avg per run, {stationsStanding.Average():F1} standing at end");
