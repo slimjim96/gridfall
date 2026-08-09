@@ -15,7 +15,7 @@ than this one and it is where the traps live — the things that cost hours and 
 This handoff exists because the open threads span four workspaces and their ordering is not derivable
 from any one folder. Everywhere else, the filename is the status.
 
-**Nothing is blocked on a decision.** Two calls are the human's (§6) but neither stops work; everything
+**Nothing is blocked on a decision.** Two calls are the human's (§7) but neither stops work; everything
 else is building and judgement, ordered below by what I would pick up first.
 
 ### The five-minute orientation
@@ -61,7 +61,28 @@ and more armour only subtracts from the cannon. Full pricing:
 Related and now measured for the first time: `balance-targets.md` asks that no station appear in more
 than 70% of winning runs. It is at **100%**.
 
-### 2. Ten stations — requirements are written, and wave 0 is yours
+### 2. Inverted mode — requirements written, and the ADR gates everything
+
+[`inverted-mode-requirements.md`](../01-requirements/inverted-mode-requirements.md). You spend a budget
+sending visitors and score the ones that arrive; the game builds the stations. **Both directions ship.**
+
+Three things are already true and were checked, not assumed:
+
+- **The opponent already exists.** `PlayPolicy` is it — and it would pass Core's purity gate today.
+  Moving it in is a relocation, not a rewrite, which frees the ADR to be decided on the right grounds.
+- **The seam is one expression in one file.** `content.Waves[state.WaveIndex - 1]`, in
+  `SpawnSystem.Run` and `SpawnSystem.WaveComplete`. Nothing else in Core indexes the wave table.
+- **The difficulty ladder is already measured, and it says the mode is unwinnable.** Leak rate *is* the
+  attacker's score: 0.0–1.6% across twelve boards, and exactly 0.0% on four of them.
+
+And three risks, in order: the opponent and the measuring instrument are **the same code** (strengthen
+it and the whole balance archive describes a different game — separate them *before* touching either);
+every board has **one spawn**, so the attacker has no spatial decision; and the player's toolkit is
+five archetypes.
+
+**Do nothing before the ADR**: where the opponent lives and what part of it is simulation state.
+
+### 3. Ten stations — requirements are written, and wave 0 is yours
 
 [`station-pool-requirements.md`](../01-requirements/station-pool-requirements.md) specifies the roster
 by **role**, in six shippable waves, with the counterpart visitor trait each role needs to be a
@@ -80,7 +101,7 @@ Also newly blocking, and it was already written down: **`themed-unit-palettes`.*
 that already owns most of the warm spectrum is exactly the collision it predicted — and water is now
 competing for the cool end too.
 
-### 3. Make elevation mean something — the follow-on that was always planned
+### 4. Make elevation mean something — the follow-on that was always planned
 
 Boards climb (§Settled). A station on a rise reaching further is not a new rule — it is the shipped
 *height means range* rule composing. But it turns elevation into **simulation input**: its own ADR,
@@ -90,13 +111,13 @@ so this is additive.
 One thing to know first: the route is carved flat with a level shelf either side, for readability. The
 moment height affects range, that shelf becomes a **balance** decision rather than a cosmetic one.
 
-### 4. Content judgement on the level set
+### 5. Content judgement on the level set
 
 Five of ten boards are degenerate (0.0% lost, sd ≤ 0.4) and `comb` sits at 42%. §Settled explains why
 knob-tuning cannot fix that and why no map metric predicts it. What is left is a person deciding
 whether these ten are the shipped set, a smaller tuned set, or generator output kept as examples.
 
-### 5. Two presentation calls nobody has made
+### 6. Two presentation calls nobody has made
 
 - **Ten of twelve maps emit no `PathOnly`.** The route exists only in the flow field, drawn only by the
   *editor's* overlay — which the game does not have. Should the generator emit roads, or is an unmarked
@@ -105,7 +126,7 @@ whether these ten are the shipped set, a smaller tuned set, or generator output 
   thumbnail size. The three newest are no worse than the seven that predate them; the set is just
   crowded at the desaturated end.
 
-### 6. Tier 2's soft-lock question — priced, still yours
+### 7. Tier 2's soft-lock question — priced, still yours
 
 Three options costed against the engine in
 [`tier2-soft-lock-options.md`](../../game-design/docs/tier2-soft-lock-options.md). **A** is one line —
@@ -125,7 +146,7 @@ everything else in the vocabulary is already theme-free, and the rename cost is 
 **Until it closes, do not run a Ludo batch on stations or visitors.** Terrain is safe — a mountain is a
 mountain under every candidate, and so is a river.
 
-### 7. Verify cross-platform on real hardware
+### 8. Verify cross-platform on real hardware
 
 Locale, line-ending, enumeration-order and float hazards are all closed and each has a test
 (`tech-standards.md` §Cross-platform) — but those tests have only ever *run* on Linux. The whole check

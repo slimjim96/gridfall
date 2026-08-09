@@ -76,6 +76,39 @@ The framing worth keeping whichever wins: **you defeat them by helping them.** I
 militarism without removing the conflict, which is the trick PvZ pulls and the reason it reads as
 funny rather than gentle.
 
+## The twist breaks that framing, and it is the sharpest filter yet
+
+**2026-08-09 — the game will ship both directions** ([`inverted-mode`](../../production/01-requirements/inverted-mode-requirements.md)).
+In the inverted mode you spend a budget sending visitors and score the ones that arrive, while the
+game builds the stations trying to stop you.
+
+That is a problem for *"you defeat them by helping them"*, and the problem is not cosmetic:
+
+> If a station **helps** the visitor, then in the inverted mode the player is a visitor who is trying
+> to **avoid being helped** — and the opposition stops making sense. A pilgrim dodging the well. A
+> traveller running past the free soup.
+
+So a theme now has to answer one more question: **is being stopped by a station something the visitor
+would object to?** The warm framing survives in normal mode either way. It is the inverted mode that
+needs the station to be genuine opposition.
+
+| Candidate | Reads from the defender's side | Reads from the attacker's side | |
+|---|---|---|---|
+| **Nothing to Declare** | You are customs; you process arrivals | **You are the smuggler.** Getting through is the entire fantasy | **the only candidate that is native in both directions** |
+| **Fulfilment / feeding** | You feed the crowd | You are the crowd getting past the feeders — odd, but legible as a queue you are trying to skip | workable |
+| **The Long Road** | You provision the pilgrims | A pilgrim avoiding waystations is a pilgrim with no reason to stop | **incoherent under inversion** |
+| **The Crossing** | You water the herd | Same problem: the animal wants the water | **incoherent under inversion** |
+| **The Quiet Road** | You ease the spirits on | A spirit fleeing the shrines that would settle it is a *different and darker game* | inverts, but into something else |
+| **Basecamp** | You supply the climbers | You are the mountain? | **incoherent under inversion** |
+
+**This is the strongest single argument on this page, and it points at `Nothing to Declare`** — which
+was already one of the two survivors of the landscape filter, already the best fit for the name, and
+already the most toyetic silhouettes. Three independent filters, one answer.
+
+The counter-argument worth stating: *"you defeat them by helping them"* is the reason this game does
+not read as militaristic, and a customs theme is opposition on both sides. It buys coherence with
+warmth. That is a taste call and it is the human's.
+
 ## Candidates — the old five, filtered
 
 | Theme | Hosts a landscape? | Verdict |
