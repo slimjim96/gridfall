@@ -108,6 +108,41 @@ dotnet run --project Gridfall.Verify -- perf    # tick cost vs the 8ms budget
 
 The mode is a bare word, not a flag — `-- balance`, never `-- --balance`.
 
+### Windows
+
+Every `dotnet` command above is identical. The launchers have PowerShell twins that make the same
+decisions in the same order — `.\run-game.ps1`, `.\run-editor.ps1` — because Windows has no bash, so
+the `.sh` wrappers do not merely inconvenience it, they raise `OSError`.
+
+### Finding Godot on any platform
+
+`GODOT_BIN` wins over everything and is the escape hatch for any install layout:
+
+```bash
+export GODOT_BIN="/path/to/Godot_v4.6.3-stable_mono"              # Linux / macOS
+$env:GODOT_BIN = "C:\path\to\Godot_v4.6.3-stable_mono_win64.exe"  # Windows
+```
+
+Otherwise: `godot-mono` on PATH, then the known install location per platform. It must be the **mono**
+build on all three — a standard build ignores every C# script silently (ADR-0005).
+
+## Cross-platform: what is guaranteed, and by what
+
+The simulation is required to be byte-identical on Linux, Windows and macOS. Four things make that
+true, and each has something enforcing it rather than a promise:
+
+| Hazard | Why it would bite | What holds it |
+|---|---|---|
+| Locale-dependent number parsing | `double.Parse("0.06")` returns **6** under a comma-decimal locale — a speed a hundred times too fast, silently | `ContentLoader.ParseFix` reads raw JSON text digit by digit. `CrossPlatformTests` re-runs the sim under `de-DE` and compares hashes |
+| Filesystem enumeration order | `Directory.GetFiles` order is filesystem-dependent, and def **indices come from it** — a different order is a different game | Every enumeration sorts `StringComparer.Ordinal` |
+| Line endings | `StringBuilder.AppendLine` emits CRLF on Windows, so editor-saved maps would differ by platform and byte comparisons would fail | `MapDraft.ToJson` writes explicit `\n`; `.gitattributes` pins `content-data/**` to LF; a test fails the build on a stray `\r` |
+| Floats in the simulation | Float results vary by platform and JIT | `Fix32` integer math throughout; `SourcePurityTests` keeps floats out of Core |
+
+**Not yet verified on real hardware.** The guarantees above are enforced by tests that currently only
+run on Linux. The honest check is to run `dotnet test` and `Verify replay` on a Windows and a macOS
+machine and confirm the trace hashes match — until someone does, this is a well-defended claim rather
+than a measured one.
+
 Use the launchers rather than calling Godot directly. They find the pinned 4.6.3 mono binary, put
 engine flags before Godot's `--` and game flags after (an engine flag on the wrong side is silently
 ignored), and report a missing display or binary in one line instead of a page of ALSA noise.

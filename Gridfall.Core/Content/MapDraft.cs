@@ -165,16 +165,28 @@ public sealed class MapDraft
     /// purpose: a map diffs readably in git and a human can see its shape in a
     /// pull request.
     /// </summary>
+    /// <summary>
+    /// Serialise for `content-data/maps/`.
+    ///
+    /// Every line ends in an explicit "\n", never <c>AppendLine</c>: that emits
+    /// <see cref="System.Environment.NewLine"/>, so the board editor would write
+    /// CRLF on Windows and LF everywhere else. The map would still load — but a
+    /// map saved on one machine and opened on another shows as a whole-file diff,
+    /// and the generated maps are byte-compared to prove the generator is
+    /// idempotent. Content files are data, and data does not get a platform.
+    /// </summary>
+    private const string Nl = "\n";
+
     public string ToJson()
     {
         var sb = new StringBuilder();
-        sb.AppendLine("{");
-        sb.AppendLine($"  \"id\": \"{Id}\",");
-        sb.AppendLine($"  \"theme\": \"{Theme}\",");
-        sb.AppendLine("  \"version\": 1,");
-        sb.AppendLine($"  \"width\": {Width},");
-        sb.AppendLine($"  \"height\": {Height},");
-        sb.AppendLine("  \"cells\": [");
+        sb.Append("{").Append(Nl);
+        sb.Append($"  \"id\": \"{Id}\",").Append(Nl);
+        sb.Append($"  \"theme\": \"{Theme}\",").Append(Nl);
+        sb.Append("  \"version\": 1,").Append(Nl);
+        sb.Append($"  \"width\": {Width},").Append(Nl);
+        sb.Append($"  \"height\": {Height},").Append(Nl);
+        sb.Append("  \"cells\": [").Append(Nl);
 
         for (int y = 0; y < Height; y++)
         {
@@ -191,24 +203,24 @@ public sealed class MapDraft
                     _ => 'b',
                 });
             }
-            sb.AppendLine($"    \"{row}\"{(y == Height - 1 ? "" : ",")}");
+            sb.Append($"    \"{row}\"{(y == Height - 1 ? "" : ",")}").Append(Nl);
         }
 
-        sb.AppendLine("  ],");
+        sb.Append("  ],").Append(Nl);
         sb.Append("  \"spawns\": [");
         for (int i = 0; i < Spawns.Count; i++)
             sb.Append($"{(i == 0 ? "" : ", ")}{{ \"x\": {Spawns[i].X}, \"y\": {Spawns[i].Y} }}");
-        sb.AppendLine("],");
-        sb.AppendLine($"  \"goal\": {{ \"x\": {Goal.X}, \"y\": {Goal.Y} }},");
-        sb.AppendLine($"  \"startingGold\": {StartingGold},");
-        sb.AppendLine($"  \"startingPatience\": {StartingPatience},");
+        sb.Append("],").Append(Nl);
+        sb.Append($"  \"goal\": {{ \"x\": {Goal.X}, \"y\": {Goal.Y} }},").Append(Nl);
+        sb.Append($"  \"startingGold\": {StartingGold},").Append(Nl);
+        sb.Append($"  \"startingPatience\": {StartingPatience},").Append(Nl);
         // Omitted entirely when empty, because "" and "every station" are different
         // statements -- writing `"stations": []` would turn "all of them" into "none
         // of them" the next time this file is read.
         if (StationIds.Count > 0)
-            sb.AppendLine($"  \"stations\": [{string.Join(", ", StationIds.Select(t => $"\"{t}\""))}],");
-        sb.AppendLine("  \"meta\": { \"author\": \"board-editor\" }");
-        sb.AppendLine("}");
+            sb.Append($"  \"stations\": [{string.Join(", ", StationIds.Select(t => $"\"{t}\""))}],").Append(Nl);
+        sb.Append("  \"meta\": { \"author\": \"board-editor\" }").Append(Nl);
+        sb.Append("}").Append(Nl);
         return sb.ToString();
     }
 }

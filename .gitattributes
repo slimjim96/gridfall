@@ -1,0 +1,30 @@
+# Content is DATA, and data does not get a platform.
+#
+# Determinism is this project's first rule, and several checks compare files byte
+# for byte: the map generator proves it is idempotent that way, and `Verify
+# replay` diffs per-tick hashes across machines. A Windows checkout that helpfully
+# converted content-data/ to CRLF would break both, and it would do it quietly --
+# every map would still load. `CrossPlatformTests` fails the build if a carriage
+# return reaches content-data/, and this file is what stops one getting there.
+
+# Default: let git normalise text in the working tree, LF in the repository.
+* text=auto eol=lf
+
+# Never touched, and never diffed as text.
+*.png     binary
+*.webp    binary
+*.glb     binary
+*.jpg     binary
+*.ico     binary
+
+# Content and traces: LF everywhere, on every platform, no exceptions.
+content-data/**/*.json          text eol=lf
+Gridfall.Verify/traces/*.json   text eol=lf
+
+# Shell scripts must be LF or they will not run under bash at all -- a CRLF
+# shebang line makes the kernel look for an interpreter called "bash\r".
+*.sh      text eol=lf
+*.gd      text eol=lf
+
+# PowerShell is the one place CRLF is the native convention.
+*.ps1     text eol=crlf

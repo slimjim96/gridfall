@@ -20,6 +20,7 @@ handles -- it raises rather than guess.
 """
 
 import os
+import platform
 import struct
 import subprocess
 import sys
@@ -134,10 +135,20 @@ def box_downscale(w, h, rows, n):
 
 # ---- capture --------------------------------------------------------------
 
+def launcher():
+    """The editor launcher for this platform.
+
+    Windows has no bash, so the .sh wrapper is not merely inconvenient there --
+    subprocess raises OSError and the whole atlas run dies on the first map."""
+    if platform.system() == "Windows":
+        return ["powershell", "-ExecutionPolicy", "Bypass",
+                "-File", os.path.join(REPO, "run-editor.ps1")]
+    return [os.path.join(REPO, "run-editor.sh")]
+
+
 def capture(map_id, path):
     result = subprocess.run(
-        [os.path.join(REPO, "run-editor.sh"), map_id,
-         "--shot", path, "--shot-after", str(FRAMES)],
+        launcher() + [map_id, "--shot", path, "--shot-after", str(FRAMES)],
         cwd=REPO, capture_output=True, text=True, timeout=180)
     if not os.path.exists(path):
         tail = "\n".join(result.stdout.strip().splitlines()[-5:])
