@@ -262,6 +262,24 @@ currently a two-wave window.
 
 ---
 
+## Every predictor tried, and why each failed
+
+The complete ruled-out list, so nobody re-derives one. **Do not add to this without a measurement.**
+
+| Candidate | Why it failed |
+|---|---|
+| Maze multiplier (`maze`, editor F6) | `gauntlet` 1.0× vs `crossroads` 1.1× — adjacent, outcomes sd 0.0 against sd 7.1. A 1.15× threshold flagged nine of twelve including a known-good map. |
+| Buildable-share-of-route | `gauntlet` is 96%, the same as everything else. Separates nothing. |
+| `useful` (share of buildable within range of the route) | **Inverts.** `comb` is highest at 82% and is the hardest board. Catches an unwinnable map at the floor and orders nothing above it. |
+| Legibility of the motif at iso | `ringfort` and `atoll` both read well and are both degenerate. |
+| Seal pressure (placements refused for walling off the route) | Inverts. `ringfort` is lowest at 14k and degenerate; `crossroads` is next-lowest at 26k and the most varied. |
+| Standing-station count | `braid` and `ringfort` both hold 37.4 and are both degenerate. |
+| **Defence capacity / route** | Splits the twelve shipped boards cleanly, then fails the causal test — two `spiral` geometries one capacity point apart give 0.0% and 32.7%. Full account above. |
+
+**The reason none of them could have worked** is in §"What survives, and it is not a metric": outcomes
+are stable to seed and chaotic in inputs, and a predictor needs the predicted thing to vary smoothly
+with what you feed it.
+
 ## What this says about `route-variance-metric`
 
 The hunt has been for a map metric predicting **sd of lives left**. That statistic is measuring two
