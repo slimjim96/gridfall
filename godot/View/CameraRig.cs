@@ -39,7 +39,7 @@ public sealed partial class CameraRig : Node
     private const float EdgeBand = 24.0f;
 
     private Camera3D _camera = null!;
-    private MapDef _map;
+    private MapDef _map = null!;   // set in Initialise, before any use
 
     private Vector3 _focus;
     private bool _dragging;

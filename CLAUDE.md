@@ -46,6 +46,7 @@ gridfall/
 | Want to... | Go here |
 |------------|---------|
 | **Know what to pick up next** | `production/docs/next-steps.md` |
+| Know what happened last session, and what it taught | `production/docs/work-log.md` |
 | Pick the right workflow for a task | `workflows/README.md` |
 | **Work inside the engine** | `docs/engine-guide/README.md` |
 | Analyze a request into requirements | `game-design/CONTEXT.md` |

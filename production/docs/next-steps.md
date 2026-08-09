@@ -1,31 +1,31 @@
 # Next Steps
 
-**Written:** 2026-08-08 · **State:** branch `main`, pushed, tree clean, `dotnet build` 0/0 ·
-**212 tests** · replay 30/30 · `maps` exits 0 · 12/12 maps valid, all twelve selectable, all twelve
-**actually looked at**, and `arrow-tower` is real art.
+**Written:** 2026-08-09 · **State:** branch `main`, pushed, tree clean, `dotnet build` 0/0 ·
+**217 tests** · replay 30/30 · `maps` exits 0 · 12/12 maps valid, all twelve selectable, all twelve
+**looked at in-engine**, `arrow-station` is real art, and the vocabulary is the fulfilment one.
 
 A session-crossing handoff. The filename-is-the-status rule still holds everywhere else — this file
 exists only because the open threads span four workspaces and their ordering is not derivable from any
-one folder.
+one folder. What happened when is in [`work-log.md`](work-log.md).
 
-**One decision blocks the rest and it is yours:** the direction doc below. The wave-table question in
-§2a is settled (restated for twelve). §3 is closed as far as measurement can take it — five predictors
-ruled out and a reason none of them can work — so what is left in §2 and §3 is content judgement, not
-analysis. Everything measurable has been measured.
+**Nothing is blocked on a decision any more.** The reframe was accepted and shipped, the wave-table
+question is settled, and §3 is closed as far as measurement can take it. What is left is judgement and
+building — listed below in the order I would take it.
 
 ---
 
-## The decision that gates everything else
+## The decision that used to gate everything — settled
 
-[`game-design/docs/fulfilment-direction.md`](../../game-design/docs/fulfilment-direction.md) is
-**`proposed`**, not accepted. It re-frames the whole game — Tower→Station, Enemy→Visitor, HP→Appetite,
-Lives→Patience — and argues Tier 1 is a rename and an art pass over a simulation that is already
-balanced, with no arithmetic touched.
+[`game-design/docs/fulfilment-direction.md`](../../game-design/docs/fulfilment-direction.md) was
+accepted on 2026-08-09 and the rename shipped the same day: `Tower→Station`, `Enemy/Creep→Visitor`,
+`Damage→Serving`, `Hp→Appetite`/`Stock`, `Lives→Patience`, `Armour→Fussiness`. One pass, 67 C# files,
+**`replay` passed untouched** — behaviour did not move at all.
 
-**That is the human's call, and the naming especially.** Nothing below assumes it either way, but if it
-is accepted the rename should land *before* more content is built, because a half-renamed codebase is
-bilingual for months. The first slice is defined at the bottom of that doc: one pass, one commit, tests
-green.
+**The *theme* then reopened, deliberately.** Feeding reads as gluttony on inspection, so what the game
+is *about* is undecided again and is not blocking anything. Everything on that lives in one place now:
+[`game-design/docs/theme-direction.md`](../../game-design/docs/theme-direction.md). The useful part is
+the audit — only **`Appetite` and `Serving`** carry the theme; `Station`, `Visitor`, `Patience`,
+`Fussiness` and `Stock` read fine under any of the candidates.
 
 ---
 
@@ -276,6 +276,29 @@ without doing the arithmetic? A says "yes, slowly"; B says "the question never a
 
 ---
 
+### 5. The balance policy is blind to the one axis that makes the roster a choice
+
+`PlayPolicy` ranks stations on base damage-per-gold and never looks at `fussiness`, so it has **never
+built a cannon on any board**. But the cannon is not dominated — fussiness subtracts per hit, and the
+crossover is at ~4:
+
+| Fussiness | Arrow /gold | Cannon /gold |
+|---|---|---|
+| 0 | 0.400 | 0.296 |
+| 4 | 0.267 | 0.267 |
+| 8 | **0.133** | **0.237** |
+
+`husk` sits at 8. So there is a real rock-paper-scissors in the roster and **every balance number in
+the repo describes a game that never uses half of it.** Teaching the policy about fussiness is a small
+change and would make the existing figures mean something different. Cheapest high-value item here.
+
+### 6. Cross-platform is defended but not measured
+
+Locale, line-ending, enumeration-order and float hazards are all closed and each has a test —
+`tech-standards.md` §Cross-platform has the table. But the tests only *run* on Linux. The whole check
+on another machine is `dotnet test` then `Verify replay`; if the trace hashes match there, the claim
+stops being a claim.
+
 ## Where the state actually lives
 
 | Thing | File |
@@ -287,6 +310,9 @@ without doing the arithmetic? A says "yes, slowly"; B says "the question never a
 | The three soft-lock options, costed | `game-design/docs/tier2-soft-lock-options.md` |
 | Regenerate maps / schematic atlas / iso atlas | `content-data/maps/make-example-levels.py`, `render-atlas.py`, `capture-iso-atlas.py` |
 | Per-map balance reports, newest first | `content-data/docs/reports/` |
+| What happened last session and what it taught | `production/docs/work-log.md` |
+| What the game is *about* (open, on purpose) | `game-design/docs/theme-direction.md` |
+| Cross-platform guarantees and what enforces them | `docs/tech-standards.md` §Cross-platform |
 
 Regenerating is all-or-nothing and validates before writing:
 
