@@ -1,6 +1,11 @@
 # Direction — A Tower Defense With No Towers, No Enemies, and No Defense
 
-**Set:** 2026-08-08 · **Owner:** design-lead · **Status:** proposed, not decided
+**Set:** 2026-08-08 · **Owner:** design-lead · **Status:** SUPERSEDED
+
+> Kept for the reasoning, not the conclusion. [fulfilment-direction.md](fulfilment-direction.md)
+> replaced it and shipped the vocabulary; the theme question then reopened at
+> [theme-direction.md](theme-direction.md), which is the entry point. Old vocabulary throughout,
+> deliberately — it is a record of a decision, not a live spec.
 
 Brief: keep the genre, drop the military. Kid-friendly, still interesting to adults.
 

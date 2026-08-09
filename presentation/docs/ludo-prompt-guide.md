@@ -24,7 +24,7 @@ that share a look beats eight individually better towers that do not.
 Every prompt opens with the same anchor block, copied verbatim, never paraphrased:
 
 > **Style anchor — Gridfall**
-> Isometric tower defense game asset. Clean geometric forms, low detail, strong readable silhouette.
+> Isometric game asset for a grid-based strategy game. Clean geometric forms, low detail, strong readable silhouette.
 > Flat matte surfaces with soft ambient occlusion; no glossy highlights, no rim lighting, no text.
 > Restrained palette, low saturation for terrain and structures, saturated accent only on the element
 > that carries the unit's identity. Single unit centered on a transparent background, no ground plane,

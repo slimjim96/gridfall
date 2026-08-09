@@ -1,5 +1,9 @@
 # Direction — Fulfilment, Not Defense
 
+> **The vocabulary here shipped; the *theme* is open again.** This doc is why the code says `Station`
+> and `Visitor`. Whether the game is about feeding is being reconsidered — see
+> [theme-direction.md](theme-direction.md), which is the entry point now.
+
 **Set:** 2026-08-08 · **Owner:** design-lead · **Status:** ACCEPTED 2026-08-09 · Supersedes the three options in
 [positive-framing-direction.md](positive-framing-direction.md), which asked the right question and
 answered it less well.

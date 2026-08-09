@@ -58,7 +58,7 @@ gridfall/
 | Know how grid coords become screen coords | `docs/iso-grid.md` |
 | Add board tiles, or change how one looks | `presentation/tiles/README.md` |
 | Add final station or visitor art | `presentation/units/README.md` |
-| Know where the product is heading | `game-design/docs/board-themes-direction.md` |
+| Know where the product is heading, or what the game is *about* | `game-design/docs/theme-direction.md` |
 | Know how a map got balanced, or why one could not be | `content-data/docs/reports/` (newest first) |
 | Build, test, replay, or run the game | `docs/tech-standards.md` §Commands |
 
