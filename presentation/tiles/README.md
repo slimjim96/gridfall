@@ -45,6 +45,12 @@ code path by which an image reaches the simulation, and `TheThemeIsNotSimulation
 So painting a bush over a corridor does not block it, and a road tile on open ground does not make
 it path-only. If you want the behaviour, paint the cell kind.
 
+**Water and bridge cells take no tile at all, on purpose.** A map's `surfaces` layer marks cells as
+water or as bridge deck, and the renderer draws those in a colour derived from the theme rather than
+reaching for `blocked/` or `path/`. A grass image tinted blue is not water — it is grass that has gone
+wrong. Authored water and span tiles are a real gap and belong to `ludo-tile-prompts`; until then the
+derived colour is the honest placeholder. See [`docs/iso-grid.md`](../../docs/iso-grid.md) §Surfaces.
+
 ## The folders
 
 Five of them name a **cell kind** — one image per cell on the grid:

@@ -107,6 +107,33 @@ public static class MapValidator
             if (!draft.Spawns.Contains(glyph))
                 findings.Add(new MapFinding(MapSeverity.Error, "'S' cell missing from the spawns array", glyph));
 
+        // ---- surfaces: the rule that keeps them view-only -----------------
+        //
+        // An ERROR, not a warning, and that is the whole design. Surfaces are
+        // safe to ignore in the simulation *because* water can only sit where
+        // the pathfinder already refuses to go. A board that painted water on a
+        // walkable cell would look like it had a river, play like it did not,
+        // and nothing downstream could tell -- the exact failure the elevation
+        // shelf and the stranded-cell check were both added to prevent.
+        if (draft.Surfaces.Length == draft.Width * draft.Height)
+        {
+            for (int i = 0; i < draft.Surfaces.Length; i++)
+            {
+                var surface = (CellSurface)draft.Surfaces[i];
+                if (surface == CellSurface.Ground) continue;
+                if (MapSurfaces.IsLegalOn(surface, draft.Cells[i])) continue;
+
+                findings.Add(new MapFinding(MapSeverity.Error,
+                    MapSurfaces.RefusalFor(surface),
+                    new GridCell(i % draft.Width, i / draft.Width)));
+            }
+        }
+        else if (draft.Surfaces.Length != 0)
+        {
+            findings.Add(new MapFinding(MapSeverity.Error,
+                "surface array does not match the declared size"));
+        }
+
         if (findings.Any(f => f.Severity == MapSeverity.Error)) return findings;
 
         // ---- reachability: the hard invariant -----------------------------
@@ -160,6 +187,56 @@ public static class MapValidator
         if (stranded > 0)
             findings.Add(new MapFinding(MapSeverity.Warning,
                 $"{stranded} buildable cells are walled off and can never matter"));
+
+        // A bridge that touches no water is legal and is usually a mistake: it
+        // reads as a stripe of odd-coloured floor. Warning rather than error,
+        // because a causeway across a gorge is a real thing once the height field
+        // is doing the work -- and a tool that refuses to let you build the
+        // strange thing is a tool you stop using.
+        //
+        // Judged per BRIDGE, not per cell. The first version asked whether each
+        // span cell touched water and warned about the middle of every bridge
+        // three or more cells long, which is every bridge worth having.
+        if (draft.Surfaces.Length == cells)
+        {
+            var seen = new bool[cells];
+            int orphanBridges = 0;
+
+            for (int start = 0; start < cells; start++)
+            {
+                if (seen[start] || (CellSurface)draft.Surfaces[start] != CellSurface.Span) continue;
+
+                // Flood the connected run of span cells, noting whether any of
+                // them has water beside it.
+                bool touchesWater = false;
+                var queue = new Queue<int>();
+                queue.Enqueue(start);
+                seen[start] = true;
+
+                while (queue.Count > 0)
+                {
+                    int i = queue.Dequeue();
+                    int x = i % map.Width, y = i / map.Width;
+                    foreach ((int dx, int dy) in Directions.Offsets)
+                    {
+                        int nx = x + dx, ny = y + dy;
+                        if (nx < 0 || ny < 0 || nx >= map.Width || ny >= map.Height) continue;
+                        int n = map.Index(nx, ny);
+                        var neighbour = (CellSurface)draft.Surfaces[n];
+                        if (neighbour == CellSurface.Water) touchesWater = true;
+                        if (neighbour != CellSurface.Span || seen[n]) continue;
+                        seen[n] = true;
+                        queue.Enqueue(n);
+                    }
+                }
+
+                if (!touchesWater) orphanBridges++;
+            }
+
+            if (orphanBridges > 0)
+                findings.Add(new MapFinding(MapSeverity.Warning,
+                    $"{orphanBridges} bridge(s) touch no water -- a span over nothing reads as odd flooring"));
+        }
 
         // ---- info ---------------------------------------------------------
 

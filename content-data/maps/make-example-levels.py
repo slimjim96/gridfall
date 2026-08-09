@@ -518,6 +518,107 @@ def elevations(g, spawn, goal, style, seed):
     return levels
 
 
+# ---- rivers and bridges -----------------------------------------------------
+
+# Which way a river runs, per motif, or absent for a dry board. Surfaces are
+# VIEW-ONLY exactly like elevation -- a river is painted on cells that are
+# ALREADY walls and a bridge on cells that are ALREADY walkable, so no board's
+# geometry, route or balance can move. MapValidator enforces that as an error
+# rather than trusting it (Gridfall.Core/Content/MapSurfaces.cs).
+#
+#   "v"  the river runs north-south, crossing an east-west route
+#   "h"  the river runs east-west
+#
+# Chosen to cut ACROSS the motif's flow, because a river parallel to the route
+# is a wall with a colour on it. Four boards stay dry on purpose: a set where
+# every board has a river has no boards with rivers.
+RIVERS = {
+    "meander":    "v",
+    "spiral":     None,     # concentric: any straight cut fights the motif
+    "chambers":   "v",
+    "switchback": "h",      # the route zigzags north-south; the river crosses it
+    "comb":       None,     # the teeth ARE vertical lines; a river reads as one more
+    "ringfort":   None,     # wants a moat, which is a ring and not this
+    "braid":      "v",
+    "stepwell":   "h",
+    "atoll":      None,     # already islands; the water is the theme's job
+    "driftway":   "v",
+}
+
+# How far a channel sits below the bank it runs past, in elevation levels.
+# The DEPTH of a river comes from here, not from the renderer's WaterDrop --
+# that is a hairline so water is not flush with its banks on a flat board.
+RIVER_DEPTH = 1
+
+
+def river(g, axis):
+    """Surface glyph rows: '~' water, '=' span, '.' ground.
+
+    One straight line across the board. Cells on it that are walls become water;
+    cells on it that are walkable become a bridge deck -- so the bridges land
+    exactly where the routes cross, without anyone deciding where that is.
+
+    Returns None if no legal line exists, which is not an error: a board with no
+    river is the default and every board written before this said so by omission.
+    """
+    h, w = len(g), len(g[0])
+    span_rows = axis == "h"
+    length, across = (w, h) if span_rows else (h, w)
+
+    # Search the middle third. Nearer an edge and the river is a border stripe;
+    # dead centre on every board would make ten rivers in the same place.
+    lo, hi = across // 3, across - across // 3
+    best, best_score = None, -1
+    for pos in range(lo, hi):
+        line = [(i, pos) if span_rows else (pos, i) for i in range(length)]
+        glyphs = [g[y][x] for x, y in line]
+        # Never run a river through the spawn or the goal. A bridge under a
+        # functional marker is unreadable, and those two markers keep the same
+        # hue on every board precisely so they are never mistaken for terrain.
+        if "S" in glyphs or "G" in glyphs:
+            continue
+        walls = sum(1 for c in glyphs if c == "#")
+        crossings = len(glyphs) - walls
+        # Mostly water with a couple of crossings. A line that is nearly all
+        # walkable is a road, and a line that is entirely wall is a river with
+        # no bridge on it -- which is legal, and dull.
+        if crossings == 0 or crossings > 4:
+            continue
+        if walls > best_score:
+            best, best_score = line, walls
+
+    if best is None:
+        return None
+
+    surfaces = [["."] * w for _ in range(h)]
+    for x, y in best:
+        surfaces[y][x] = "~" if g[y][x] == "#" else "="
+    return surfaces
+
+
+def carve(levels, surfaces):
+    """Sink every water cell below the banks it runs past.
+
+    A channel one level under the LOWEST walkable neighbour, so the water is
+    visibly below the ground on both sides rather than below some average that
+    leaves it proud of the shallower bank. Clamped at 0: on a board whose banks
+    are already at ground level there is nowhere to go, and the renderer's
+    hairline drop is all the depth there is.
+    """
+    h, w = len(levels), len(levels[0])
+    sunk = [row[:] for row in levels]
+    for y in range(h):
+        for x in range(w):
+            if surfaces[y][x] != "~":
+                continue
+            banks = [levels[ny][nx]
+                     for nx, ny in ((x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y))
+                     if 0 <= nx < w and 0 <= ny < h and surfaces[ny][nx] != "~"]
+            floor_level = min(banks) if banks else levels[y][x]
+            sunk[y][x] = max(0, floor_level - RIVER_DEPTH)
+    return sunk
+
+
 def build(name, theme):
     g, spawn, goal = MOTIFS[name]()
 
@@ -560,12 +661,43 @@ def build(name, theme):
         doc["stations"] = ROSTERS[name]
 
     levels = elevations(g, spawn, goal, ELEVATION.get(name, "rolling"), seed=name)
+
+    # Surfaces last, and the channel is carved AFTER the shelf pass. The shelf
+    # levels walkable ground beside the route and deliberately leaves scenery
+    # alone -- water is scenery, so carving here cannot undo it, and a bridge
+    # keeps the road's height while the water beside it drops.
+    # The requested axis first, then the other one. A motif's preferred axis is a
+    # judgement about which way looks right, not a constraint -- and a cosmetic
+    # layer must never be able to block a map from being written. A board with no
+    # legal line stays dry and SAYS SO in the report, because a silent downgrade
+    # is how a set ends up with three rivers nobody meant to remove.
+    axis = RIVERS.get(name)
+    surfaces = None
+    s["river"] = "dry"
+    if axis:
+        for candidate in (axis, "h" if axis == "v" else "v"):
+            surfaces = river(g, candidate)
+            if surfaces is not None:
+                s["river"] = candidate if candidate == axis else candidate + "*"
+                break
+
+    if surfaces is not None:
+        levels = carve(levels, surfaces)
+        doc["surfaces"] = ["".join(row) for row in surfaces]
+        s["water"] = sum(row.count("~") for row in surfaces)
+        s["spans"] = sum(row.count("=") for row in surfaces)
+    else:
+        s["water"] = s["spans"] = 0
+        if axis:
+            s["river"] = "NONE FIT"
+
     doc["heights"] = ["".join(str(v) for v in row) for row in levels]
     return doc, s, problems
 
 
 def main():
-    print(f"{'level':11} {'theme':11} {'size':7} {'path':5} {'build%':7} {'useful':7} {'density':8} verdict")
+    print(f"{'level':11} {'theme':11} {'size':7} {'path':5} {'build%':7} {'useful':7} "
+          f"{'density':8} {'river':10} verdict")
     ok = 0
     pending = []
     for name, theme in LEVELS:
@@ -577,8 +709,10 @@ def main():
         if not problems:
             ok += 1
             pending.append((name, doc))
+        water = f"{s['river']} {s['water']}w {s['spans']}b" if s["water"] else s["river"]
         print(f"{name:11} {theme:11} {s['w']}x{s['h']:<4} {s['path']:<5} "
-              f"{s['buildable_pct']:<7} {str(s['useful'])+'%':<7} {s['density']:<8} {verdict}")
+              f"{s['buildable_pct']:<7} {str(s['useful'])+'%':<7} {s['density']:<8} "
+              f"{water:10} {verdict}")
     # All or nothing. A partial write leaves the previous run's files on disk
     # beside this one's, and the map report then describes a set that was never
     # generated together.

@@ -321,6 +321,23 @@ public sealed class MapDef
     /// <summary>Elevation level of a cell, or 0 on a flat board.</summary>
     public byte HeightAt(int index) => Heights.Length == 0 ? (byte)0 : Heights[index];
 
+    /// <summary>
+    /// Per-cell surface — water, bridge deck, or ordinary ground. Row-major.
+    /// Empty means every cell is plain ground.
+    ///
+    /// **The simulation never reads this**, exactly like <see cref="Theme"/> and
+    /// <see cref="Heights"/>. A river is drawn on cells that are already
+    /// <see cref="CellKind.Blocked"/> and a span on cells that are already
+    /// walkable, so the surface layer cannot move a route, a range or the state
+    /// hash — and `MapValidator` refuses any other combination, which is what
+    /// keeps that true rather than merely intended.
+    /// </summary>
+    public byte[] Surfaces { get; init; } = [];
+
+    /// <summary>Surface of a cell, or Ground on a map that declares none.</summary>
+    public CellSurface SurfaceAt(int index)
+        => Surfaces.Length == 0 ? CellSurface.Ground : (CellSurface)Surfaces[index];
+
 
     /// <summary>
     /// Whether this board offers this station. Empty roster means all of them.

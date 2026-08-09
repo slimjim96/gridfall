@@ -197,4 +197,56 @@ public readonly struct TerrainTheme
         Gridfall.Core.CellKind.Goal => Palette.TerrainGoal,
         _ => Buildable,
     };
+
+    /// <summary>
+    /// The colour a cell is drawn in, given its surface.
+    ///
+    /// **Water and span are DERIVED, not authored.** "A theme is three colours,
+    /// not five" is the rule this struct opens with, and adding two per theme
+    /// would mean re-picking ten colours across five palettes every time a theme
+    /// is added -- the same combinatorial trap `themed-unit-palettes` exists to
+    /// argue about. Deriving keeps a theme's identity in one place and makes a
+    /// river on a desert board read as a desert river without anyone choosing
+    /// its hue.
+    ///
+    /// Both derivations preserve the palette rules deliberately:
+    ///
+    /// - **Water** rotates the theme's darkest tone toward blue and drops its
+    ///   value further. Terrain must never compete with a unit, and water is the
+    ///   coolest thing on the board by construction, so it cannot.
+    /// - **A span** is the buildable tone lightened and desaturated: constructed
+    ///   rather than grown. It must separate from the water it crosses AND from
+    ///   the banks it lands on, which is why it moves in value rather than hue --
+    ///   a warm bridge would land in the station slot.
+    /// </summary>
+    public Color ColourFor(Gridfall.Core.CellKind kind, Gridfall.Core.CellSurface surface)
+    {
+        Color baseColour = ColourFor(kind);
+        return surface switch
+        {
+            Gridfall.Core.CellSurface.Water => Water(),
+            Gridfall.Core.CellSurface.Span => Span(),
+            _ => baseColour,
+        };
+    }
+
+    /// <summary>Theme-tinted water: the blocked tone pulled cold and dark.</summary>
+    public Color Water()
+    {
+        // Toward a fixed deep blue rather than to it, so an ocean board's water
+        // and a forest board's water are recognisably the same substance in two
+        // different places.
+        var deep = new Color(0.043f, 0.129f, 0.235f);
+        return Blocked.Lerp(deep, 0.72f);
+    }
+
+    /// <summary>Theme-tinted deck: the buildable tone lifted and drained.</summary>
+    public Color Span()
+    {
+        float grey = (Buildable.R + Buildable.G + Buildable.B) / 3f;
+        var drained = new Color(grey, grey, grey);
+        // Halfway to neutral, then lifted -- a deck reads as a made thing sitting
+        // above the water, and it has to clear the dark water it crosses.
+        return Buildable.Lerp(drained, 0.5f).Lightened(0.22f);
+    }
 }

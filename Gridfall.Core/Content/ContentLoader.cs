@@ -545,6 +545,42 @@ public static class ContentLoader
             draft.Heights = levels;
         }
 
+        // Surfaces: glyph rows parallel to `cells`, same shape as heights.
+        // Absent means every cell is plain ground, which is what every map
+        // written before rivers existed says by omission.
+        if (r.TryGetProperty("surfaces", out var sf))
+        {
+            if (sf.ValueKind != JsonValueKind.Array)
+                throw new ContentException($"{file}: \"surfaces\" must be an array of glyph rows");
+
+            var kinds = new byte[width * height];
+            int row = 0;
+            foreach (JsonElement line in sf.EnumerateArray())
+            {
+                string text = line.GetString()
+                    ?? throw new ContentException($"{file}: \"surfaces\" row {row} is not a string");
+                if (row >= height)
+                    throw new ContentException($"{file}: \"surfaces\" has more rows than the map is tall");
+                if (text.Length != width)
+                    throw new ContentException(
+                        $"{file}: \"surfaces\" row {row} is {text.Length} long, expected {width}");
+
+                for (int x = 0; x < width; x++)
+                {
+                    CellSurface? surface = MapSurfaces.FromGlyph(text[x]);
+                    if (surface is null)
+                        throw new ContentException(
+                            $"{file}: \"surfaces\" row {row} has '{text[x]}', expected one of "
+                            + $"'{MapSurfaces.GroundGlyph}' '{MapSurfaces.WaterGlyph}' '{MapSurfaces.SpanGlyph}'");
+                    kinds[row * width + x] = (byte)surface.Value;
+                }
+                row++;
+            }
+            if (row != height)
+                throw new ContentException($"{file}: \"surfaces\" has {row} rows, expected {height}");
+            draft.Surfaces = kinds;
+        }
+
         // ONE verdict. The board editor calls this same validator live as you
         // paint, so it can never disagree with the loader about what is legal.
         foreach (MapFinding finding in MapValidator.Validate(draft))

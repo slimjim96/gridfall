@@ -36,6 +36,32 @@ public enum CellKind : byte
 }
 
 /// <summary>
+/// What a cell is made of, as opposed to what it does.
+///
+/// **Presentation only.** The simulation never reads this — same standing as
+/// <c>MapDef.Theme</c> and <c>MapDef.Heights</c>. A river is a <see
+/// cref="CellKind.Blocked"/> cell that is drawn as water; a span is a walkable
+/// cell that is drawn as a bridge deck. Geometry does not move, so a board with
+/// a river through it plays exactly as the same board without one, and adding
+/// surfaces re-records no traces.
+///
+/// That is the whole safety argument, and it is enforced rather than promised:
+/// <c>MapValidator</c> refuses water on a walkable cell and a span on an
+/// unwalkable one, so a surface can never imply a rule the pathfinder is not
+/// following. Visitors do not walk on water because the cell was already
+/// blocked — not because anything checked the surface.
+/// </summary>
+public enum CellSurface : byte
+{
+    /// <summary>Ordinary terrain. The default, and what every map says by omission.</summary>
+    Ground = 0,
+    /// <summary>Water. Only legal on a Blocked cell.</summary>
+    Water = 1,
+    /// <summary>A bridge, causeway or boardwalk deck. Only legal on a walkable cell.</summary>
+    Span = 2,
+}
+
+/// <summary>
 /// The four directions, in the order the flow field visits them.
 /// THIS ORDER IS LOAD-BEARING: it decides which of two equal-cost routes wins.
 /// Changing it changes the game. See engine guide 06.

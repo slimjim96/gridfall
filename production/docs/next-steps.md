@@ -1,8 +1,13 @@
 # Next Steps
 
 **Written:** 2026-08-09 · **State:** `main`, tree clean · `dotnet build` 0 warnings 0 errors ·
-**234 tests** · `replay` 30/30 · `maps` exits 0 · 12/12 maps valid and selectable, all twelve looked at
-in-engine, ten of them with terrain that climbs · `arrow-station` is real art.
+**244 tests** · `replay` 30/30 · `maps` exits 0 · 12/12 maps valid and selectable, ten with terrain
+that climbs and **five with rivers** · `arrow-station` is real art.
+
+> **Five boards changed appearance and nobody has looked at them.** `river-bridges` shipped with its
+> visual criterion explicitly unverified — see
+> [the report](../05-verify/river-bridges-report.md) §What a human must look at. That is the first
+> thing to do with a display in front of you.
 
 **Start here, then read [`work-log.md`](work-log.md) before touching anything.** That file is shorter
 than this one and it is where the traps live — the things that cost hours and would cost them again.
@@ -10,13 +15,13 @@ than this one and it is where the traps live — the things that cost hours and 
 This handoff exists because the open threads span four workspaces and their ordering is not derivable
 from any one folder. Everywhere else, the filename is the status.
 
-**Nothing is blocked on a decision.** Two calls are the human's (§5) but neither stops work; everything
+**Nothing is blocked on a decision.** Two calls are the human's (§6) but neither stops work; everything
 else is building and judgement, ordered below by what I would pick up first.
 
 ### The five-minute orientation
 
 ```bash
-dotnet build && dotnet test                       # 0/0, 234
+dotnet build && dotnet test                       # 0/0, 244
 dotnet run --project Gridfall.Verify -- replay    # determinism; must be 30/30
 dotnet run --project Gridfall.Verify -- maps      # geometry + MapValidator, exits 1 on error
 ./run-game.sh                                     # play it  (Windows: .\run-game.ps1)
@@ -56,7 +61,26 @@ and more armour only subtracts from the cannon. Full pricing:
 Related and now measured for the first time: `balance-targets.md` asks that no station appear in more
 than 70% of winning runs. It is at **100%**.
 
-### 2. Make elevation mean something — the follow-on that was always planned
+### 2. Ten stations — requirements are written, and wave 0 is yours
+
+[`station-pool-requirements.md`](../01-requirements/station-pool-requirements.md) specifies the roster
+by **role**, in six shippable waves, with the counterpart visitor trait each role needs to be a
+decision rather than a stat line.
+
+Two things to know before picking it up:
+
+- **Wave 0 is §1 above and it is not optional.** "Slower but stronger" is only a choice when something
+  punishes many-small-hits. Until the fussiness share moves, waves 2–5 cannot be *measured* — they can
+  be built, but every balance figure would describe a game where the cheapest station still wins.
+- **Wave 1 is free and unblocked.** `anchor` and `longshot` need no engine work at all; `sapper` and
+  winding routes already ask for them. Two JSON files and a roster edit.
+
+Also newly blocking, and it was already written down: **`themed-unit-palettes`.**
+`board-themes-direction.md` says decide it *before* `station-pool` ships. Ten stations in a palette
+that already owns most of the warm spectrum is exactly the collision it predicted — and water is now
+competing for the cool end too.
+
+### 3. Make elevation mean something — the follow-on that was always planned
 
 Boards climb (§Settled). A station on a rise reaching further is not a new rule — it is the shipped
 *height means range* rule composing. But it turns elevation into **simulation input**: its own ADR,
@@ -66,13 +90,13 @@ so this is additive.
 One thing to know first: the route is carved flat with a level shelf either side, for readability. The
 moment height affects range, that shelf becomes a **balance** decision rather than a cosmetic one.
 
-### 3. Content judgement on the level set
+### 4. Content judgement on the level set
 
 Five of ten boards are degenerate (0.0% lost, sd ≤ 0.4) and `comb` sits at 42%. §Settled explains why
 knob-tuning cannot fix that and why no map metric predicts it. What is left is a person deciding
 whether these ten are the shipped set, a smaller tuned set, or generator output kept as examples.
 
-### 4. Two presentation calls nobody has made
+### 5. Two presentation calls nobody has made
 
 - **Ten of twelve maps emit no `PathOnly`.** The route exists only in the flow field, drawn only by the
   *editor's* overlay — which the game does not have. Should the generator emit roads, or is an unmarked
@@ -81,7 +105,7 @@ whether these ten are the shipped set, a smaller tuned set, or generator output 
   thumbnail size. The three newest are no worse than the seven that predate them; the set is just
   crowded at the desaturated end.
 
-### 5. Tier 2's soft-lock question — priced, still yours
+### 6. Tier 2's soft-lock question — priced, still yours
 
 Three options costed against the engine in
 [`tier2-soft-lock-options.md`](../../game-design/docs/tier2-soft-lock-options.md). **A** is one line —
@@ -91,11 +115,17 @@ mechanic that does not exist and swaps the soft-lock for a worse one.
 The decision is not technical: **should a child be able to finish a level without doing the
 arithmetic?** A says yes-but-slower, B says the question never arises, C says no.
 
-Related, and also yours: the theme is deliberately open —
-[`theme-direction.md`](../../game-design/docs/theme-direction.md). Only `Appetite` and `Serving` carry
-the current one; everything else in the vocabulary is already theme-free.
+Related, and also yours: **the theme is open and was reopened for better candidates on 2026-08-09** —
+[`theme-direction.md`](../../game-design/docs/theme-direction.md). Three of the five old candidates are
+now cut, and not on taste: the board direction committed to boards being *places*, elevation shipped,
+rivers shipped, and The Wash is a room, Please Hold is an office, Bin Night is a street. Four new
+candidates are written to that filter. Only `Appetite` and `Serving` carry a theme in the code;
+everything else in the vocabulary is already theme-free, and the rename cost is measured, not guessed.
 
-### 6. Verify cross-platform on real hardware
+**Until it closes, do not run a Ludo batch on stations or visitors.** Terrain is safe — a mountain is a
+mountain under every candidate, and so is a river.
+
+### 7. Verify cross-platform on real hardware
 
 Locale, line-ending, enumeration-order and float hazards are all closed and each has a test
 (`tech-standards.md` §Cross-platform) — but those tests have only ever *run* on Linux. The whole check
@@ -122,6 +152,9 @@ If the trace hashes match there, the claim stops being a claim.
 | Elevation | Shipped, view-only; a hilly board hashes identically to the same board flat | `docs/iso-grid.md` §Elevation |
 | Does the play policy understand fussiness? | **Shipped.** It ranks by effective serving and will hold gold for the station it wants. Two blocks, not one — the second was "never substitute down" | [policy-fussiness](../06-release/policy-fussiness-v1.md) |
 | Does teaching it move the balance figures? | **No.** All twelve maps byte-identical. The content never asks the question — see §1 | [balance report](../../content-data/docs/reports/2026-08-09-policy-fussiness-balance.md) |
+| Station price | **Left as is**, by decision (2026-08-09). The cannon stays at 90; §1 is about the content asking for it, not about the price | this file, §1 |
+| Rivers and bridges | **Shipped, view-only and *enforced*** — water is a load error on any cell that is not already blocked. Five boards, zero numbers moved. The *look* is unverified | [river-bridges](../06-release/river-bridges-v1.md) |
+| Do rivers affect pathing? | **No, by decision.** Water as a real cell kind with bridges as chokepoints is a different game and a different slice — ADR, validator change, trace re-record | same |
 
 What each of those *taught* is in [`work-log.md`](work-log.md) — read that before starting anything,
 it is shorter than this file and it is where the traps are.

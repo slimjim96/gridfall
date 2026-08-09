@@ -207,18 +207,40 @@ public sealed partial class WorldRenderer : Node3D
                 // wall counted as occupied and lost its tile -- a stone theme
                 // rendered its walls in flat ramp colour and looked untextured.
                 bool occupied = kind != CellKind.Blocked && _path is not null && _path.IsBlocked(index);
+                CellSurface cellSurface = _map.SurfaceAt(index);
+
                 // Terrain first, then what is standing on it. A wall on a plateau
                 // must still read as a wall, which is why the kind raise is added
                 // rather than replaced -- see docs/iso-grid.md §Elevation.
-                float height = IsoGrid.TerrainHeight(_map, x, y)
-                             + (kind == CellKind.Blocked ? 0.28f : occupied ? 0.10f : 0.0f);
+                //
+                // Surfaces then override the KIND raise, never the terrain height.
+                // Water is blocked terrain, so without this a river would stand
+                // 0.28 PROUD of its own banks -- a raised blue wall, which is
+                // exactly how the first attempt looked. It sinks instead, and a
+                // span sits just above the water it crosses so the deck reads as
+                // resting on something rather than floating in it.
+                float kindRaise = kind == CellKind.Blocked ? 0.28f : occupied ? 0.10f : 0.0f;
+                if (cellSurface == CellSurface.Water) kindRaise = -IsoGrid.WaterDrop;
+                else if (cellSurface == CellSurface.Span) kindRaise += IsoGrid.SpanLift;
 
-                Color colour = _theme.ColourFor(kind);
+                // Clamped at zero: a cell below the ground plane draws its side
+                // quads inverted, and the `height > 0f` guard below would skip
+                // them anyway, leaving a gap you can see the backdrop through. A
+                // river's DEPTH comes from the height field carving the channel,
+                // not from the drop -- see IsoGrid.WaterDrop.
+                float height = System.Math.Max(0f, IsoGrid.TerrainHeight(_map, x, y) + kindRaise);
+
+                Color colour = _theme.ColourFor(kind, cellSurface);
 
                 // An occupied cell keeps its tile. The raise and the station on top
                 // of it are what say "occupied" -- swapping in the ramp colour
                 // instead just put a slate pad on a grass board.
-                if (tiles is not null &&
+                // A surfaced cell never takes a terrain tile. The tile set is
+                // authored per theme for ground, and a grass image tinted blue is
+                // not water -- it is grass that has gone wrong. Water and spans
+                // are the derived flat colours, deliberately, until there are
+                // authored tiles for them (`ludo-tile-prompts`).
+                if (cellSurface == CellSurface.Ground && tiles is not null &&
                     tiles.TryTile(kind, TileLibrary.ConnectionMask(_map, x, y), x, y, out TerrainTile tile))
                 {
                     if (!textured.TryGetValue(tile.Texture, out SurfaceTool? surface))

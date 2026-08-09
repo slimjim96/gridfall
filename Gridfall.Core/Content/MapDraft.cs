@@ -48,6 +48,13 @@ public sealed class MapDraft
     /// </summary>
     public byte[] Heights = Array.Empty<byte>();
 
+    /// <summary>
+    /// Per-cell surface, row-major. Empty means all ground. View-only; see
+    /// MapDef.Surfaces. Carried through From/ToMapDef/ToJson for the same reason
+    /// Heights is: an editor that drops it drains every river on open-and-save.
+    /// </summary>
+    public byte[] Surfaces = Array.Empty<byte>();
+
     public int Index(int x, int y) => y * Width + x;
     public int Index(GridCell c) => c.Y * Width + c.X;
     public bool InBounds(int x, int y) => x >= 0 && y >= 0 && x < Width && y < Height;
@@ -93,6 +100,7 @@ public sealed class MapDraft
         draft.Spawns.AddRange(map.Spawns);
         draft.StationIds.AddRange(map.StationIds);
         draft.Heights = (byte[])map.Heights.Clone();
+        draft.Surfaces = (byte[])map.Surfaces.Clone();
         return draft;
     }
 
@@ -113,6 +121,7 @@ public sealed class MapDraft
         StartingPatience = StartingPatience,
         StationIds = StationIds.ToArray(),
         Heights = (byte[])Heights.Clone(),
+        Surfaces = (byte[])Surfaces.Clone(),
     };
 
     /// <summary>
@@ -141,6 +150,24 @@ public sealed class MapDraft
     /// <summary>Elevation level of a cell, 0 on a flat board.</summary>
     public int HeightAt(GridCell cell)
         => Heights.Length == Width * Height && InBounds(cell) ? Heights[Index(cell)] : 0;
+
+    /// <summary>
+    /// Paint a surface. Allocates on first use, so a board with no water keeps
+    /// writing no `surfaces` field at all — plain ground has to stay the absence
+    /// of the layer, not a layer of dots.
+    /// </summary>
+    public void PaintSurface(GridCell cell, CellSurface surface)
+    {
+        if (!InBounds(cell)) return;
+        if (Surfaces.Length != Width * Height) Surfaces = new byte[Width * Height];
+        Surfaces[Index(cell)] = (byte)surface;
+    }
+
+    /// <summary>Surface of a cell, Ground on a board that declares none.</summary>
+    public CellSurface SurfaceAt(GridCell cell)
+        => Surfaces.Length == Width * Height && InBounds(cell)
+            ? (CellSurface)Surfaces[Index(cell)]
+            : CellSurface.Ground;
 
     public void Paint(GridCell cell, CellKind kind)
     {
@@ -252,6 +279,20 @@ public sealed class MapDraft
             {
                 var row = new StringBuilder(Width);
                 for (int x = 0; x < Width; x++) row.Append((char)('0' + Heights[Index(x, y)]));
+                sb.Append($"    \"{row}\"{(y == Height - 1 ? "" : ",")}").Append(Nl);
+            }
+            sb.Append("  ],").Append(Nl);
+        }
+
+        // Same omission rule as heights: a board with no water writes no layer.
+        if (Surfaces.Length == Width * Height && System.Array.Exists(Surfaces, s => s != 0))
+        {
+            sb.Append("  \"surfaces\": [").Append(Nl);
+            for (int y = 0; y < Height; y++)
+            {
+                var row = new StringBuilder(Width);
+                for (int x = 0; x < Width; x++)
+                    row.Append(MapSurfaces.ToGlyph((CellSurface)Surfaces[Index(x, y)]));
                 sb.Append($"    \"{row}\"{(y == Height - 1 ? "" : ",")}").Append(Nl);
             }
             sb.Append("  ],").Append(Nl);

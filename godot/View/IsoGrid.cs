@@ -45,6 +45,31 @@ public static class IsoGrid
     public static float HeightOf(int level) => level * HeightStep;
 
     /// <summary>
+    /// How far a water cell sinks below its own terrain height.
+    ///
+    /// Water is <c>Blocked</c> terrain, so without this it would take the +0.28
+    /// wall raise and a river would stand PROUD of its own banks — a raised blue
+    /// wall. It drops instead.
+    ///
+    /// Under half a height step on purpose. **The depth of a river comes from the
+    /// height field, not from here**: the generator carves the channel a level or
+    /// two below its banks, and this only stops the water reading as flush with
+    /// them. On a flat board the surface clamps at zero and a river is a colour,
+    /// which is the correct amount of nothing to promise on a board with no
+    /// terrain in it.
+    /// </summary>
+    public const float WaterDrop = 0.10f;
+
+    /// <summary>
+    /// How far a bridge deck sits above the ground it continues.
+    ///
+    /// Small — a deck, not a plinth. It exists so the span reads as resting on
+    /// something at the point where it meets the bank, which is the one frame
+    /// where a bridge either works or looks like painted floor.
+    /// </summary>
+    public const float SpanLift = 0.06f;
+
+    /// <summary>
     /// The height of the terrain surface at a cell — what anything standing on
     /// the board sits on top of.
     ///

@@ -82,6 +82,38 @@ first:
 
 Seeded from the map name, so regeneration is byte-identical.
 
+## Five of them have rivers
+
+A second view-only layer, `surfaces` — `~` water, `=` bridge deck — added 2026-08-09. Same bargain as
+elevation, and this time it is enforced rather than promised: **water is only legal on a cell that is
+already `Blocked`, and a span only on one that is already walkable**, so no board's geometry can move.
+Measured — all six affected balance reports came back byte-identical.
+
+| Board | Axis | Water | Bridges | Note |
+|---|---|---|---|---|
+| `meander` | east–west | 11 | 2 | asked for north–south; no legal line, took the fallback |
+| `chambers` | north–south | 11 | 1 | |
+| `switchback` | east–west | 11 | 1 | crosses the zigzag, which is the point |
+| `braid` | east–west | 12 | 3 | asked for north–south; fallback |
+| `stepwell` | east–west | 10 | 3 | |
+| `spiral`, `comb`, `ringfort`, `atoll` | — | — | — | **dry on purpose.** A set where every board has a river has no boards with rivers |
+| `driftway` | — | — | — | **wanted one; no legal line on either axis.** Reported as `NONE FIT`, not silently dropped |
+
+The generator draws **one straight line across the board**, and the trick is that it does not decide
+where the bridges go: cells on the line that are walls become water, cells that are walkable become
+deck. The crossings land wherever the routes already were.
+
+Two rules keep it from looking wrong:
+
+- **The channel is carved to one level below the *lowest* walkable neighbour**, not the average — water
+  below the average sits proud of the shallower bank, which reads as a canal on a shelf.
+- **A river never runs through the spawn or the goal.** Those two markers keep the same hue on every
+  board precisely so they are never mistaken for terrain, and a bridge deck under one undoes that.
+
+`ringfort` wants a moat, which is a ring rather than a line, and `comb`'s teeth are already vertical
+stripes that a north–south river would read as one more of. Both are recorded as decisions in
+`RIVERS`, not as omissions.
+
 ## They are NOT balanced, and the spread is the finding
 
 Wave tables are copied from `crossroads` and not re-tuned. Re-measured 2026-08-08, all twelve, 150 runs each — see

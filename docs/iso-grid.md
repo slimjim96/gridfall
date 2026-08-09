@@ -74,6 +74,44 @@ is standing on it.
 shipped *height means range* rule — it stops being view-only and everything above changes. Do that as
 its own ADR, not as an extension of this section.
 
+## Surfaces — rivers and bridges
+
+A second view-only layer, parallel to `cells` and `heights`, authored as glyph rows in `surfaces`:
+
+| Glyph | Surface | Legal only on |
+|---|---|---|
+| `.` | `Ground` — ordinary terrain, and the default | anything |
+| `~` | `Water` | a **`Blocked`** cell |
+| `=` | `Span` — a bridge, causeway or boardwalk deck | a **walkable** cell |
+
+> **Surfaces are presentation, not simulation** — same standing as `Theme` and `Heights`. A river is
+> painted on cells that are *already* walls and a bridge on cells that are *already* walkable, so no
+> route, range or hash can move. Measured: six boards gained rivers and all six balance reports came
+> back byte-identical.
+
+**The legality rule is what makes that safe, and it is an error, not a warning.** `MapValidator`
+refuses water on a walkable cell, so a board can never depict a river the pathfinder is not honouring.
+Visitors do not walk on water because the cell was already `Blocked` — not because anything consulted
+the surface layer. Get this wrong and you get the worst kind of defect: a board that *looks* like it
+has a river, *plays* like it does not, and validates either way.
+
+| Constant | Value | Why |
+|---|---|---|
+| `IsoGrid.WaterDrop` | `0.10` | Water is `Blocked` terrain, so without this it would take the +0.28 wall raise and stand **proud of its own banks** — a raised blue wall |
+| `IsoGrid.SpanLift` | `0.06` | A deck, not a plinth. Enough that the span reads as resting on the bank it meets |
+
+**A river's depth comes from the height field, not from `WaterDrop`.** The generator carves the channel
+to one level below the *lowest* walkable neighbour — the lowest, not the average, or the water sits
+proud of the shallower bank. The rendered height is clamped at zero: a cell below the ground plane
+draws its side quads inverted and leaves a gap you can see the backdrop through. So on a **flat** board
+a river is a colour and nothing more, which is the correct amount to promise on a board with no terrain
+in it.
+
+Water and span colours are **derived from the theme, never authored** — "a theme is three colours, not
+five". Water is the theme's blocked tone pulled cold and dark; a span is its buildable tone lifted and
+desaturated, so it moves in value rather than hue and cannot land in the station slot. A surfaced cell
+also takes no terrain tile: a grass image tinted blue is not water, it is grass that has gone wrong.
+
 ## Picking
 
 Screen → grid is a ray cast, not an inverse projection formula:

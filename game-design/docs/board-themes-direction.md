@@ -27,6 +27,13 @@ on.
 
 **Chosen: shared pool, themed subsets.**
 
+> **Amended 2026-08-09 — the pool is ~10, and the primary axis is difficulty, not theme.** Asked for
+> directly: up to ten options on the last advanced boards, three on an early one. Availability becomes a
+> **progression curve**; two late boards of different themes can still offer different tens, so the
+> shared-pool decision below stands and only its wording moves. The cost is that pillar 2 now binds
+> harder than pillar 5 — ten silhouettes and ten hues, in a palette that already owns most of the warm
+> spectrum. See [`station-pool-requirements`](../../production/01-requirements/station-pool-requirements.md).
+
 Two reasons, and the second is the load-bearing one:
 
 1. **Theme becomes a deck choice.** Desert plays differently from ocean because you get different
@@ -47,7 +54,8 @@ never affordable; this keeps the count of things that must be balanced against e
 | 2 | `board-editor-2` — the editing components | **blocked**: needs to know which editing operations are actually painful |
 | 3 | `tile-art-pipeline` — UVs, atlas, ground images as placeholders | next |
 | 4 | `ludo-tile-prompts` — the prompt set, once one theme works end to end | after 3 |
-| 5 | `station-pool` — grow the roster toward ~8 with per-theme availability | after 4 |
+| 5 | `station-pool` — grow the roster to **10**, availability by **board difficulty** | **requirements ready**, 2026-08-09 |
+| 6 | `river-bridges` — water and spans across the height field, **view-only** | opened 2026-08-09 |
 
 **The tile spec matters more than the tiles.** A Ludo prompt is only as good as the constraints it
 carries — iso projection alignment, seam behaviour, and what has to stay readable at wave density. So

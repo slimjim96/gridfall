@@ -1,6 +1,11 @@
 # Theme — Deliberately Open
 
-**Owner:** the human · **Status:** **OPEN, on purpose** · Last touched 2026-08-09
+**Owner:** the human · **Status:** **OPEN, and being revisited** · Last touched 2026-08-09
+
+> **2026-08-09 — reopened for better candidates, and three of the five old ones are now disqualified.**
+> The reason is not taste. It is that `board-themes-direction.md` committed to boards being *places* —
+> mountain, ocean, forest, desert — elevation shipped, and rivers and bridges are next. **A theme now
+> has to host a landscape.** An office queue and a wheelie-bin street cannot. See §Candidates.
 
 The single entry point for anything about what this game *is about*. The mechanic is settled and is
 not waiting on this; the skin is undecided and is not blocking anything either. Both of those are
@@ -55,21 +60,59 @@ Measured, not estimated — the Tower→Station rename on 2026-08-09 is the evid
 
 **So the theme is not a one-way door and never was.** Pick late, pick on taste.
 
-## Candidates, unranked
+## What a candidate now has to clear
 
-Kept short on purpose. None is vetted; none needs to be until someone wants to build art.
+The old list was written when a theme only had to skin five nouns. Three things have shipped or been
+committed to since, and together they are a filter:
 
-| Theme | The joke | Best thing about it |
+| Requirement | Where it came from | What it kills |
 |---|---|---|
-| **Fulfilment / feeding** *(the current skin)* | none — it is warm rather than funny | Already in the code. Risk: the loop reads as force-feeding, which is why it is under review |
-| **The Wash** | grubby things go in, gleaming things come out | The visitor **is** its own progress bar — you watch the dirt go |
-| **Please Hold** | a queue of magnificently irate citizens at Window 4 | Tier 2 is native: the form *has* the sum on it |
-| **Nothing to Declare** | alien customs, illegal luggage | The most toyetic silhouettes; suits the name `Gridfall` |
-| **Bin Night** | urban wildlife raids the street, Tuesdays | The best characters — this is the one with plushies |
+| **Hosts a landscape** — mountain, ocean, forest, desert, and now rivers, bridges and height | `board-themes-direction.md`; elevation shipped 2026-08-09 | Any theme set in one room, one street or one building |
+| **Supports ~10 station roles** on one advanced board | `station-pool`, opened 2026-08-09 | Any theme with three plausible props in it |
+| **The need is visible on the visitor** | Pillar 2 — silhouette carries identity, colour carries state | Any theme where the need is a number, not a look |
+| **Resistance reads as something** — `fussiness` is per-application stubbornness | The mechanic exists and is inert today | Themes where "hard to please" has no natural picture |
 
 The framing worth keeping whichever wins: **you defeat them by helping them.** It removes the
 militarism without removing the conflict, which is the trick PvZ pulls and the reason it reads as
 funny rather than gentle.
+
+## Candidates — the old five, filtered
+
+| Theme | Hosts a landscape? | Verdict |
+|---|---|---|
+| **Fulfilment / feeding** *(the current skin)* | weakly — a table is not a valley | **Alive, unloved.** Already in the code. The force-feeding read is still the risk |
+| **Nothing to Declare** | **yes** — a border is a place, and borders have rivers | **Alive.** Still the most toyetic silhouettes and still the best fit for the name |
+| **The Wash** | no — it is a room | **Cut.** Best progress bar in the set, and nowhere to put a mountain |
+| **Please Hold** | no — it is an office | **Cut.** Tier 2's soft-lock was native here, which is a real loss |
+| **Bin Night** | no — it is a street | **Cut.** Best characters in the set |
+
+**Losing the three good ones to a single constraint is the signal.** The board direction and the theme
+list were written two days apart and had never been checked against each other.
+
+## Candidates — new, built to the filter
+
+Unranked, unvetted. Each is here because the landscape is not a backdrop but *the reason the visitors
+are walking*.
+
+| Theme | The premise | Need reads as | Fussiness reads as | Best thing about it |
+|---|---|---|---|---|
+| **The Long Road** | Pilgrims cross a country to a shrine. You build the waystations — wells, kitchens, cobblers, bathhouses, ferries | Footsore, thirsty, blistered; wear that visibly comes off | The traveller who will not stop for just anything | **Ten stations write themselves.** Every terrain is a leg of the road, and a bridge is a *place*, not scenery |
+| **Basecamp** | Climbers ascend. You place camps, caches, ladders, fixed ropes, rope bridges | Cold, spent, thin-aired | The one who insists on doing it their own way | **Elevation stops being decoration.** Height is the subject, which turns §2 of `next-steps` into a theme beat rather than a stat |
+| **The Crossing** | A herd migrates through a valley. You place water, salt, shade, ramps, shallows | Thirst and heat, on the animal | The stubborn old bull who ignores the good water | Wordless and ageless, and rivers and bridges are the *whole drama* of a migration |
+| **The Quiet Road** | Spirits walk on to rest. You set the lanterns, shrines, offerings, ferrymen | Unfinished business, worn visibly lighter | The one who is not ready to go | **"You defeat them by helping them" is literal.** A river you must ferry them across is the oldest image there is |
+
+### How to read the four
+
+- **The Long Road** is the safe one: the widest station vocabulary and the least tonal risk.
+- **Basecamp** fits the *engine* tightest — one axis, up, which is exactly the axis the renderer just
+  learned. Also the narrowest: a mountain is the only board it can host.
+- **The Crossing** is the prettiest and the least verbal. It is also the hardest to make funny.
+- **The Quiet Road** has the best premise and the most tonal risk. A warm idea about death is either
+  the whole charm or the thing nobody wants to explain.
+
+**None is picked, and nothing is blocked on picking.** The terrain work (rivers, bridges, height) is
+theme-free by construction, and the station roster is specified by **role**, never by flavour, exactly
+so it can be built before this closes.
 
 ## Where the rest of it lives
 
@@ -95,3 +138,6 @@ Nothing below is duplicated here — go to the source:
   themed every asset ever generated, silently. It now describes the look and not the genre.
 - **Do not re-theme the code speculatively.** One rename is a pass; three is churn, and each one moves
   every baseline.
+- **Do not name a new station after a prop.** `station-pool` specifies ten stations by **role** —
+  rapid, burst, lobber, slower, anchor — for this reason. A roster half-named after ferries and half
+  after catapults is a theme decision taken by accident, in ten files, by whoever wrote them.

@@ -254,6 +254,32 @@ load.
 (the block check, wave assignment) uses that array, so reordering it changes the game and is therefore
 a content decision, not an accident of layout.
 
+### Two optional layers, both view-only
+
+`heights` and `surfaces` are glyph rows in the same shape as `cells`, so a diff lines up column for
+column. **The simulation reads neither.** Both are absent by default, and absence is the statement —
+a layer of `0`s or `.`s would be a diff on every board that has no hills and no rivers.
+
+```json
+  "heights":  ["3333443", "3334443"],
+  "surfaces": [".....~.", ".....=."]
+```
+
+| Layer | Glyphs | Rule |
+|---|---|---|
+| `heights` | `0`–`9` | none — any cell may sit at any level |
+| `surfaces` | `.` ground · `~` water · `=` span | **water only on `#`, span only on a walkable cell** |
+
+That surface rule is a **load error**, not a warning, and it is the reason the layer is safe to ignore
+in Core: water can only be painted where the pathfinder already refuses to go, so a board cannot depict
+a river visitors stroll across. The glyphs, the rule and the refusal text all live in one place —
+`MapSurfaces` — because the loader, the board editor and `MapValidator` all need the same answer and
+this format has already been burned once by three paraphrases of one rule.
+
+Everything about how the two layers are *drawn* — the water drop, the span lift, why depth comes from
+the height field and not from the renderer — is in [`docs/iso-grid.md`](../iso-grid.md) §Elevation and
+§Surfaces.
+
 ## Wave tables
 
 ```json

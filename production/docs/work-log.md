@@ -8,6 +8,50 @@ Open threads live in [`next-steps.md`](next-steps.md), not here.
 
 ---
 
+## 2026-08-09 · rivers, bridges, and two design calls
+
+Five boards have rivers now, with bridges where the routes already crossed. View-only, and this time
+**enforced rather than promised**: water is a load error on any cell that is not already `Blocked`.
+
+**A view-only layer that makes a claim about the rules cannot rest on a code review.** Elevation is
+safe because a height says nothing — it is decoration, and nobody reading it wrongly can mislead a
+player. A *surface* says "nothing walks here", so a layer that could say that falsely would produce a
+board that looks like it has a river, plays like it does not, and validates either way. That is the
+board-editor capture defect again in a new costume. The legality rule is the whole slice; everything
+else is plumbing.
+
+**The bridges placed themselves.** The generator draws one straight line across the board; wall cells
+on it become water and walkable cells become deck. Nothing decides where a crossing goes — it lands
+wherever the route already was. Two boards asked for a north–south river, had no legal line, and took
+the east–west fallback; `driftway` had none on either axis and is reported as `NONE FIT` rather than
+silently dropped.
+
+Three things that were wrong first, all of them the same shape — **a rule that is right per cell and
+wrong per thing**:
+
+- Water took the +0.28 wall raise (it *is* blocked terrain) and rendered as a raised blue wall.
+- The channel was carved below the *average* neighbour, which leaves it proud of the shallower bank.
+  It goes below the lowest.
+- "Does this span cell touch water?" warns about the middle of every bridge three cells or longer.
+  Flood the bridge, ask once.
+
+And a fourth, cheaper to hit than to explain: a cell below the ground plane draws its side quads
+inverted, so the render height clamps at zero. On a flat board a river is a colour and nothing more,
+which is the right amount to promise on a board with no terrain in it.
+
+Two design calls came out of the same conversation and neither is code:
+
+- **Ten stations differentiated by "slower but stronger, faster but weaker" needs the *visitor* roster
+  to spread first.** That axis is a decision only when something punishes many-small-hits, and the one
+  thing that does — `fussiness` — is inert at shipped composition (measured the same day). Ten stations
+  on a dead axis is ten stations where the cheapest wins.
+- **The terrain direction quietly killed three of the five theme candidates.** Boards are places with
+  elevation and now rivers; The Wash is a room, Please Hold is an office, Bin Night is a street. The
+  board direction and the theme list were written two days apart and had never been read against each
+  other.
+
+---
+
 ## 2026-08-09 · policy fussiness
 
 The balance harness ranked stations on **base** serving-per-gold, so it had never bought a cannon on
