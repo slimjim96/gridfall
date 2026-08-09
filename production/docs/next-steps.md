@@ -57,7 +57,7 @@ and carried no stranded-cell check at all, which is how it printed a clean sheet
 maps. It now prints the validator's findings verbatim and keeps only what the validator does not do
 (`cover`, `useful`, `maze`, density), and **exits 1 on any error** rather than always 0.
 `ShippedMapValidityTests` runs the same validator over every map in CI, so the generator, the report
-and the editor cannot drift apart again. 203 tests.
+and the editor cannot drift apart again.
 
 **`editor-baseline.png` was stale and is re-recorded.** It diverged in one 191×15 box of HUD text:
 `MapValidator`'s info line gained the `vs floor` clause after the baseline was taken, so it read
@@ -67,7 +67,7 @@ two environments**, so the drift was text, not rendering. `board-baseline.png` s
 
 ## Ordered
 
-### 1. The levels have been seen. Four of ten do not read.
+### 1. The levels have been seen, and the four that did not read are redrawn
 
 [`presentation/docs/level-atlas-iso.png`](../../presentation/docs/level-atlas-iso.png) is a real
 in-engine contact sheet of all twelve, regenerable with:
@@ -77,9 +77,18 @@ python3 content-data/maps/capture-iso-atlas.py    # needs a display + godot-mono
 python3 content-data/maps/render-atlas.py         # schematic fallback, headless
 ```
 
-`comb`, `ringfort`, `atoll` and `switchback` are legible as their motif. **`spiral`, `chambers`,
-`braid` and `stepwell` are not** — a spiral reads as a C, a braid as a single route. The motif is a
-top-down claim and the game is not top-down; walls have height and hide what is behind them.
+**Fixed 2026-08-08.** `spiral` read as a C, `chambers` as one open field, `braid` as a single route and
+`stepwell` as an edge with four detached strips. All four are redrawn and all ten now read. Two rules
+came out of it:
+
+- **A one-cell wall is a scratch; solid masses read.** Every divider is two cells thick now — which is
+  why `ringfort` and `comb` always read and the thin-walled ones never did.
+- **A motif you only draw is not a motif.** `spiral`'s goal sat on the east edge, so its route was the
+  Manhattan minimum and never turned; the spiral existed only in scenery the route ignored. Goal in the
+  middle now, enclosed, **1.9×** the floor. `chambers` went 1.0× → 1.5× and 20 → 30 path the same way.
+
+**Legibility moved; difficulty did not.** `spiral` held ~26% through a complete redesign; `chambers`,
+`braid` and `stepwell` are still 0.0%. Same decoupling as everywhere else in §2/§3.
 
 Two things fell out that need a decision, not more measurement:
 

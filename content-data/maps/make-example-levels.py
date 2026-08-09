@@ -95,23 +95,42 @@ def meander(w=13, h=11):
 
 def spiral(w=13, h=13):
     g = blank(w, h)
-    # Corridors two cells wide, not one.
+    # A spiral has to be WALKED, not just drawn.
     #
-    # The first version ran the route down a 1-cell canyon: towers could only
-    # reach it from exactly 2 cells away, at the very edge of arrow range, so each
-    # covered a sliver. Six towers stopped 12% of wave 1 where the same six stop
-    # 100% on `meander`, and it lost 100% of 150 runs while passing every band.
-    wall(g, 3, 3, w - 4, 3); wall(g, w - 4, 4, w - 4, h - 4)
-    wall(g, 5, h - 4, w - 4, h - 4); wall(g, 5, 6, 5, h - 5)
-    return g, (0, 1), (w - 1, h - 2)
+    # The first version painted four thin walls and left the goal on the east
+    # edge, so the route was the Manhattan minimum -- `vs floor` 1.0x, a monotone
+    # staircase that never turned. Nothing about it spiralled, and at the iso
+    # angle it read as a C.
+    #
+    # The goal is the middle now and a two-thick ring encloses it, open on one
+    # side only. The route has to run the length of the board, down the far edge
+    # and back in -- 1.9x the floor, and the shape is legible from the walls
+    # themselves rather than from the flow field. Two cells thick because a
+    # one-cell wall is a scratch once it has height; solid masses are what read.
+    ring0, ring1 = 3, w - 4
+    wall(g, ring0, ring0, ring1, ring0 + 1)          # top
+    wall(g, ring0, ring1 - 1, ring1, ring1)          # bottom
+    wall(g, ring0, ring0, ring0 + 1, ring1)          # left
+    wall(g, ring1 - 1, ring0, ring1, ring1)          # right
+    # The one way in, on the far side from the spawn.
+    mid = h // 2
+    for x in (ring1 - 1, ring1):
+        g[mid][x] = "b"
+    return g, (0, 1), (w // 2, h // 2)
 
 
 def chambers(w=14, h=12):
     g = blank(w, h)
-    for x in (4, 9):
-        wall(g, x, 1, x, h - 2)
-        g[2][x] = "b"; g[h - 3][x] = "b"
-    wall(g, 5, 5, 8, 6)
+    # Two-cell dividers with the pinches at opposite ends, so the route has to
+    # come back on itself to find the next one -- 1.4x the floor rather than the
+    # monotone walk the one-cell version allowed.
+    #
+    # Thickness is the readability half: a single-cell divider is a scratch at the
+    # iso angle and the whole board read as one open field.
+    for x, gap in ((4, h - 4), (9, 3)):
+        wall(g, x, 1, x + 1, h - 2)
+        g[gap][x] = "b"
+        g[gap][x + 1] = "b"
     return g, (0, 2), (w - 1, h - 3)
 
 
@@ -144,15 +163,24 @@ def ringfort(w=13, h=13):
 
 def braid(w=15, h=12):
     g = blank(w, h)
-    wall(g, 3, 5, w - 4, 6)
-    wall(g, 7, 1, 7, 3); wall(g, 7, 8, 7, h - 2)
-    return g, (0, 2), (w - 1, h - 3)
+    # One thick island down the middle. The lanes passing north and south of it
+    # ARE the braid, and they rejoin at both ends -- spawn and goal sit on the
+    # centre line so neither lane is the obvious one.
+    #
+    # The previous version was a thin bar plus two stubs, which at the iso angle
+    # read as a single route through an open field: no island, so no two ways
+    # round it, so nothing to braid.
+    wall(g, 3, 4, w - 4, 7)
+    return g, (0, h // 2 - 1), (w - 1, h // 2)
 
 
 def stepwell(w=13, h=13):
     g = blank(w, h)
+    # Terraces two rows thick, each stepping further in than the last, so the
+    # silhouette is a staircase. The one-row version left four detached strips
+    # floating in the middle of the board with no read at all.
     for i in range(1, 5):
-        wall(g, 2 * i, 2 * i, w - 2, 2 * i)
+        wall(g, 2 * i, 2 * i, w - 2, 2 * i + 1)
     return g, (0, 1), (w - 1, h - 2)
 
 

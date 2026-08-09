@@ -7,16 +7,16 @@
   "cells": [
     "#############",
     "Sbbbbbbbbbbb#",
-    "#bbbbbbbbbbb#",
+    "#bbbbbbbbb#b#",
     "#bb#######bb#",
     "##########bb#",
-    "##########bb#",
-    "##########bb#",
-    "##########bb#",
-    "#bbbb#####bb#",
-    "#bbbb#####bb#",
+    "#####bbb##bb#",
+    "#####bGbbbbb#",
+    "##b##bbb##bb#",
+    "#bb#######bb#",
+    "#bb#######bb#",
     "#bbbbbbbbbbb#",
-    "#bbbbbbbbbbbG",
+    "#bbbbbbbbbbb#",
     "#############"
   ],
   "spawns": [
@@ -26,8 +26,8 @@
     }
   ],
   "goal": {
-    "x": 12,
-    "y": 11
+    "x": 6,
+    "y": 6
   },
   "startingGold": 300,
   "startingLives": 20,

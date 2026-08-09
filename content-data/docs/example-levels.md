@@ -16,40 +16,55 @@ python3 content-data/maps/capture-iso-atlas.py     # real frames from the editor
 | Level | Theme | Size | Path | vs floor | Buildable | Density | Motif | Reads at iso |
 |---|---|---|---|---|---|---|---|---|
 | `meander` | forest | 13×11 | 20 | 1.0× | 52% | 3.8 | One long bend | ~ reads as an L |
-| `spiral` | desert | 13×13 | 22 | 1.0× | 40% | 3.1 | Inward spiral | **no** — a C, not a spiral |
-| `chambers` | mountain | 14×12 | 20 | 1.0× | 52% | 4.5 | Rooms through pinches | **no** — one open field |
+| `spiral` | desert | 13×13 | 21 | **1.9×** | 43% | 3.5 | Inward spiral | **yes** — redrawn |
+| `chambers` | mountain | 14×12 | **30** | **1.5×** | 50% | 2.8 | Rooms through pinches | **yes** — redrawn |
 | `switchback` | slate | 12×11 | 25 | 1.3× | 52% | 2.8 | Tight zigzag | yes |
 | `comb` | ocean | 15×11 | **30** | **2.1×** | 52% | 2.9 | Interlocking teeth | **yes** — the best on the sheet |
 | `ringfort` | ash | 13×13 | 22 | 1.0× | 37% | 2.9 | Corridor ring, solid core | **yes** — the most striking |
-| `braid` | marsh | 15×12 | 23 | 1.0× | 52% | 4.1 | Two lanes that merge | **no** — one route, no braid |
-| `stepwell` | underwater | 13×13 | 22 | 1.0× | 49% | 3.8 | Descending terraces | **no** — an edge + loose strips |
+| `braid` | marsh | 15×12 | 21 | **1.4×** | 50% | 4.3 | Two lanes that merge | **yes** — redrawn |
+| `stepwell` | underwater | 13×13 | 22 | 1.0× | 38% | 3.0 | Descending terraces | **yes** — redrawn |
 | `atoll` | tundra | 14×12 | 22 | 1.0× | 52% | 4.0 | Scattered islands | yes |
 | `driftway` | space | 14×12 | 22 | 1.0× | 51% | 4.0 | Offset diagonal | ~ a diagonal with blobs |
 
-**All ten now pass the validator and all three `MapTargets` bands** — three of them did not when this
-document first claimed they did; see below. Three new themes — `tundra`, `ash`, `marsh` — were added
-so every level gets its own palette; their tiles were generated automatically from the ramp, since the
-tile script reads the registry.
+**All ten pass the validator and all three `MapTargets` bands.** Three new themes — `tundra`, `ash`,
+`marsh` — were added so every level gets its own palette; their tiles were generated automatically from
+the ramp, since the tile script reads the registry.
 
-**Five of ten motifs survive the projection.** The generator lays out a shape on a top-down grid, and
-the schematic atlas showed that shape faithfully — but the game is drawn at the iso angle, where a
-wall is a solid block with height and everything behind it is hidden. `comb`, `ringfort`, `atoll` and
-`switchback` are legible as the thing they are named after. `spiral`, `chambers`, `braid` and
-`stepwell` are not, and no amount of balancing will make a player see a braid in `braid`.
+## Four motifs were redrawn to survive the projection
+
+The generator lays a shape on a top-down grid and the schematic atlas showed it faithfully — but the
+game is drawn at the iso angle, where a wall is a solid block with height and everything behind it is
+hidden. On the first in-engine look, **`spiral` read as a C, `chambers` as one open field, `braid` as a
+single route and `stepwell` as an edge with four detached strips.**
+
+Two rules came out of fixing them:
+
+- **A one-cell wall is a scratch; solid masses are what read.** Every divider is two cells thick now.
+  This is why `ringfort` and `comb` always read and the others did not — theirs were thin lines.
+- **A motif you only draw is not a motif.** `spiral` had its goal on the east edge, so the route was
+  the Manhattan minimum — a monotone staircase that never turned, `vs floor` 1.0×. The spiral existed
+  only in scenery the route ignored. The goal is the middle now, enclosed by a ring open on one side,
+  and the route runs the length of the board and back in at **1.9×** the floor.
+
+`chambers` went the same way: pinches at opposite ends force the route back on itself, 20 → **30** and
+1.0× → **1.5×**. `braid` gained a solid central island so there are visibly two ways round. `stepwell`'s
+terraces are two rows thick and step in, so the silhouette is a staircase.
+
+**Legibility moved; difficulty did not.** `spiral` held at ~26% of runs lost through a complete
+redesign, and `chambers`, `braid` and `stepwell` are still 0.0%. That is the same decoupling everything
+else in this report ran into — see the balance report.
 
 ## They are NOT balanced, and the spread is the finding
 
-Wave tables are copied from `crossroads` and not re-tuned. All ten at 150 runs:
-
-Re-measured 2026-08-08, all twelve, 150 runs each — see
+Wave tables are copied from `crossroads` and not re-tuned. Re-measured 2026-08-08, all twelve, 150 runs each — see
 [the balance report](reports/2026-08-08-example-levels-balance.md). Death wave is where lost runs
 died: one number means a wall, a range means a curve.
 
 | Level | Runs lost | Lives left | sd | Death wave | |
 |---|---|---|---|---|---|
 | `comb` | 42.0% | 7.0 | 5.9 | 12 only | above band, and untunable with current knobs |
-| `spiral` | **25.3%** | 7.7 | 6.7 | 12 only | **passes both bands** — the only board that does |
-| `chambers` | 0.7% | 11.8 | 5.7 | 3 only | dies early or not at all |
+| `spiral` | **26.7%** | 7.4 | 6.6 | 12 only | **passes both bands** — the only board that does |
+| `chambers` | 0.0% | 20.0 | 0.0 | — | degenerate *(was 0.7%; redrawn)* |
 | `atoll` | 0.0% | 17.9 | 4.1 | — | too easy |
 | `switchback` | 0.0% | 19.3 | 1.0 | — | too easy *(doc previously said sd 4.1)* |
 | `braid` | 0.0% | 19.9 | 0.2 | — | **degenerate** *(doc previously said 0.7%, sd 2.9)* |
@@ -69,6 +84,11 @@ and nothing in them predicts how a map plays. Any new map needs a balance pass; 
 stand in for one.
 
 ### `spiral` was unwinnable, and the cause is corridor width
+
+> **This section is history.** `spiral` has since been redrawn — goal in the middle, enclosed ring,
+> 1.9× the floor — so the layout described below no longer exists. The *lesson* is what is being kept,
+> because it applies to any map: corridor width is a viability constraint, and the generator still
+> enforces two-wide corridors because of it.
 
 It lost **100% of 150 runs** — every life, every time, sd 0.0 — while passing every band.
 

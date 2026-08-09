@@ -6,27 +6,27 @@
   "height": 12,
   "cells": [
     "###############",
-    "#bbbbbb########",
-    "Sbbbbbb#bbbbbb#",
-    "#bbbbbb#bbbbbb#",
-    "#bbbbbbbb#bbbb#",
-    "############bb#",
-    "############bb#",
     "#bbbbbbbbbbbbb#",
-    "#bbbbbb#bbbbbb#",
-    "#bbbbbb#bbbbbbG",
-    "#bbbbbb#bbbbbb#",
+    "#bbbbbbbbbbbbb#",
+    "#b#bbbbbbbbbbb#",
+    "#bb#########bb#",
+    "Sbb#########bb#",
+    "#bb#########bbG",
+    "#b##########bb#",
+    "###bbbbbbbbbbb#",
+    "#bbbbbbbbbbbbb#",
+    "#bbbbbbbbbbbbb#",
     "###############"
   ],
   "spawns": [
     {
       "x": 0,
-      "y": 2
+      "y": 5
     }
   ],
   "goal": {
     "x": 14,
-    "y": 9
+    "y": 6
   },
   "startingGold": 300,
   "startingLives": 20,
