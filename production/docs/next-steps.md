@@ -1,7 +1,7 @@
 # Next Steps
 
 **Written:** 2026-08-09 · **State:** branch `main`, pushed, tree clean, `dotnet build` 0/0 ·
-**217 tests** · replay 30/30 · `maps` exits 0 · 12/12 maps valid, all twelve selectable, all twelve
+**228 tests** · replay 30/30 · `maps` exits 0 · 12/12 maps valid, all twelve selectable, all twelve
 **looked at in-engine**, `arrow-station` is real art, and the vocabulary is the fulfilment one.
 
 A session-crossing handoff. The filename-is-the-status rule still holds everywhere else — this file
@@ -276,7 +276,23 @@ without doing the arithmetic? A says "yes, slowly"; B says "the question never a
 
 ---
 
-### 5. The balance policy is blind to the one axis that makes the roster a choice
+### 5. Elevation is in, and B is the natural next step
+
+Boards climb now — a per-cell height field, view-only, with the simulation still on the flat grid
+(`docs/iso-grid.md` §Elevation). Ten generated boards have topography; `crossroads` and `gauntlet` are
+hand-authored and flat. Editor sculpts with `,` and `.`.
+
+**The follow-on that was always intended: make it mean something.** A station on a rise reaching
+further is not a new rule — it *is* the shipped "height means range" rule, composing. That turns
+elevation into simulation input, so it needs its own ADR, `Fix32` heights rather than float, and a
+trace re-record. Everything about the current field was built so that change is additive rather than
+a rewrite.
+
+Worth knowing before starting it: the height field is authored 0–9 but the generator only uses 0–4,
+and the route is carved flat with a level shelf either side. If height starts affecting range, that
+shelf becomes a balance decision rather than a readability one.
+
+### 6. The balance policy is blind to the one axis that makes the roster a choice
 
 `PlayPolicy` ranks stations on base damage-per-gold and never looks at `fussiness`, so it has **never
 built a cannon on any board**. But the cannon is not dominated — fussiness subtracts per hit, and the
@@ -292,7 +308,7 @@ crossover is at ~4:
 the repo describes a game that never uses half of it.** Teaching the policy about fussiness is a small
 change and would make the existing figures mean something different. Cheapest high-value item here.
 
-### 6. Cross-platform is defended but not measured
+### 7. Cross-platform is defended but not measured
 
 Locale, line-ending, enumeration-order and float hazards are all closed and each has a test —
 `tech-standards.md` §Cross-platform has the table. But the tests only *run* on Linux. The whole check

@@ -8,6 +8,33 @@ Open threads live in [`next-steps.md`](next-steps.md), not here.
 
 ---
 
+## 2026-08-09 · elevation
+
+Boards climb. A per-cell height field, **view-only** — the simulation is still computed on the flat
+grid, a hilly board hashes identically to the same board flat, and `replay` passed untouched. The five
+game baselines are byte-identical because `crossroads` and `gauntlet` are hand-authored and flat.
+
+Three wrong turns, all worth not repeating:
+
+- **Independent per-cell jitter reads as static**, not as ground. Noise has to be spatially correlated
+  — a coarse lattice, smoothstepped between.
+- **Height must follow *walking* distance to the goal**, not straight-line, or the ground cuts through
+  the board's own walls instead of bending around them.
+- **Pulling the route's shoulders to *within* one level is not enough.** At a 30° pitch one level of
+  0.22 hides 0.38 of a cell and a route marker is 0.46 wide, so `stepwell` showed three markers of
+  twenty-two. The route needs a flat shelf either side; scenery keeps its height.
+
+And one distinction worth keeping: the editor's route overlay draws **through** terrain, the game's
+does not. In the editor it is diagnostic UI that should not be occluded by its own subject; in the game
+the same markers would draw over a visitor's feet. Scoping it to the editor is why the game baselines
+did not move.
+
+The trap: picking. A ray tested against `y = 0` flies over raised terrain and lands ~1.7 cells behind
+per unit of height, so clicking a hilltop selects a cell up the slope. It iterates now — and the editor
+was on a separate flat overload that would have kept mis-picking on the very boards it can sculpt.
+
+---
+
 ## 2026-08-08 → 09 · twenty commits
 
 **State at the end:** `main` pushed, tree clean, build 0/0, **217 tests**, replay 30/30, `maps` exits 0.
