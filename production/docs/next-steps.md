@@ -93,6 +93,15 @@ rather than housekeeping.
 
 **Do nothing before the ADR**: where the opponent lives and what part of it is simulation state.
 
+**And that ADR is no longer free to pick either answer.**
+[`versus-mode-requirements.md`](../01-requirements/versus-mode-requirements.md) (2026-08-09) asks for
+online 1v1, desktop and mobile, and a remote human's intent can only arrive as a **command** — which
+forces the "opponent as a command source" answer and makes `PlayPolicy` one implementation of it.
+Read that file *before* writing this ADR, not after; building the "outside Core, serialised alongside
+the trace" answer first means paying for the seam twice. It also promotes §8 below from housekeeping
+to a hard prerequisite (lockstep across x86 and ARM), and it found that `godot/` has **no export
+preset at all** — mobile has never been exported, and there is no touch input anywhere in the project.
+
 ### 3. Ten stations — requirements are written, and wave 0 is yours
 
 [`station-pool-requirements.md`](../01-requirements/station-pool-requirements.md) specifies the roster
@@ -164,6 +173,10 @@ everything else in the vocabulary is already theme-free, and the rename cost is 
 mountain under every candidate, and so is a river.
 
 ### 8. Verify cross-platform on real hardware
+
+**Promoted 2026-08-09: `versus-mode` (§2) makes this a prerequisite, not a nice-to-have.** Deterministic
+lockstep between a desktop and a phone is x86 against ARM, and one divergent tick ends a match for both
+players with no way to say whose machine was wrong.
 
 Locale, line-ending, enumeration-order and float hazards are all closed and each has a test
 (`tech-standards.md` §Cross-platform) — but those tests have only ever *run* on Linux. The whole check
