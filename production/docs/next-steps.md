@@ -178,6 +178,16 @@ mountain under every candidate, and so is a river.
 lockstep between a desktop and a phone is x86 against ARM, and one divergent tick ends a match for both
 players with no way to say whose machine was wrong.
 
+**ARM passes under emulation, 2026-08-13 — half of this is now done.** arm64 container on the .NET 10
+SDK image via QEMU: build 0 warnings 0 errors, **244/244 tests**, and `replay` **30/30 checkpoints
+against hashes recorded on x86_64**. Nothing to diff by hand — the committed trace *is* the
+cross-architecture check, because its hashes were recorded on the other architecture.
+
+What is left is **real silicon**, and the reason it is still worth doing is narrow but real: QEMU runs
+the genuine ARM64 JIT yet advertises a different CPU feature set than an M-series or a Snapdragon, so
+the codegen paths a real device picks are not all covered. On a phone that is gated behind the Android
+export, which has never been attempted (§2). A Mac or an ARM Linux box would close it today.
+
 Locale, line-ending, enumeration-order and float hazards are all closed and each has a test
 (`tech-standards.md` §Cross-platform) — but those tests have only ever *run* on Linux. The whole check
 on a Mac or Windows box is two commands:

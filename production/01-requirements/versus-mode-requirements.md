@@ -39,13 +39,33 @@ of a lockstep protocol. The field names are already chosen and the loader alread
 
 ### 2. The volume is trivially small, which is what makes phones viable
 
-The committed `crossroads-baseline` trace is **7 commands / 396 bytes for 3000 ticks** — 100 seconds of
-play. A full twelve-wave run is larger; the policy fields 18–41 stations plus upgrades and repairs, so
-**order 100–200 commands, single-digit kilobytes for an entire match** (extrapolated from the station
-counts in the balance corpus, not measured — worth measuring before the ADR).
+**Measured 2026-08-13**, all twelve boards, seed 1, full twelve-wave runs under `PlayPolicy`.
+`BuildsPlaced` increments on `_sim.Enqueue` (`PlayPolicy.cs:371`), so these are commands *issued* —
+the thing that crosses a wire — not commands the sim accepted:
+
+| | builds | upgrades | repairs | total |
+|---|---|---|---|---|
+| `chambers` — most | 249 | 43 | 14 | **306** |
+| median board | ~200 | ~45 | ~12 | **~255** |
+| `gauntlet` — least | 15 | 30 | 0 | **45** |
+
+Plus at most 12 `startWave`. So **45–320 commands for an entire match.** At the trace format's measured
+57 bytes per command that is ~18 KB of naive JSON; a byte-packed command (tick, kind, cell, def index)
+is ~9 bytes and puts a whole match near **3 KB**.
 
 Not per second. **Per match.** A match costs less data than loading a web page, which is the difference
 between "works on a train" and "needs wifi."
+
+**Two things the measurement turned up that the extrapolation would have missed.**
+
+`crossroads` issues 205 build commands and ends with 38 stations standing having lost 10 — so roughly
+three quarters of its build commands are refused by the sim. A human does not spam placements the board
+will reject, so **the policy's figure is a conservative upper bound for a human**, which is the right
+direction for a bandwidth budget but the wrong direction for estimating anything else from it.
+
+`gauntlet` issues 45 commands against `chambers`'s 306 — a **7× spread across the shipped set**. Any
+per-match budget has to be quoted as a range, and `gauntlet` at 15 builds is doing something different
+enough from the other eleven to be worth a look on its own terms.
 
 ### 3. Desync detection and anti-cheat are the same function, and it is already called every tick
 
@@ -160,6 +180,10 @@ no way to say whose machine was wrong.
 **This moves §8 from housekeeping to a hard prerequisite.** It is still two commands
 (`dotnet test`, `Verify replay`); it just has to run on ARM before anyone commits to this design.
 
+**Downgraded but not closed, 2026-08-13.** Both commands now pass on arm64 under emulation — 244/244
+and 30/30 against x86-recorded hashes. The integer regime holds across instruction sets. What is left
+of this risk is real silicon, and it arrives with risk 3 rather than before it.
+
 ### 2. Lockstep means both clients know everything
 
 Every client simulates the whole game, so **nothing can be hidden client-side.** If a player should not
@@ -226,7 +250,9 @@ arriving at multi-spawn boards**, alongside inverted mode and `station-pool`.
 5. A player who disconnects mid-match can rejoin from a snapshot and finish it.
 6. An async match survives a gap of at least 24 hours between commits, with the server holding only the
    command stream.
-7. Total network payload for a complete twelve-wave match is **under 100 KB**, measured.
+7. Total network payload for a complete twelve-wave match is **under 100 KB**, measured. *(The command
+   payload alone is now known — 45–320 commands, ~18 KB as naive JSON. The criterion covers the rest:
+   handshake, checkpoint-hash exchange and commit acknowledgements, which are not yet designed.)*
 8. Neither player can see a command the other has committed but not yet resolved — verified by
    inspecting what the client is sent, not by what it draws.
 9. Single-player runs produce hashes and balance figures identical to the committed archive.
@@ -246,11 +272,23 @@ arriving at multi-spawn boards**, alongside inverted mode and `station-pool`.
 
 ## What must be true before design proceeds
 
-Three checks, none of them a design task, all of them cheap. Any one failing changes this file:
+Three checks, none of them a design task, all of them cheap. Any one failing changes this file.
+**Two are now done; the one that is left is the one most likely to hurt.**
 
 1. **`Verify replay` passes on ARM**, and `dotnet test` with it (next-steps §8).
+   **Passes under emulation, 2026-08-13.** arm64 container, .NET 10 SDK, QEMU: build 0/0,
+   **244/244 tests**, and `replay` **30/30 checkpoints against hashes recorded on x86_64**. The
+   `Fix32`/`SimRandom` regime reproduces bit-for-bit on a different instruction set — which was the
+   single assumption the whole design rests on, and it was previously untested.
+   **Not yet closed.** QEMU exercises the real ARM64 JIT but advertises a different CPU feature set
+   than an M-series or a Snapdragon, so the codegen paths a real device takes are not all covered.
+   This rules out the crude failures; criterion 3 still wants silicon.
 2. **A Godot 4.6.3 mono export runs on Android**, at all, with C# alive. There is no export preset yet.
+   **Still open, and it is now the critical path** — it gates the hardware half of check 1, since the
+   phone is the ARM device that matters.
 3. **The command volume of a full twelve-wave run is measured**, not extrapolated from station counts.
+   **Done, 2026-08-13** — 45–320 commands per match, twelve boards. See §2 above; the extrapolation
+   it replaced was low on count and right on order of magnitude.
 
 ## Handoff
 
