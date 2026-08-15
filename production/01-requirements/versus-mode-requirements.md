@@ -195,15 +195,59 @@ boundary. But it means the server is not optional and not a pure relay, and it m
 rather than bolted on. A design that lets clients exchange commands peer-to-peer can never have hidden
 information.
 
-### 3. Mobile is entirely unproven — there is no export preset in the repo
+### 3. Mobile is unproven, and the first attempt found a framework conflict
 
-`godot/` has **no `export_presets.cfg` at all.** The project has never been exported to anything.
-Godot 4.6.3 mono to Android and iOS has real constraints, and they are independent of everything else
-in this file — this risk can kill "mobile" on its own while leaving desktop versus perfectly healthy.
+`godot/` has no committed `export_presets.cfg` — the file is **gitignored** (`.gitignore:9`), so a
+preset is a local artefact each machine makes for itself, not something the repo can carry. The project
+has never been exported to anything.
 
 Compounding it: input is `InputEventMouseButton` and `InputEventMouseMotion` only, in `GameplayScene`
 and `CameraRig`. **There is no touch handling anywhere.** A phone build is a new input layer, not a
 recompile.
+
+#### Attempted 2026-08-14, headless, with an Android preset. It failed — informatively.
+
+Godot's own words first: **`Exporting to Android when using C#/.NET is experimental.`** That is 4.6.3
+describing itself, and it belongs in any decision that bets on this path.
+
+Then the structural one:
+
+```
+C# project targets 'net8.0' but the export template only supports 'net9.0'.
+```
+
+**This is not fatal, and the reason matters.** `godot/Gridfall.Godot.csproj` pins `net8.0` with a
+comment reading *"Godot 4.6's SDK targets net8.0. This is the constraint that pins Gridfall.Core to
+net8.0 as well (ADR-0001)."* Two things about that, both checked:
+
+- **ADR-0001 does not decide the framework.** Its decision is the Core/view boundary; `net8.0` appears
+  in its title and option B as description, not as the thing being chosen. Nothing in it is disturbed
+  by moving the *view*.
+- **Core does not have to move at all.** Only the Godot project needs `net9.0`, and a `net9.0` project
+  may reference a `net8.0` library. Core stays `net8.0` and stays Godot-free — which is the whole of
+  what ADR-0001 actually protects.
+
+Retargeting **only** the Godot project to `net9.0` was tested end to end:
+
+| | Result |
+|---|---|
+| That export error | **gone** |
+| `dotnet build -c Release` | 0 warnings, 0 errors |
+| Godot 4.6.3 mono loading the assembly | **runs** — headless boot printed the C# `tiles:`/`units:` lines |
+
+So the `net8.0` pin on the view is the SDK's *default*, not a hard constraint, and the runtime does not
+enforce it. **The edit was reverted**: a framework change that a csproj comment attributes to an ADR is
+an `engine-systems` decision, not a side effect of an export experiment.
+
+#### What the attempt could not reach
+
+Everything after that is absent toolchain, not a project problem: Godot's Android export templates, a
+JDK, and the Android SDK's `platform-tools` and `build-tools`. Installing it is roughly **5 GB**
+(templates ~1.2 GB, JDK ~400 MB, Android SDK ~1.5 GB, `dotnet workload install android` ~1.5–2 GB)
+against **6.3 GB free on a disk at 89%**, so it was stopped rather than run to the edge of the disk.
+
+**The residual risk is smaller than it was.** What remains unknown is whether the toolchain produces a
+running APK — not whether the project can be made to satisfy it.
 
 **Both of these are answerable in about a day, and both should be answered before any design work.**
 
@@ -284,8 +328,11 @@ Three checks, none of them a design task, all of them cheap. Any one failing cha
    than an M-series or a Snapdragon, so the codegen paths a real device takes are not all covered.
    This rules out the crude failures; criterion 3 still wants silicon.
 2. **A Godot 4.6.3 mono export runs on Android**, at all, with C# alive. There is no export preset yet.
-   **Still open, and it is now the critical path** — it gates the hardware half of check 1, since the
-   phone is the ARM device that matters.
+   **Attempted 2026-08-14; still open, and still the critical path** — it gates the hardware half of
+   check 1, since the phone is the ARM device that matters. The attempt found and cleared a framework
+   conflict (`net8.0` project against a `net9.0` export template; retargeting the view alone fixes it,
+   Core untouched) and then stopped at ~5 GB of missing toolchain against 6.3 GB of free disk. Godot
+   calls .NET Android export **experimental** in its own error text. Full account in risk 3.
 3. **The command volume of a full twelve-wave run is measured**, not extrapolated from station counts.
    **Done, 2026-08-13** — 45–320 commands per match, twelve boards. See §2 above; the extrapolation
    it replaced was low on count and right on order of magnitude.
@@ -299,5 +346,13 @@ To `engine-systems` — and it merges with the handoff already sitting at the en
 constrains the answer that inverted mode left open, because a remote human's intent can only arrive as
 a command. If that seam is built once, `PlayPolicy` and a network peer are both command sources and
 neither is special.
+
+**A second, much smaller decision also belongs to `engine-systems`, and it is now unblocked:** may
+`godot/Gridfall.Godot.csproj` target `net9.0`? Android requires it, it is measured as working
+(builds clean, and Godot 4.6.3 loads and runs the assembly), and Core is untouched either way. The
+csproj comment claiming ADR-0001 pins this is **wrong on the facts** — ADR-0001 decides the Core/view
+boundary, not a framework — so this is a comment to correct and a one-line change to accept, not an
+ADR to amend. It is worth doing on its own schedule: it costs nothing, and leaving the comment as-is
+means the next person re-derives all of the above.
 
 Nothing here should be built before the three checks above return.

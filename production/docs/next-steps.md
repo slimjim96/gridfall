@@ -185,8 +185,24 @@ cross-architecture check, because its hashes were recorded on the other architec
 
 What is left is **real silicon**, and the reason it is still worth doing is narrow but real: QEMU runs
 the genuine ARM64 JIT yet advertises a different CPU feature set than an M-series or a Snapdragon, so
-the codegen paths a real device picks are not all covered. On a phone that is gated behind the Android
-export, which has never been attempted (§2). A Mac or an ARM Linux box would close it today.
+the codegen paths a real device picks are not all covered. **A Mac or an ARM Linux box would close it
+today** — and that is now the cheap route, because the phone route is gated behind an Android export
+that was attempted on 2026-08-14 and did not complete (below).
+
+**The Android export, attempted and not finished.** Two things came out of it, both recorded in
+[`versus-mode-requirements.md`](../01-requirements/versus-mode-requirements.md) risk 3. Godot 4.6.3
+calls .NET Android export **experimental** in its own error text. And the export template wants
+`net9.0` while the project pins `net8.0` — *fixable*, and measured: retargeting **only**
+`godot/Gridfall.Godot.csproj` clears the error, builds 0/0, and Godot loads and runs the assembly.
+Core stays `net8.0` and is untouched, because a `net9.0` project may reference a `net8.0` library.
+
+**The csproj comment that says ADR-0001 pins this is wrong on the facts** — ADR-0001 decides the
+Core/view boundary, and `net8.0` appears in it as description, not as the decision. Correcting that
+comment and accepting the one-line retarget is a small `engine-systems` item that is now unblocked and
+worth doing on its own; leaving it means the next person re-derives the whole chain.
+
+The export then stopped at missing toolchain — templates, JDK, Android SDK — about **5 GB against
+6.3 GB free on a disk at 89%**. Nothing about the project blocks it; only the disk does.
 
 Locale, line-ending, enumeration-order and float hazards are all closed and each has a test
 (`tech-standards.md` §Cross-platform) — but those tests have only ever *run* on Linux. The whole check
