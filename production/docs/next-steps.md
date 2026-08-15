@@ -99,8 +99,24 @@ online 1v1, desktop and mobile, and a remote human's intent can only arrive as a
 forces the "opponent as a command source" answer and makes `PlayPolicy` one implementation of it.
 Read that file *before* writing this ADR, not after; building the "outside Core, serialised alongside
 the trace" answer first means paying for the seam twice. It also promotes §8 below from housekeeping
-to a hard prerequisite (lockstep across x86 and ARM), and it found that `godot/` has **no export
-preset at all** — mobile has never been exported, and there is no touch input anywhere in the project.
+to a hard prerequisite (lockstep across x86 and ARM), and it found that mobile has **never been
+exported** and there is no touch input anywhere in the project.
+
+**The shape of versus is decided as of 2026-08-15: mirrored.** Both players defend a copy of the same
+board and spend to send visitors at the other. Asymmetric was rejected because it needs
+attacker-versus-defender parity, and `inverted-mode` already fixed the lean at 70–85% toward the human
+— with two humans, one of those leans has to die, and the project has no instrument to tune it.
+
+Three things follow, and they are the shape of the ADR rather than notes on it:
+
+- **The cross-board channel is the only new simulation rule in the mode**, so it *is* the ADR's real
+  subject: what crosses, how it is a command, what part is hashed.
+- **Nothing may be tuned per seat, ever** — symmetry is the whole reason mirrored won.
+- **Two `Sim`s per match becomes a supported configuration.** No statics today, but that is a property
+  to keep true with a test rather than assume.
+
+It also probably **spares the trace archive**: under mirrored, command ownership is a routing property,
+so `CommandQueue.Entry` may never need the seat field that would have re-recorded every trace.
 
 ### 3. Ten stations — requirements are written, and wave 0 is yours
 
@@ -142,6 +158,14 @@ single-wave gate is a gate *in both directions*, at every setting of every dial 
 lethal waves whichever chair the human sits in. So this is not a normal-mode chore that inverted mode
 will need repeating; it is one piece of work serving both, and the boards that fail one mode's quality
 bar are exactly the ones that fail the other's.
+
+**But mirrored versus changes what "degenerate" means, as of 2026-08-15.** In a mirrored match nobody
+loses to the board — you lose to the person, and the board is shared terrain both players read. A board
+too safe to be a solo level can still be a perfectly good race, so the five 0.0% boards are not
+necessarily waste; they may simply be *versus* boards. That does not settle this thread, and it is not
+a reason to keep a board that fails both single-player modes. It does mean the decision is now "which
+set, for which mode" rather than "keep or cut", and the answer should wait until the cross-board
+channel exists to test them against.
 
 ### 6. Two presentation calls nobody has made
 

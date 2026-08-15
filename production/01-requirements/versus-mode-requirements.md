@@ -1,11 +1,13 @@
 # Versus Mode — Requirements
 
 **Slug:** `versus-mode` · **Status:** ready · **Owner:** design-lead · **Date:** 2026-08-09
+**Revised:** 2026-08-15 — match shape decided (mirrored); pre-design checks 1 and 3 answered
 
 ## In One Sentence
 
-Two players — and only ever two — play the same board against each other over a network, on desktop or
-on a phone, by exchanging **command streams** rather than game state.
+Two players — and only ever two — **each defend their own copy of the same board** and spend to send
+visitors at the other, over a network, on desktop or on a phone, by exchanging **command streams**
+rather than game state.
 
 ## Why this arrives now, and why it cannot wait for inverted mode
 
@@ -49,9 +51,14 @@ the thing that crosses a wire — not commands the sim accepted:
 | median board | ~200 | ~45 | ~12 | **~255** |
 | `gauntlet` — least | 15 | 30 | 0 | **45** |
 
-Plus at most 12 `startWave`. So **45–320 commands for an entire match.** At the trace format's measured
-57 bytes per command that is ~18 KB of naive JSON; a byte-packed command (tick, kind, cell, def index)
-is ~9 bytes and puts a whole match near **3 KB**.
+Plus at most 12 `startWave`. So **45–320 commands per board.** At the trace format's measured 57 bytes
+per command that is ~18 KB of naive JSON; a byte-packed command (tick, kind, cell, def index) is
+~9 bytes and puts a board near **3 KB**.
+
+**Double it for a match.** The 2026-08-15 decision makes a match two boards, so the figures above are
+per-player: **90–640 commands, ~36 KB naive JSON or ~6 KB packed**, plus whatever the cross-board
+channel adds. Still inside acceptance criterion 7's 100 KB, and still nothing on a phone plan — but the
+headroom is half what it looks like above, which is worth knowing before the channel is designed.
 
 Not per second. **Per match.** A match costs less data than loading a web page, which is the difference
 between "works on a train" and "needs wifi."
@@ -83,12 +90,17 @@ Core/view boundary and it should be named as one.
 `Snapshot()`/`Restore()` round-trip exactly and are already tested, which is reconnect, late-join and
 spectate.
 
-## The shape of the match is the open decision
+## The shape of the match — DECIDED 2026-08-15: mirrored
 
-Two candidates. **This is the decision this file exists to force**, and it is not primarily technical —
-both are buildable, they differ in what has to be balanced and what the match feels like.
+**Mirrored. Both players defend a copy of the same board, and offensive spending sends visitors at the
+other player's board.** Option B below, chosen by the human on 2026-08-15. The alternative and the
+reasoning are kept because the *reason* constrains what comes next: the mode is symmetric, so nothing
+in it may be tuned per seat.
 
-### A · Asymmetric — one attacks, one defends
+Two candidates were on the table. They were never primarily a technical choice — both are buildable,
+and they differ in what has to be balanced and what a match feels like.
+
+### A · Asymmetric — one attacks, one defends · **rejected**
 
 Inverted mode with the AI seat given to a person. One board, one `Sim`, one command stream per seat.
 
@@ -100,7 +112,7 @@ Inverted mode with the AI seat given to a person. One board, one `Sim`, one comm
   balance archive says nothing about it.
 - Each player exercises half the content per match.
 
-### B · Mirrored — both defend a copy of the same board, and spend to send at the other
+### B · Mirrored — both defend a copy of the same board, and spend to send at the other · **chosen**
 
 Two `Sim` instances, one per player, same map and same seed. Offensive spending on your board sends
 visitors to *theirs*. Both players do both jobs.
@@ -118,10 +130,27 @@ visitors to *theirs*. Both players do both jobs.
   option.
 - Also the harder thing to show on a phone screen — see the presentation risk below.
 
-**Recommendation: B.** A is cheaper this month and more expensive every month after, because it buys a
-balance problem the project has no instrument for. B's new rule is bounded and its content bill is
-already paid. But this is a design call about what the game *is*, and it is stated here as open on
-purpose.
+**Why B won.** A is cheaper this month and more expensive every month after, because it buys a balance
+problem the project has no instrument for. B's new rule is bounded and its content bill is already paid.
+
+### What the decision now commits the project to
+
+Three consequences follow immediately, and each is a thing someone must do rather than a thing to note:
+
+1. **The cross-board channel is the only new simulation rule in the whole mode**, and it is therefore
+   the thing the ADR has to get right. What crosses is *visitors*, and the open question is whether the
+   sending player composes a wave (as in inverted mode) or buys pressure by some cheaper handle. It is
+   simulation input on the receiving board, so it is hashed, and it must be expressible as a command.
+2. **Nothing may be tuned per seat, ever.** Symmetry is the entire reason this option was chosen; a
+   number that differs between the two boards silently reintroduces the parity problem that sank A.
+   This is written as constraint 8 below.
+3. **Two `Sim` instances per match becomes a supported configuration.** `Sim` is a plain object with no
+   statics — verified — but nothing has ever run two at once, and "no statics" is a property that has
+   to stay true rather than one that stays true by itself. It needs a test.
+
+**What it does *not* change:** the pacing, the protocol, the server shape, the bandwidth figures, and
+every check already run. Those were all decided or measured independently of this, which is why they
+were worth doing first.
 
 ## Pacing: simultaneous-commit, not real-time
 
@@ -150,21 +179,21 @@ but it is a different requirements file and it needs everything below solved fir
 
 | Pillar | | Note |
 |---|---|---|
-| 1 · The maze is the game | **Supports** | Under B, the maze is the game twice over: you build yours while reading theirs. Under A, unchanged from inverted mode |
-| 2 · Legible at a glance | **Fights, and this is the mobile problem** | Two boards on a phone is the hardest legibility problem the project has taken on. Under A it is neutral. Today the game is mouse-only — there is no touch input anywhere in `godot/` |
-| 3 · Deterministic, therefore fair | **Supports — this is the pillar cashing in** | The determinism regime built for fairness is exactly what makes lockstep possible. But the guarantee is now load-bearing against a *hostile* client, not just a careless one, and it has only ever been verified on one architecture. See risk 1 |
-| 4 · Every loss is explainable | **Fights** | "Why did I lose" now includes a decision another person made, possibly hours ago, possibly on a board you were not watching. Under B the answer partly lives on someone else's screen |
+| 1 · The maze is the game | **Supports, twice over** | You build your maze while reading theirs, and the pressure you send is judged against the maze they built. Both players are doing the pillar's activity at once |
+| 2 · Legible at a glance | **Fights, and mirrored makes it worse** | Two boards on a phone is the hardest legibility problem the project has taken on, and choosing mirrored commits to it rather than leaving it optional. Today the game is mouse-only — there is no touch input anywhere in `godot/`. **This is the pillar the decision costs the most** |
+| 3 · Deterministic, therefore fair | **Supports — this is the pillar cashing in** | The determinism regime built for fairness is exactly what makes lockstep possible. But the guarantee is now load-bearing against a *hostile* client, not just a careless one, and two `Sim`s per match doubles what a divergence can come from. See risk 1 |
+| 4 · Every loss is explainable | **Fights** | "Why did I lose" now includes a decision another person made, possibly hours ago, on a board you were not watching. The answer partly lives on someone else's screen, and mirrored guarantees that rather than risking it |
 | 5 · Small numbers, big decisions | **Supports** | Two players is a constraint, not a limitation. It is what keeps the protocol, the server and the matchmaking small enough to be worth building |
 
 ## TD Checklist
 
 | Question | Answer |
 |---|---|
-| **Player fantasy** | Under B: building the better answer to the same problem, and watching your solution beat theirs. Under A: reading a defence and finding the hole, against someone who is reading you back |
-| **Pathing** | Mechanically unchanged. Under B, two independent flow fields — `PathSystem` is per-`Sim` and already carries no shared state |
-| **Economy** | The real Core surgery. `Gold` and `Patience` are single global `int`s on `SimState`. Under A they must become per-seat; under B each `Sim` keeps its own and the new quantity is what crosses between boards |
-| **Wave pressure** | Becomes an opposing player's decision. Under B it is *both* players' decision simultaneously, which is a compounding-economy race — the exact pathology `inverted-mode` chose a fixed budget to avoid, and the same answer probably applies |
-| **Failure state** | Losing to a person. Also: the opponent disconnecting, the opponent stalling an async match for a week, and a hash mismatch that cannot be attributed |
+| **Player fantasy** | Building the better answer to the same problem, and watching your solution outlast theirs. Both players face one board and one opponent, and the same board |
+| **Pathing** | Mechanically unchanged, and this is where mirrored is cheap. Two independent flow fields — `PathSystem` is constructed per-`Sim` and carries no shared state |
+| **Economy** | Lighter than asymmetric would have been. `Gold` and `Patience` stay single `int`s because **each `Sim` keeps its own** — no per-seat split inside `SimState`. The new quantity is whatever crosses between boards, and that is the design question, not the surgery |
+| **Wave pressure** | Both players' decision simultaneously, which is a compounding-economy race — the exact pathology `inverted-mode` chose a fixed budget to avoid. The same answer probably applies and should be assumed to until measured |
+| **Failure state** | Losing to a person. Also: the opponent disconnecting, the opponent stalling an async match for a week, and a hash mismatch that cannot be attributed to a board |
 
 ## The risks, in order
 
@@ -249,20 +278,27 @@ against **6.3 GB free on a disk at 89%**, so it was stopped rather than run to t
 **The residual risk is smaller than it was.** What remains unknown is whether the toolchain produces a
 running APK — not whether the project can be made to satisfy it.
 
-**Both of these are answerable in about a day, and both should be answered before any design work.**
-
-### 4. Commands have no owner, and the trace archive pays for adding one
+### 4. Commands have no owner — and mirrored may mean they never need one
 
 `CommandQueue.Entry` carries `Kind`, `Cell`, `StationDefIndex`, `StationId` — and no seat. Adding one
-is a small change to a hashed structure, which **re-records every trace**. That is cheap today (one
-file, 8 KB) and gets steadily less cheap. If it is happening, it should happen early.
+is a small change to a hashed structure, which **re-records every trace**.
 
-### 5. The board set has one spawn, and versus does not fix that
+**Largely dissolved by the 2026-08-15 decision, and this is a real dividend.** Under mirrored, each
+player owns a `Sim` — their commands apply to their own board, and a cross-board send applies to the
+opponent's. **Ownership is a property of routing, not of the command**, so the queue may need no seat
+field at all and the trace archive may never be re-recorded for this.
+
+Asymmetric would have needed the field, because there both seats act on one `Sim`. Confirm this holds
+before designing the channel; if the channel turns out to need an originator recorded in hashed state,
+the field comes back and the "do it early" advice returns with it.
+
+### 5. The board set has one spawn, and mirrored softens but does not fix it
 
 All twelve maps have exactly one spawn — verified by reading the map files, and already flagged as
-inverted mode's second risk. Under A the attacker still chooses only *what* and *when*, never *where*.
-Under B it matters less, because the spatial decision is on your own board. **This is one more thread
-arriving at multi-spawn boards**, alongside inverted mode and `station-pool`.
+inverted mode's second risk. Mirrored reduces the sting, because each player's spatial decision is on
+their own board and does not depend on the spawn count of the board they are attacking. But what
+crosses the channel still arrives *somewhere*, and with one spawn it always arrives in the same place.
+**This is one more thread arriving at multi-spawn boards**, alongside inverted mode and `station-pool`.
 
 ## Constraints
 
@@ -270,17 +306,20 @@ arriving at multi-spawn boards**, alongside inverted mode and `station-pool`.
    server and no matchmaking tiers — not a limitation to be relaxed later.
 2. **Inputs cross the wire, never state.** If any game state is ever sent, determinism has stopped
    being the fairness guarantee and this whole design is the wrong one.
-3. **One simulation, unchanged rules.** Inherited from `inverted-mode` constraint 1 and it binds harder
-   here: no mode flag inside a system, no fork of the tick order. Versus changes where commands come
-   from and how the match is scored.
+3. **One set of rules, two instances of it.** Inherited from `inverted-mode` constraint 1 and it binds
+   harder here: no mode flag inside a system, no fork of the tick order. Mirrored runs *two `Sim`s of
+   the same game*, not one `Sim` that knows it is in versus mode.
 4. **Single-player is byte-identical to today** — same hashes, same balance figures, same traces. This
-   is the same criterion inverted mode set, and the trace re-record in risk 4 is its one licensed
-   exception.
+   is the same criterion inverted mode set.
 5. **The server runs Core and nothing else.** No Godot dependency, headless or otherwise. If the server
    ever needs the engine, ADR-0001 has been violated somewhere upstream.
 6. **Hidden information is enforced server-side or not claimed.** See risk 2.
-7. **No new simulation rule for A.** Option B's cross-board channel is the only new rule either option
-   may introduce, and only if B is chosen.
+7. **The cross-board channel is the only new simulation rule the mode may introduce.** Everything else
+   is existing rules running twice. If a second new rule appears, that is the signal the design has
+   drifted into being a different game.
+8. **Nothing is tuned per seat.** No station, visitor, wave, map, budget or timer may differ between
+   the two boards. Symmetry is the reason mirrored was chosen over asymmetric; a per-seat number
+   reintroduces the parity-balance problem that rejected A, silently and late.
 
 ## Acceptance Criteria
 
@@ -295,22 +334,29 @@ arriving at multi-spawn boards**, alongside inverted mode and `station-pool`.
 6. An async match survives a gap of at least 24 hours between commits, with the server holding only the
    command stream.
 7. Total network payload for a complete twelve-wave match is **under 100 KB**, measured. *(The command
-   payload alone is now known — 45–320 commands, ~18 KB as naive JSON. The criterion covers the rest:
-   handshake, checkpoint-hash exchange and commit acknowledgements, which are not yet designed.)*
+   payload is now known — 45–320 commands per board, so 90–640 and ~36 KB naive JSON for a mirrored
+   match. The criterion covers the rest: the cross-board channel, handshake, checkpoint-hash exchange
+   and commit acknowledgements, none of which are designed yet.)*
 8. Neither player can see a command the other has committed but not yet resolved — verified by
    inspecting what the client is sent, not by what it draws.
 9. Single-player runs produce hashes and balance figures identical to the committed archive.
-10. A match is playable to completion on a phone, by touch, with both boards legible. *(Option B only;
-    under A, on the one board.)*
+10. A match is playable to completion on a phone, by touch, **with both boards legible** — the criterion
+    the mirrored decision made mandatory rather than optional.
+11. **Two `Sim` instances advanced in the same process do not influence each other**: interleaving their
+    ticks produces the same hashes as running each to completion alone. This is the test that keeps
+    "`Sim` has no statics" true rather than merely currently-true.
+12. **A match is symmetric under seat swap.** Replaying a recorded match with the two players' command
+    streams exchanged produces the mirrored result. This is constraint 8 made checkable.
 
 ## Open sub-decisions, with a recommendation each
 
 | Question | Recommendation | Why |
 |---|---|---|
-| Mirrored or asymmetric? | **Mirrored (B)** | Asymmetric buys a parity-balance problem with no instrument to measure it; mirrored's content bill is already paid — but this is the design call, stated open |
+| ~~Mirrored or asymmetric?~~ | **DECIDED 2026-08-15: mirrored** | Asymmetric buys a parity-balance problem with no instrument to measure it; mirrored's content bill is already paid. See the decision section above |
+| What crosses the channel? | **Open — and it is now the main design question** | Composed waves (as inverted mode) give the richest decision and the most tuning surface; a cheaper pressure handle is easier to make legible on a phone. Pillar 2 and Pillar 5 pull in opposite directions here |
 | Real-time or simultaneous-commit? | **Simultaneous-commit** | Latency stops existing as a concept, and async play — the thing that makes a phone game get played — falls out for free |
 | Authoritative server, or relay? | **Authoritative**, re-simulating | It costs almost nothing (Core + a socket) and it is the only way to arbitrate a mismatch or hide information |
-| Same seed for both players under B? | **Yes** | Identical boards make the match about the players. A per-player seed reintroduces "I got the worse board," which Pillar 3 exists to prevent |
+| Same seed for both boards? | **Yes** — and constraint 8 now makes it near-mandatory | Identical boards make the match about the players. A per-player seed reintroduces "I got the worse board," which Pillar 3 exists to prevent |
 | Ranked, rating, matchmaking? | **Out of scope, explicitly** | Named here so it is a later decision rather than a silent assumption |
 | Does versus ship before inverted mode? | **No — but it is decided first** | Inverted mode is the single-player proving ground for the opponent-as-command-source seam |
 
@@ -346,6 +392,17 @@ To `engine-systems` — and it merges with the handoff already sitting at the en
 constrains the answer that inverted mode left open, because a remote human's intent can only arrive as
 a command. If that seam is built once, `PlayPolicy` and a network peer are both command sources and
 neither is special.
+
+**The mirrored decision sharpens it further, and mostly in `engine-systems`' favour.** With one `Sim`
+per player, an opponent's intent does not enter *your* simulation as an opponent at all — it enters as
+pressure on your board through the cross-board channel. So the ADR's real subject is that channel:
+what crosses, how it is expressed as a command, and what part of it is hashed state. Two smaller
+questions come with it, both now answerable rather than speculative:
+
+- **Does `CommandQueue.Entry` need a seat field?** Probably not — see risk 4. Ownership looks like a
+  routing property under mirrored, which would spare the trace archive entirely.
+- **Do two `Sim`s in one process stay independent?** They should; `Sim` has no statics. Acceptance
+  criterion 11 exists to make that a test rather than an assumption.
 
 **A second, much smaller decision also belongs to `engine-systems`, and it is now unblocked:** may
 `godot/Gridfall.Godot.csproj` target `net9.0`? Android requires it, it is measured as working
