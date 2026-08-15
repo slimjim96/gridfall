@@ -118,6 +118,24 @@ Three things follow, and they are the shape of the ADR rather than notes on it:
 It also probably **spares the trace archive**: under mirrored, command ownership is a routing property,
 so `CommandQueue.Entry` may never need the seat field that would have re-recorded every trace.
 
+**What crosses that channel is decided too, same day: composed waves.** You spend a budget, compose a
+wave, send it — the act `inverted-mode` already specifies in full. Three consequences, and the first is
+the reason it was the cheap answer despite looking like the expensive one:
+
+- **One mechanic serves three modes, through a seam already found.** Normal mode reads the wave table,
+  inverted mode has the human compose it, versus has both humans compose at each other — all entering
+  at `content.Waves[state.WaveIndex - 1]` in `SpawnSystem.Run` and `SpawnSystem.WaveComplete`. Versus
+  adds **no new seam**, only a second consumer. Write the ADR so the wave source is pluggable *once*,
+  with table / local human / remote human as three cases of one thing.
+- **Budget legality belongs in Core, not the server** — an over-budget wave is refused by the receiving
+  `Sim` exactly as `CommandSystem` refuses an unaffordable build. A cheating client desyncs itself into
+  a refusal rather than an advantage, and the server stays a relay plus commit gate.
+- **On the wire it is nearly free.** `MaxWaveEntries` is 16, so a wave is ~64 bytes packed and twelve
+  from both players is under 2 KB for a whole match. The composition *screen* is the expensive part,
+  not the sending.
+
+**And it promotes the visitor roster from improvement to dependency — see §3.**
+
 ### 3. Ten stations — requirements are written, and wave 0 is yours
 
 [`station-pool-requirements.md`](../01-requirements/station-pool-requirements.md) specifies the roster
@@ -136,6 +154,15 @@ Also newly blocking, and it was already written down: **`themed-unit-palettes`.*
 `board-themes-direction.md` says decide it *before* `station-pool` ships. Ten stations in a palette
 that already owns most of the warm spectrum is exactly the collision it predicted — and water is now
 competing for the cool end too.
+
+**The visitor half of this stopped being optional on 2026-08-15.** `station-pool` names the counterpart
+visitor trait each station role needs; that was a quality argument. Versus mode decided that players
+**compose waves** at each other, which makes the visitor roster the flagship mode's core verb — and it
+is five archetypes with two traits inert or narrow (`fussiness` never changes a purchase at shipped
+composition, `attackDrain` exists only on `sapper`). **Composing from five archetypes is not
+composing.** This is the *fourth* independent thread to arrive at "the visitor roster needs a real
+spread" — the fussiness measurement, the `station-pool` axis argument and `inverted-mode` risk 3 are
+the others — and the first where it blocks a mode rather than improving one.
 
 ### 4. Make elevation mean something — the follow-on that was always planned
 

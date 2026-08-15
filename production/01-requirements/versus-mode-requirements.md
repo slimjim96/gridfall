@@ -1,13 +1,14 @@
 # Versus Mode — Requirements
 
 **Slug:** `versus-mode` · **Status:** ready · **Owner:** design-lead · **Date:** 2026-08-09
-**Revised:** 2026-08-15 — match shape decided (mirrored); pre-design checks 1 and 3 answered
+**Revised:** 2026-08-15 — match shape decided (mirrored), channel decided (composed waves); pre-design
+checks 1 and 3 answered. **No design questions remain open.**
 
 ## In One Sentence
 
-Two players — and only ever two — **each defend their own copy of the same board** and spend to send
-visitors at the other, over a network, on desktop or on a phone, by exchanging **command streams**
-rather than game state.
+Two players — and only ever two — **each defend their own copy of the same board** while spending a
+budget to **compose waves they send at the other**, over a network, on desktop or on a phone, by
+exchanging **command streams** rather than game state.
 
 ## Why this arrives now, and why it cannot wait for inverted mode
 
@@ -56,9 +57,16 @@ per command that is ~18 KB of naive JSON; a byte-packed command (tick, kind, cel
 ~9 bytes and puts a board near **3 KB**.
 
 **Double it for a match.** The 2026-08-15 decision makes a match two boards, so the figures above are
-per-player: **90–640 commands, ~36 KB naive JSON or ~6 KB packed**, plus whatever the cross-board
-channel adds. Still inside acceptance criterion 7's 100 KB, and still nothing on a phone plan — but the
-headroom is half what it looks like above, which is worth knowing before the channel is designed.
+per-player: **90–640 commands, ~36 KB naive JSON or ~6 KB packed**.
+
+**The channel adds almost nothing on top.** Composed waves cross it, and `SimState.MaxWaveEntries` caps
+a wave at **16** entries; at (def index, count) per entry that is ~64 bytes packed, so twelve waves from
+both players is **under 2 KB for the entire match**. The richer answer to "what crosses the channel"
+turns out to be the cheap one on the wire — the composition is a handful of small integers, and it is
+the *screen* that composes them that is expensive, not the sending.
+
+So the match stays comfortably inside acceptance criterion 7's 100 KB, with the headroom now spent on
+handshake and checkpoint-hash exchange rather than on gameplay.
 
 Not per second. **Per match.** A match costs less data than loading a web page, which is the difference
 between "works on a train" and "needs wifi."
@@ -152,6 +160,75 @@ Three consequences follow immediately, and each is a thing someone must do rathe
 every check already run. Those were all decided or measured independently of this, which is why they
 were worth doing first.
 
+## What crosses the channel — DECIDED 2026-08-15: composed waves
+
+**You spend a budget, compose a wave, and send it at the opponent's board.** Not a pressure slider, not
+an abstract handle — the same act `inverted-mode-requirements.md` already specifies in full.
+
+### This is the cheapest possible answer, and that is not a coincidence
+
+The alternative was a cheaper pressure handle, easier to render on a phone. Composed waves cost more in
+Pillar 2 and buy three things a slider cannot:
+
+**1. One mechanic now serves three modes.** Normal mode reads a wave table. Inverted mode has the human
+compose the wave. Mirrored versus has *both* humans compose, at each other. That is one composition
+mechanic, one budget, one price list, one piece of UI — built once, for a mode that ships before this
+one.
+
+**2. It lands on a seam that is already found and already measured.** `inverted-mode` verified that
+`content.Waves[state.WaveIndex - 1]` appears in exactly **two** places, `SpawnSystem.Run` and
+`SpawnSystem.WaveComplete`, and that nothing else in Core indexes the wave table during a run. A
+composed wave enters through that same seam. **One seam, three modes** — and versus adds nothing to
+what inverted mode already has to build there.
+
+**3. The content bill was already paid twice over.** A wave table is the attacker's *script* in normal
+mode and their *price list* in inverted mode; in versus it is the price list again, unchanged. One
+file, three readings, no new content.
+
+### Budget enforcement is a Core rule, not a server responsibility
+
+This is the part worth getting right, and it falls out of what already exists.
+
+A hostile client could compose a wave that exceeds its budget. The instinct is to have the server
+validate it — but that is the wrong place, and unnecessary. **The receiving `Sim` rejects an
+over-budget wave exactly as `CommandSystem` already rejects an unaffordable build**, deterministically,
+on both machines, with an event saying why. `CommandSystem.BuildCost` is the precedent and the shape to
+copy.
+
+Two consequences follow, both good:
+
+- **A cheating client desyncs itself into a rejection**, not into an advantage. Both machines agree the
+  wave was illegal because both machines ran the same rule.
+- **The server stays a relay-plus-commit-gate** rather than growing a rules engine. It still holds
+  commands until both players commit (risk 2), and it can still re-simulate to arbitrate — but it never
+  needs to *know* what a wave costs.
+
+### What it costs, stated plainly
+
+**Pillar 2, and this is now the mode's largest open problem.** A composition screen has to coexist with
+two boards on a phone. That is a harder presentation brief than anything in the project, and it is the
+one place where the cheap answer would genuinely have been better.
+
+**Pillar 5 is the reason it is worth it.** "Small numbers, big decisions" is exactly what a composed
+wave is and exactly what a pressure slider is not.
+
+**It makes the visitor roster load-bearing.** `inverted-mode` risk 3 already says the player's toolkit
+is five archetypes with two traits inert or narrow — `fussiness` never changes a purchase at shipped
+composition, and `attackDrain` exists only on `sapper`. That was the **third** independent thread
+demanding a real visitor spread. Versus makes it the **fourth**, and the first where it is the flagship
+mode's core verb rather than a secondary one. **Composing from five archetypes is not composing.**
+
+### The budget is fixed, not earned — inherited, not re-decided
+
+`inverted-mode` already recommends **fixed per wave, growing on a curve**, because an earned budget
+makes two compounding economies race, which is the exact pathology six normal-mode balance passes
+fought. Mirrored versus has *two* players with budgets, so that reasoning applies twice over and the
+TD checklist's "compounding-economy race" concern is answered by inheriting the decision rather than
+re-opening it.
+
+Constraint 8 binds it further: **the budget curve is identical for both players.** It is content, not a
+per-seat dial.
+
 ## Pacing: simultaneous-commit, not real-time
 
 This is a recommendation strong enough to be a constraint, and the reason is in the existing loop.
@@ -192,7 +269,7 @@ but it is a different requirements file and it needs everything below solved fir
 | **Player fantasy** | Building the better answer to the same problem, and watching your solution outlast theirs. Both players face one board and one opponent, and the same board |
 | **Pathing** | Mechanically unchanged, and this is where mirrored is cheap. Two independent flow fields — `PathSystem` is constructed per-`Sim` and carries no shared state |
 | **Economy** | Lighter than asymmetric would have been. `Gold` and `Patience` stay single `int`s because **each `Sim` keeps its own** — no per-seat split inside `SimState`. The new quantity is whatever crosses between boards, and that is the design question, not the surgery |
-| **Wave pressure** | Both players' decision simultaneously, which is a compounding-economy race — the exact pathology `inverted-mode` chose a fixed budget to avoid. The same answer probably applies and should be assumed to until measured |
+| **Wave pressure** | **Entirely a player decision now** — both players compose waves at each other from a budget. That is two economies running simultaneously, which is why the budget is **fixed per wave on a curve** rather than earned, inherited from `inverted-mode` rather than re-decided. `tier2-soft-lock-options.md` option B arriving from a third direction |
 | **Failure state** | Losing to a person. Also: the opponent disconnecting, the opponent stalling an async match for a week, and a hash mismatch that cannot be attributed to a board |
 
 ## The risks, in order
@@ -320,6 +397,12 @@ crosses the channel still arrives *somewhere*, and with one spawn it always arri
 8. **Nothing is tuned per seat.** No station, visitor, wave, map, budget or timer may differ between
    the two boards. Symmetry is the reason mirrored was chosen over asymmetric; a per-seat number
    reintroduces the parity-balance problem that rejected A, silently and late.
+9. **Budget legality is a Core rule, enforced by command rejection.** An over-budget wave is refused by
+   the receiving `Sim` exactly as `CommandSystem` refuses an unaffordable build — deterministically, on
+   both machines, with an event saying why. The server must never need to know what a wave costs.
+10. **The composition mechanic is shared with `inverted-mode`, not forked from it.** One budget, one
+    price list, one composition UI. If versus needs its own variant, that is a design change and needs
+    saying so out loud.
 
 ## Acceptance Criteria
 
@@ -347,13 +430,18 @@ crosses the channel still arrives *somewhere*, and with one spawn it always arri
     "`Sim` has no statics" true rather than merely currently-true.
 12. **A match is symmetric under seat swap.** Replaying a recorded match with the two players' command
     streams exchanged produces the mirrored result. This is constraint 8 made checkable.
+13. **A player composes a wave from a budget and cannot exceed it** — and an over-budget wave submitted
+    by a modified client is **refused by both simulations identically**, with an event naming the
+    reason. Verified by submitting one deliberately, not by trusting the sender.
+14. **A wave composed in inverted mode and the same wave composed in versus produce identical spawns**
+    on the same board and seed. One mechanic, proven to be one mechanic.
 
 ## Open sub-decisions, with a recommendation each
 
 | Question | Recommendation | Why |
 |---|---|---|
 | ~~Mirrored or asymmetric?~~ | **DECIDED 2026-08-15: mirrored** | Asymmetric buys a parity-balance problem with no instrument to measure it; mirrored's content bill is already paid. See the decision section above |
-| What crosses the channel? | **Open — and it is now the main design question** | Composed waves (as inverted mode) give the richest decision and the most tuning surface; a cheaper pressure handle is easier to make legible on a phone. Pillar 2 and Pillar 5 pull in opposite directions here |
+| ~~What crosses the channel?~~ | **DECIDED 2026-08-15: composed waves** | The same act inverted mode already specifies — spend a budget, compose a wave, send it. One mechanic serves three modes. See the section below |
 | Real-time or simultaneous-commit? | **Simultaneous-commit** | Latency stops existing as a concept, and async play — the thing that makes a phone game get played — falls out for free |
 | Authoritative server, or relay? | **Authoritative**, re-simulating | It costs almost nothing (Core + a socket) and it is the only way to arbitrate a mismatch or hide information |
 | Same seed for both boards? | **Yes** — and constraint 8 now makes it near-mandatory | Identical boards make the match about the players. A per-player seed reintroduces "I got the worse board," which Pillar 3 exists to prevent |
@@ -395,14 +483,30 @@ neither is special.
 
 **The mirrored decision sharpens it further, and mostly in `engine-systems`' favour.** With one `Sim`
 per player, an opponent's intent does not enter *your* simulation as an opponent at all — it enters as
-pressure on your board through the cross-board channel. So the ADR's real subject is that channel:
-what crosses, how it is expressed as a command, and what part of it is hashed state. Two smaller
-questions come with it, both now answerable rather than speculative:
+pressure on your board through the cross-board channel.
+
+**And as of 2026-08-15 that channel is specified: composed waves, through the seam inverted mode
+already found.** `content.Waves[state.WaveIndex - 1]` in `SpawnSystem.Run` and
+`SpawnSystem.WaveComplete` — two places, verified, nothing else in Core indexes the wave table during a
+run. Versus adds **no new seam** beyond what inverted mode must build there anyway; it adds a second
+consumer of it. The ADR should therefore be written so the wave source is pluggable *once*, with the
+table, the local human and the remote human as three cases of one thing.
+
+Two smaller questions come with it, both now answerable rather than speculative:
 
 - **Does `CommandQueue.Entry` need a seat field?** Probably not — see risk 4. Ownership looks like a
   routing property under mirrored, which would spare the trace archive entirely.
 - **Do two `Sim`s in one process stay independent?** They should; `Sim` has no statics. Acceptance
   criterion 11 exists to make that a test rather than an assumption.
+- **Where does budget legality live?** Constraint 9 says Core, by command rejection, on the model of
+  `CommandSystem.BuildCost`. That keeps the server a relay-plus-commit-gate instead of a second rules
+  engine, and it makes a cheating client desync itself into a refusal rather than an advantage.
+
+**One thing this hands *back* to `game-design`, and it is not small.** Composed waves make the visitor
+roster the flagship mode's core verb, and it is five archetypes with two traits inert or narrow.
+`inverted-mode` risk 3 was the third independent thread to reach that conclusion; this is the fourth.
+**Composing from five archetypes is not composing** — the roster work is now a dependency of versus,
+not an improvement to it.
 
 **A second, much smaller decision also belongs to `engine-systems`, and it is now unblocked:** may
 `godot/Gridfall.Godot.csproj` target `net9.0`? Android requires it, it is measured as working
