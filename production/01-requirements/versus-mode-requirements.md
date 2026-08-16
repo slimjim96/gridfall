@@ -386,8 +386,12 @@ crosses the channel still arrives *somewhere*, and with one spawn it always arri
 3. **One set of rules, two instances of it.** Inherited from `inverted-mode` constraint 1 and it binds
    harder here: no mode flag inside a system, no fork of the tick order. Mirrored runs *two `Sim`s of
    the same game*, not one `Sim` that knows it is in versus mode.
-4. **Single-player is byte-identical to today** — same hashes, same balance figures, same traces. This
-   is the same criterion inverted mode set.
+4. **Single-player behaviour is unchanged** — same play, same balance figures. **Revised 2026-08-15:**
+   this used to say "same hashes, same traces" and that is now known to be unachievable.
+   [ADR-0008](../../engine-systems/decisions/ADR-0008-active-wave-as-commanded-state.md) makes the
+   active wave a field in `SimState`, and hashes are over state, so every trace re-records **once**.
+   Behaviour and balance figures are untouched; the hashes shift because there is more state, not
+   because anything plays differently. Do the re-record with that change, not after it.
 5. **The server runs Core and nothing else.** No Godot dependency, headless or otherwise. If the server
    ever needs the engine, ADR-0001 has been violated somewhere upstream.
 6. **Hidden information is enforced server-side or not claimed.** See risk 2.
@@ -472,6 +476,17 @@ Three checks, none of them a design task, all of them cheap. Any one failing cha
    it replaced was low on count and right on order of magnitude.
 
 ## Handoff
+
+**Answered 2026-08-15 by
+[ADR-0008 — Make the Active Wave Hashed State, Written by a Command](../../engine-systems/decisions/ADR-0008-active-wave-as-commanded-state.md)** (status: proposed).
+The composed wave becomes a field in `SimState`, written by a `SendWave` command that `CommandSystem`
+validates against the budget in phase 1 and `SpawnSystem` reads in phase 3. Normal mode fills the same
+field from the table, so there is one read path for all three modes.
+
+The ADR's own finding is that this **dissolves** the question below rather than answering it: an
+opponent can live anywhere — `Gridfall.Verify`, a keyboard, a socket — because the only thing any of
+them can do is produce a command. Core does not grow an AI and does not need to know one exists. The
+original framing is kept below because the ADR's options section argues against it directly.
 
 To `engine-systems` — and it merges with the handoff already sitting at the end of
 `inverted-mode-requirements.md` rather than queueing behind it.

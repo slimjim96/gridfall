@@ -216,7 +216,12 @@ mode's quality bar are exactly the ones that fail the other's.
 7. A player can tell why a visitor died: which station, on which cell, at which point of the route.
 8. On at least one board with more than one spawn, a defence that covers one lane visibly fails to
    cover another.
-9. Normal mode is byte-identical to today — same hashes, same balance figures, same traces.
+9. Normal mode **plays** identically to today — same behaviour, same balance figures. **Revised
+   2026-08-15:** this said "byte-identical … same hashes, same traces", which
+   [ADR-0008](../../engine-systems/decisions/ADR-0008-active-wave-as-commanded-state.md) makes
+   unachievable: the active wave becomes a field in `SimState`, and hashes are over state, so every
+   trace re-records **once**. Nothing plays differently — there is simply more state to hash. The
+   re-record happens with that change, not after it.
 
 ## Open sub-decisions, with a recommendation each
 
@@ -249,3 +254,20 @@ simulation state.** Two real alternatives —
   the trace. Keeps Core small; every consumer of a trace now needs the AI's state too.
 
 Nothing else should be built until that is decided, and criterion 5 is the one that decides it.
+
+### Decided 2026-08-15 — and neither alternative won
+
+[ADR-0008 — Make the Active Wave Hashed State, Written by a
+Command](../../engine-systems/decisions/ADR-0008-active-wave-as-commanded-state.md) (status: proposed)
+takes a third option that removes the question. The **wave** becomes a field in `SimState`, written by
+a `SendWave` command; `SpawnSystem` reads it from state instead of from `content.Waves[...]`, and normal
+mode fills the same field from the table.
+
+Once the only thing that reaches the simulation is a command, **the opponent's location stops being an
+architectural question.** `PlayPolicy` can stay exactly where it is in `Gridfall.Verify`; a human at a
+keyboard and a socket carrying a remote player are the same case. Core does not grow an AI (rejecting
+the first alternative) and no trace consumer carries the AI's state (rejecting the second), because
+there is no AI state in the loop at all — only commands, which a trace already records.
+
+The ADR was raised jointly with `versus-mode`, whose composed-waves decision needs the identical seam.
+Read it before building anything here; criterion 9 above was revised by it.

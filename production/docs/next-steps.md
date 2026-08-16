@@ -91,7 +91,28 @@ has exactly 1 of 12 waves able to end a run at *every* setting of *both* dials, 
 mode. A board that is a gate is a gate in both directions — so §5 below is now a shared dependency
 rather than housekeeping.
 
-**Do nothing before the ADR**: where the opponent lives and what part of it is simulation state.
+~~**Do nothing before the ADR**: where the opponent lives and what part of it is simulation state.~~
+
+**The ADR is written, 2026-08-15:
+[ADR-0008 — Make the Active Wave Hashed State, Written by a Command](../../engine-systems/decisions/ADR-0008-active-wave-as-commanded-state.md),
+status `proposed`.** It takes a third option that neither slice had listed, and the third option
+removes the question. The **wave** becomes a field in `SimState`, written by a `SendWave` command that
+`CommandSystem` validates against the budget in phase 1 and `SpawnSystem` reads in phase 3. Normal mode
+fills the same field from the table, so all three modes spawn through one read path.
+
+Once a command is the only thing that reaches the simulation, **where the opponent lives stops being
+architectural.** `PlayPolicy` stays in `Gridfall.Verify` untouched; a human and a socket are the same
+case. Core does not grow an AI, and no trace consumer carries AI state, because there is none in the
+loop — only commands, which a trace already records.
+
+**One cost, and it contradicts something both requirements files promised.** `SimState` grows, hashes
+are over state, so **every trace re-records once** — behaviour and balance figures unchanged, hashes
+shifted. Both files said "same traces" and both have been corrected. Do the re-record *with* that
+change; every trace recorded before it pays the same cost later. The project has hit this exact trap
+before — see `Sim`'s constructor comment about `ForceRebuild` bumping a hashed `Version`.
+
+**Accepting it is a one-word edit** (`proposed` → `accepted`, in the ADR and the decisions index) and
+it is the human's, not mine.
 
 **And that ADR is no longer free to pick either answer.**
 [`versus-mode-requirements.md`](../01-requirements/versus-mode-requirements.md) (2026-08-09) asks for
